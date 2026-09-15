@@ -14,13 +14,27 @@ both sets of modules coexist:
   alerts, one-click collection), Client Directory (bilingual English/Arabic
   names), Project Detail technical pages, Meetings & Tasks, Company Profile,
   Reports & Export, Newmux's Own Ventures page.
-- **Outbound Outreach & Deal Pipeline (PRD Module 1, `/pipeline`)**: a
-  5-stage Kanban (Lead Discovery → Proposal/Quotation Sent → Negotiation →
-  Won/Lost) with a call/email/WhatsApp outreach log, a Quick Outcome Modal
-  for logging a result in a few taps (No Answer, Gatekeeper Blocked, Not
-  Interested, Info Requested, Meeting Booked), and one-click conversion:
-  moving a deal to Won auto-creates the client directory record, a project
-  workspace, and a draft 50% deposit invoice (`lib/data/deals.ts`).
+- **Outbound Outreach & CRM (PRD Module 1, `/pipeline`)**: a drag-and-drop
+  5-stage deal board (Lead Discovery → Proposal/Quotation Sent → Negotiation
+  → Won/Lost) with per-stage deal counts and value totals, a
+  call/email/WhatsApp outreach log, a Quick Outcome Modal for logging a
+  result in a few taps (No Answer, Gatekeeper Blocked, Not Interested, Info
+  Requested, Meeting Booked), and one-click conversion: dropping a deal into
+  Won auto-creates the client directory record, a project workspace, and a
+  draft 50% deposit invoice (`lib/data/deals.ts`). Dropping into Lost
+  captures a lost reason. Each deal has a detail page (`/pipeline/[id]`)
+  with editable fields and a merged timeline of every outreach touch and
+  stage change. The page also carries **pipeline analytics** — stage funnel
+  with per-stage conversion, average time-in-stage, forecast by expected
+  close month, and win/loss with lost-reason breakdown — and a **follow-up
+  reminder engine** derived from each deal's next-follow-up date, surfaced
+  both here and on the dashboard.
+- **Drag-and-drop boards**: `components/kanban/DragBoard.tsx` is the shared
+  @dnd-kit board used by both the deal pipeline and the per-project task
+  Kanban. Cards move within and between columns by pointer, touch, or
+  keyboard (space to lift, arrows to move); columns scroll horizontally on
+  phones and lay out as a grid on desktop. The server persists the card's
+  final column and index, so ordering survives a reload.
 - **Original generic modules (kept per "merge both" decision)**: Executive
   Dashboard, Documents (PDF export), Projects/Tasks, Secrets Vault, Paddle
   webhook ingestion, Growth attribution tracker.

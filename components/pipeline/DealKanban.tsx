@@ -1,11 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import * as Dialog from "@radix-ui/react-dialog";
 import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { QuickOutcomeModal } from "./QuickOutcomeModal";
+import { DragBoard, type BoardItem } from "@/components/kanban/DragBoard";
 import { centsToDisplay } from "@/lib/money";
+import { ArrowUpRight, X } from "lucide-react";
 import type { Deal, DealStage, OutreachActivity } from "@/lib/data/types";
 
 const COLUMNS: { stage: DealStage; label: string }[] = [
@@ -24,8 +29,12 @@ const OUTCOME_LABEL: Record<OutreachActivity["outcome"], string> = {
   meeting_booked: "Meeting Booked",
 };
 
+const COMMON_LOST_REASONS = ["Price", "Timeline", "Went with a competitor", "No budget", "Went quiet"];
+
+type DealBoardItem = BoardItem & { deal: Deal };
+
 export function DealKanban({
-  deals: initialDeals,
+  deals,
   ownerNames,
   lastOutreach,
 }: {
@@ -34,85 +43,153 @@ export function DealKanban({
   lastOutreach: Record<string, OutreachActivity | undefined>;
 }) {
   const router = useRouter();
-  const [deals, setDeals] = useState(initialDeals);
-  const [updating, setUpdating] = useState<string | null>(null);
+  const [pendingLost, setPendingLost] = useState<{ dealId: string; index: number } | null>(null);
+  const [lostReason, setLostReason] = useState("");
 
-  async function changeStage(dealId: string, stage: DealStage) {
-    setUpdating(dealId);
-    const res = await fetch(`/api/deals/${dealId}/stage`, {
+  const items = useMemo<DealBoardItem[]>(
+    () => [...deals].sort((a, b) => a.sortOrder - b.sortOrder).map((d) => ({ id: d.id, columnId: d.stage, deal: d })),
+    [deals],
+  );
+
+  const columns = COLUMNS.map((col) => {
+    const inStage = deals.filter((d) => d.stage === col.stage);
+    const total = inStage.reduce((sum, d) => sum + d.quotedValueCents, 0);
+    return {
+      id: col.stage,
+      label: col.label,
+      meta: `${inStage.length} · ${centsToDisplay(total, "BHD")}`,
+    };
+  });
+
+  async function persistMove(dealId: string, stage: DealStage, index: number, reason?: string) {
+    await fetch(`/api/deals/${dealId}/stage`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ stage }),
+      body: JSON.stringify({ stage, index, ...(reason ? { lostReason: reason } : {}) }),
     });
-    if (res.ok) {
-      const { deal } = await res.json();
-      setDeals((prev) => prev.map((d) => (d.id === dealId ? deal : d)));
-    }
-    setUpdating(null);
     router.refresh();
   }
 
+  async function handleMove(dealId: string, toColumnId: string, index: number) {
+    const stage = toColumnId as DealStage;
+    const deal = deals.find((d) => d.id === dealId);
+
+    // Ask why, but only when a deal newly lands in Lost.
+    if (stage === "lost" && deal?.stage !== "lost") {
+      setPendingLost({ dealId, index });
+      setLostReason("");
+      return;
+    }
+    await persistMove(dealId, stage, index);
+  }
+
+  async function confirmLost(reason: string) {
+    if (!pendingLost) return;
+    const { dealId, index } = pendingLost;
+    setPendingLost(null);
+    await persistMove(dealId, "lost", index, reason);
+  }
+
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-      {COLUMNS.map((col) => (
-        <div key={col.stage}>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            {col.label} · {deals.filter((d) => d.stage === col.stage).length}
-          </h3>
-          <div className="flex flex-col gap-2">
-            {deals
-              .filter((d) => d.stage === col.stage)
-              .map((deal) => {
-                const last = lastOutreach[deal.id];
-                return (
-                  <Card key={deal.id} className="text-sm">
-                    <p className="mb-1 font-medium text-white">{deal.name}</p>
-                    <p className="mb-2 text-xs text-slate-500">
-                      {centsToDisplay(deal.quotedValueCents, deal.currency)} · {ownerNames[deal.ownerId] ?? "Unassigned"}
-                    </p>
-                    {last && (
-                      <p className="mb-2 text-xs text-slate-500">
-                        Last: {OUTCOME_LABEL[last.outcome]} ({last.channel}) — {new Date(last.createdAt).toLocaleDateString()}
-                      </p>
-                    )}
-                    {deal.nextFollowUpDate && deal.stage !== "won" && deal.stage !== "lost" && (
-                      <p className="mb-2 text-xs text-amber-400">Follow up: {new Date(deal.nextFollowUpDate).toLocaleDateString()}</p>
-                    )}
+    <>
+      <DragBoard
+        items={items}
+        columns={columns}
+        onMove={handleMove}
+        renderCard={(item) => {
+          const deal = item.deal;
+          const last = lastOutreach[deal.id];
+          return (
+            <Card className="cursor-grab text-sm active:cursor-grabbing">
+              <div className="mb-1 flex items-start justify-between gap-2">
+                <p className="font-medium text-white">{deal.name}</p>
+                <Link
+                  href={`/pipeline/${deal.id}`}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  className="shrink-0 text-slate-500 hover:text-emerald-400"
+                  aria-label={`Open ${deal.name}`}
+                >
+                  <ArrowUpRight className="h-4 w-4" />
+                </Link>
+              </div>
+              <p className="mb-2 text-xs text-slate-500">
+                {centsToDisplay(deal.quotedValueCents, deal.currency)} · {ownerNames[deal.ownerId] ?? "Unassigned"}
+              </p>
 
-                    {deal.stage === "won" && deal.convertedProjectId && (
-                      <p className="mb-2 text-xs text-emerald-400">
-                        Converted →{" "}
-                        <Link href={`/projects/${deal.convertedProjectId}`} className="underline">
-                          project
-                        </Link>{" "}
-                        ·{" "}
-                        <Link href={`/documents/${deal.convertedInvoiceId}`} className="underline">
-                          deposit invoice
-                        </Link>
-                      </p>
-                    )}
+              {last && (
+                <p className="mb-2 text-xs text-slate-500">
+                  Last: {OUTCOME_LABEL[last.outcome]} ({last.channel}) — {new Date(last.createdAt).toLocaleDateString()}
+                </p>
+              )}
+              {deal.nextFollowUpDate && deal.stage !== "won" && deal.stage !== "lost" && (
+                <p className="mb-2 text-xs text-amber-400">Follow up: {new Date(deal.nextFollowUpDate).toLocaleDateString()}</p>
+              )}
+              {deal.stage === "lost" && deal.lostReason && <p className="mb-2 text-xs text-slate-500">Lost: {deal.lostReason}</p>}
 
-                    <div className="flex flex-col gap-2">
-                      {col.stage !== "won" && col.stage !== "lost" && <QuickOutcomeModal dealId={deal.id} dealName={deal.name} />}
-                      <select
-                        value={deal.stage}
-                        disabled={updating === deal.id}
-                        onChange={(e) => changeStage(deal.id, e.target.value as DealStage)}
-                        className="min-h-[36px] w-full rounded-lg border border-white/10 bg-slate-900 px-2 py-1 text-xs text-slate-200"
-                      >
-                        {COLUMNS.map((c) => (
-                          <option key={c.stage} value={c.stage}>
-                            Move to {c.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </Card>
-                );
-              })}
-          </div>
-        </div>
-      ))}
-    </div>
+              {deal.stage === "won" && deal.convertedProjectId && (
+                <p className="mb-2 text-xs text-emerald-400">
+                  Converted →{" "}
+                  <Link href={`/projects/${deal.convertedProjectId}`} onPointerDown={(e) => e.stopPropagation()} className="underline">
+                    project
+                  </Link>
+                  {deal.convertedInvoiceId && (
+                    <>
+                      {" · "}
+                      <Link href={`/documents/${deal.convertedInvoiceId}`} onPointerDown={(e) => e.stopPropagation()} className="underline">
+                        deposit invoice
+                      </Link>
+                    </>
+                  )}
+                </p>
+              )}
+
+              {deal.stage !== "won" && deal.stage !== "lost" && (
+                <div onPointerDown={(e) => e.stopPropagation()}>
+                  <QuickOutcomeModal dealId={deal.id} dealName={deal.name} />
+                </div>
+              )}
+            </Card>
+          );
+        }}
+      />
+
+      <Dialog.Root open={pendingLost !== null} onOpenChange={(open) => !open && confirmLost("")}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[90vw] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-white/10 bg-slate-950 p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <Dialog.Title className="text-sm font-semibold text-white">Why was this deal lost?</Dialog.Title>
+              <Dialog.Close className="text-slate-500 hover:text-slate-200">
+                <X className="h-4 w-4" />
+              </Dialog.Close>
+            </div>
+            <div className="mb-3 flex flex-col gap-2">
+              {COMMON_LOST_REASONS.map((reason) => (
+                <button
+                  key={reason}
+                  type="button"
+                  onClick={() => confirmLost(reason)}
+                  className="min-h-[40px] rounded-lg border border-white/10 bg-slate-900 px-3 text-left text-sm text-slate-100 hover:border-emerald-500/50"
+                >
+                  {reason}
+                </button>
+              ))}
+            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                confirmLost(lostReason);
+              }}
+              className="flex flex-col gap-2"
+            >
+              <Input placeholder="Another reason…" value={lostReason} onChange={(e) => setLostReason(e.target.value)} />
+              <Button type="submit" variant="secondary">
+                Save reason
+              </Button>
+            </form>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+    </>
   );
 }

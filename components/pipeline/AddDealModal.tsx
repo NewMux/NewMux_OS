@@ -16,6 +16,7 @@ export function AddDealModal({ owners }: { owners: User[] }) {
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [quotedValue, setQuotedValue] = useState("");
+  const [expectedCloseDate, setExpectedCloseDate] = useState("");
   const [ownerId, setOwnerId] = useState(owners[0]?.id ?? "");
   const [saving, setSaving] = useState(false);
 
@@ -33,6 +34,7 @@ export function AddDealModal({ owners }: { owners: User[] }) {
         quotedValue: Number(quotedValue) || 0,
         currency: "BHD",
         ownerId,
+        expectedCloseDate,
       }),
     });
     setSaving(false);
@@ -41,6 +43,7 @@ export function AddDealModal({ owners }: { owners: User[] }) {
     setContactEmail("");
     setContactPhone("");
     setQuotedValue("");
+    setExpectedCloseDate("");
     setOpen(false);
     router.refresh();
   }
@@ -67,6 +70,8 @@ export function AddDealModal({ owners }: { owners: User[] }) {
             <Input type="email" placeholder="Contact email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} />
             <Input placeholder="Contact phone" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
             <Input type="number" min="0" step="0.001" placeholder="Quoted value (BHD)" value={quotedValue} onChange={(e) => setQuotedValue(e.target.value)} />
+            <label className="-mb-1 text-xs text-slate-500">Expected close date</label>
+            <Input type="date" value={expectedCloseDate} onChange={(e) => setExpectedCloseDate(e.target.value)} />
             <select
               value={ownerId}
               onChange={(e) => setOwnerId(e.target.value)}

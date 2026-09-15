@@ -12,4 +12,6 @@ export const createTaskSchema = z.object({
 export const updateTaskSchema = z.object({
   status: z.enum(["todo", "in_progress", "in_review", "done"]).optional(),
   priority: z.enum(["urgent", "high", "medium", "low"]).optional(),
+  /** Board position within the target column; sent by drag-and-drop moves. */
+  index: z.number().int().nonnegative().optional(),
 });

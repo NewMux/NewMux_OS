@@ -77,6 +77,38 @@ export async function updateTaskStatus(taskId: string, status: TaskStatus): Prom
   return task;
 }
 
+/**
+ * Board move: drops a task into `status` at `index` within that column and
+ * renumbers the affected columns so sortOrder stays dense.
+ */
+export async function moveTask(taskId: string, status: TaskStatus, index: number): Promise<Task> {
+  const task = store.tasks.find((t) => t.id === taskId);
+  if (!task) throw new Error("Task not found");
+
+  const fromStatus = task.status;
+  task.status = status;
+
+  const column = store.tasks
+    .filter((t) => t.projectId === task.projectId && t.status === status && t.id !== task.id)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+  const clamped = Math.max(0, Math.min(index, column.length));
+  column.splice(clamped, 0, task);
+  column.forEach((t, i) => {
+    t.sortOrder = i;
+  });
+
+  if (fromStatus !== status) {
+    store.tasks
+      .filter((t) => t.projectId === task.projectId && t.status === fromStatus)
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .forEach((t, i) => {
+        t.sortOrder = i;
+      });
+  }
+
+  return task;
+}
+
 export async function updateTaskPriority(taskId: string, priority: TaskPriority): Promise<Task> {
   const task = store.tasks.find((t) => t.id === taskId);
   if (!task) throw new Error("Task not found");

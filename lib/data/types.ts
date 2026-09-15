@@ -388,6 +388,12 @@ export type Deal = {
   ownerId: string;
   notes: string | null;
   nextFollowUpDate: string | null;
+  /** Forecasting input — when this deal is expected to close. */
+  expectedCloseDate: string | null;
+  /** Why a deal was lost, for the win/loss breakdown. Only set in the lost stage. */
+  lostReason: string | null;
+  /** Position within its stage column on the board. */
+  sortOrder: number;
   /** Set by one-click conversion when the deal is moved to Won. */
   convertedClientId: string | null;
   convertedProjectId: string | null;
@@ -395,6 +401,16 @@ export type Deal = {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+};
+
+/** Every stage transition, so analytics can measure time-in-stage and stage conversion. */
+export type DealStageHistoryEntry = {
+  id: string;
+  dealId: string;
+  fromStage: DealStage | null;
+  toStage: DealStage;
+  changedBy: string;
+  changedAt: string;
 };
 
 export type OutreachChannel = "call" | "email" | "whatsapp";

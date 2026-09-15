@@ -28,6 +28,7 @@ import type {
   CompanyProfile,
   PipelineItem,
   Deal,
+  DealStageHistoryEntry,
   OutreachActivity,
 } from "./types";
 import { majorToMinorUnits } from "@/lib/money";
@@ -81,6 +82,7 @@ type Store = {
   companyProfile: CompanyProfile;
   pipelineItems: PipelineItem[];
   deals: Deal[];
+  dealStageHistory: DealStageHistoryEntry[];
   outreachActivities: OutreachActivity[];
   seededAdminPassword?: string;
 };
@@ -559,6 +561,9 @@ function seed(): Store {
     ownerId: mohammedId,
     notes: "Cold-called from Instagram DM list.",
     nextFollowUpDate: daysAgo(-2),
+    expectedCloseDate: daysAgo(-25),
+    lostReason: null,
+    sortOrder: 0,
     convertedClientId: null,
     convertedProjectId: null,
     convertedInvoiceId: null,
@@ -578,6 +583,9 @@ function seed(): Store {
     ownerId: jassimId,
     notes: "Quotation QUO draft sent, awaiting decision.",
     nextFollowUpDate: daysAgo(-4),
+    expectedCloseDate: daysAgo(-18),
+    lostReason: null,
+    sortOrder: 0,
     convertedClientId: null,
     convertedProjectId: null,
     convertedInvoiceId: null,
@@ -596,7 +604,10 @@ function seed(): Store {
     currency: "BHD",
     ownerId: mohammedId,
     notes: "Negotiating payment schedule — 50/50 vs. 3 installments.",
-    nextFollowUpDate: daysAgo(-1),
+    nextFollowUpDate: daysAgo(1),
+    expectedCloseDate: daysAgo(-9),
+    lostReason: null,
+    sortOrder: 0,
     convertedClientId: null,
     convertedProjectId: null,
     convertedInvoiceId: null,
@@ -616,6 +627,9 @@ function seed(): Store {
     ownerId: jassimId,
     notes: "Went with a cheaper local freelancer.",
     nextFollowUpDate: null,
+    expectedCloseDate: null,
+    lostReason: "Price — chose a cheaper freelancer",
+    sortOrder: 0,
     convertedClientId: null,
     convertedProjectId: null,
     convertedInvoiceId: null,
@@ -623,7 +637,58 @@ function seed(): Store {
     createdAt: daysAgo(40),
     updatedAt: daysAgo(30),
   };
-  const deals: Deal[] = [dealNewBakery, dealGymApp, dealClinic, dealRestaurant];
+  const dealVoyaWon: Deal = {
+    id: randomUUID(),
+    name: "Voya Travel & Tourism — booking platform",
+    contactPerson: null,
+    contactEmail: null,
+    contactPhone: null,
+    stage: "won",
+    quotedValueCents: bhd(4500),
+    currency: "BHD",
+    ownerId: mohammedId,
+    notes: "Closed on a 50% deposit / 50% on delivery schedule.",
+    nextFollowUpDate: null,
+    expectedCloseDate: daysAgo(92),
+    lostReason: null,
+    sortOrder: 0,
+    convertedClientId: clientVoya.id,
+    convertedProjectId: projectVoya.id,
+    convertedInvoiceId: null,
+    createdBy: mohammedId,
+    createdAt: daysAgo(120),
+    updatedAt: daysAgo(92),
+  };
+  const deals: Deal[] = [dealNewBakery, dealGymApp, dealClinic, dealRestaurant, dealVoyaWon];
+
+  // Stage transitions drive the funnel conversion + time-in-stage analytics.
+  const stageMove = (deal: Deal, fromStage: Deal["stage"] | null, toStage: Deal["stage"], at: string): DealStageHistoryEntry => ({
+    id: randomUUID(),
+    dealId: deal.id,
+    fromStage,
+    toStage,
+    changedBy: deal.ownerId,
+    changedAt: at,
+  });
+  const dealStageHistory: DealStageHistoryEntry[] = [
+    stageMove(dealNewBakery, null, "lead_discovery", daysAgo(6)),
+
+    stageMove(dealGymApp, null, "lead_discovery", daysAgo(14)),
+    stageMove(dealGymApp, "lead_discovery", "proposal_sent", daysAgo(3)),
+
+    stageMove(dealClinic, null, "lead_discovery", daysAgo(21)),
+    stageMove(dealClinic, "lead_discovery", "proposal_sent", daysAgo(14)),
+    stageMove(dealClinic, "proposal_sent", "negotiation", daysAgo(4)),
+
+    stageMove(dealRestaurant, null, "lead_discovery", daysAgo(40)),
+    stageMove(dealRestaurant, "lead_discovery", "proposal_sent", daysAgo(35)),
+    stageMove(dealRestaurant, "proposal_sent", "lost", daysAgo(30)),
+
+    stageMove(dealVoyaWon, null, "lead_discovery", daysAgo(120)),
+    stageMove(dealVoyaWon, "lead_discovery", "proposal_sent", daysAgo(110)),
+    stageMove(dealVoyaWon, "proposal_sent", "negotiation", daysAgo(100)),
+    stageMove(dealVoyaWon, "negotiation", "won", daysAgo(92)),
+  ];
 
   const outreachActivities: OutreachActivity[] = [
     { id: randomUUID(), dealId: dealNewBakery.id, channel: "call", contactedBy: mohammedId, outcome: "no_answer", notes: null, nextFollowUpDate: daysAgo(-2), createdAt: daysAgo(6) },
@@ -734,6 +799,7 @@ function seed(): Store {
     companyProfile,
     pipelineItems,
     deals,
+    dealStageHistory,
     outreachActivities,
     seededAdminPassword,
   };

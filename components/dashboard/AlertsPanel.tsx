@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { centsToDisplay } from "@/lib/money";
@@ -8,7 +9,8 @@ export function AlertsPanel({ alerts }: { alerts: DashboardAlerts }) {
     alerts.todaysMeetings.length === 0 &&
     alerts.tasksDueTodayOrOverdue.length === 0 &&
     alerts.renewalsWithin30Days.length === 0 &&
-    alerts.hostingAlerts.length === 0;
+    alerts.hostingAlerts.length === 0 &&
+    alerts.dealFollowUps.length === 0;
 
   return (
     <Card className="mb-4">
@@ -37,6 +39,20 @@ export function AlertsPanel({ alerts }: { alerts: DashboardAlerts }) {
               <p key={t.id} className={t.overdue ? "text-red-400" : "text-slate-200"}>
                 {t.title} {t.overdue && <Badge className="ml-1 bg-red-500/20 text-red-300">Overdue</Badge>}
               </p>
+            ))}
+          </div>
+        )}
+
+        {alerts.dealFollowUps.length > 0 && (
+          <div>
+            <p className="mb-1 text-xs font-medium text-slate-400">Deal follow-ups due</p>
+            {alerts.dealFollowUps.map((r) => (
+              <Link key={r.dealId} href={`/pipeline/${r.dealId}`} className="block hover:underline">
+                <span className={r.status === "overdue" ? "text-red-400" : "text-amber-400"}>
+                  {r.dealName} — {r.stageLabel}
+                  {r.status === "overdue" && <Badge className="ml-1 bg-red-500/20 text-red-300">Overdue</Badge>}
+                </span>
+              </Link>
             ))}
           </div>
         )}

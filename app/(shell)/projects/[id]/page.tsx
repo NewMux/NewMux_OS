@@ -33,7 +33,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     new Date(project.domainRenewalDate).getTime() - Date.now() < 30 * 24 * 60 * 60 * 1000;
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-5xl">
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-white">{project.name}</h1>

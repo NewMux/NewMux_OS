@@ -1,5 +1,6 @@
 import { store } from "./store";
 import { hostingAlertLevel } from "./hosting";
+import { listFollowUpReminders, type FollowUpReminder } from "./deals";
 import type { Meeting, Task, HostingSubscription, Project } from "./types";
 
 function isSameDay(a: Date, b: Date): boolean {
@@ -11,6 +12,8 @@ export type DashboardAlerts = {
   tasksDueTodayOrOverdue: (Task & { overdue: boolean })[];
   renewalsWithin30Days: { label: string; dueDate: string; overdue: boolean }[];
   hostingAlerts: { subscription: HostingSubscription; overdue: boolean }[];
+  /** Deal follow-ups due today or already overdue. */
+  dealFollowUps: FollowUpReminder[];
   activeProjectCount: number;
   completedProjectCount: number;
 };
@@ -65,6 +68,8 @@ export async function getDashboardAlerts(): Promise<DashboardAlerts> {
     .filter((x) => x.level !== "ok")
     .map((x) => ({ subscription: x.subscription, overdue: x.level === "overdue" }));
 
+  const dealFollowUps = (await listFollowUpReminders()).filter((r) => r.status !== "upcoming");
+
   const activeProjectCount = store.projects.filter((p) => p.status === "active_sprint").length;
   const completedProjectCount = store.projects.filter((p) => p.status === "completed").length;
 
@@ -73,6 +78,7 @@ export async function getDashboardAlerts(): Promise<DashboardAlerts> {
     tasksDueTodayOrOverdue,
     renewalsWithin30Days,
     hostingAlerts,
+    dealFollowUps,
     activeProjectCount,
     completedProjectCount,
   };

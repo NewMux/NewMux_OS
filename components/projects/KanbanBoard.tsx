@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { PriorityBadge } from "./PriorityBadge";
+import { DragBoard, type BoardItem } from "@/components/kanban/DragBoard";
 import type { Task, TaskStatus } from "@/lib/data/types";
 
 const COLUMNS: { status: TaskStatus; label: string }[] = [
@@ -13,57 +14,58 @@ const COLUMNS: { status: TaskStatus; label: string }[] = [
   { status: "done", label: "Done" },
 ];
 
-export function KanbanBoard({ tasks: initialTasks }: { tasks: Task[] }) {
-  const router = useRouter();
-  const [tasks, setTasks] = useState(initialTasks);
-  const [updating, setUpdating] = useState<string | null>(null);
+type TaskBoardItem = BoardItem & { task: Task };
 
-  async function changeStatus(taskId: string, status: TaskStatus) {
-    setUpdating(taskId);
-    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status } : t)));
+export function KanbanBoard({ tasks }: { tasks: Task[] }) {
+  const router = useRouter();
+  const [tasksById, setTasksById] = useState<Record<string, Task>>(() => Object.fromEntries(tasks.map((t) => [t.id, t])));
+
+  const items = useMemo<TaskBoardItem[]>(
+    () =>
+      [...tasks]
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map((t) => ({ id: t.id, columnId: t.status, task: tasksById[t.id] ?? t })),
+    [tasks, tasksById],
+  );
+
+  const columns = COLUMNS.map((col) => {
+    const count = items.filter((i) => i.columnId === col.status).length;
+    return { id: col.status, label: col.label, meta: `${count} task${count === 1 ? "" : "s"}` };
+  });
+
+  async function handleMove(taskId: string, toColumnId: string, index: number) {
+    const status = toColumnId as TaskStatus;
+    setTasksById((prev) => ({ ...prev, [taskId]: { ...(prev[taskId] ?? tasks.find((t) => t.id === taskId)!), status } }));
+
     await fetch(`/api/tasks/${taskId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, index }),
     });
-    setUpdating(null);
     router.refresh();
   }
 
+  if (tasks.length === 0) {
+    return <p className="text-sm text-slate-500">No tasks yet. Drag cards between columns once you add some.</p>;
+  }
+
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {COLUMNS.map((col) => (
-        <div key={col.status}>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            {col.label} · {tasks.filter((t) => t.status === col.status).length}
-          </h3>
-          <div className="flex flex-col gap-2">
-            {tasks
-              .filter((t) => t.status === col.status)
-              .map((task) => (
-                <Card key={task.id} className="text-sm">
-                  <div className="mb-2 flex items-start justify-between gap-2">
-                    <p className="font-medium text-white">{task.title}</p>
-                    <PriorityBadge priority={task.priority} />
-                  </div>
-                  {task.description && <p className="mb-2 text-xs text-slate-500">{task.description}</p>}
-                  <select
-                    value={task.status}
-                    disabled={updating === task.id}
-                    onChange={(e) => changeStatus(task.id, e.target.value as TaskStatus)}
-                    className="min-h-[36px] w-full rounded-lg border border-white/10 bg-slate-900 px-2 py-1 text-xs text-slate-200"
-                  >
-                    {COLUMNS.map((c) => (
-                      <option key={c.status} value={c.status}>
-                        Move to {c.label}
-                      </option>
-                    ))}
-                  </select>
-                </Card>
-              ))}
+    <DragBoard
+      items={items}
+      columns={columns}
+      onMove={handleMove}
+      renderCard={(item) => (
+        <Card className="cursor-grab text-sm active:cursor-grabbing">
+          <div className="flex items-start justify-between gap-2">
+            <p className="font-medium text-white">{item.task.title}</p>
+            <PriorityBadge priority={item.task.priority} />
           </div>
-        </div>
-      ))}
-    </div>
+          {item.task.description && <p className="mt-1 text-xs text-slate-500">{item.task.description}</p>}
+          {item.task.dueAt && (
+            <p className="mt-2 text-xs text-slate-500">Due {new Date(item.task.dueAt).toLocaleDateString()}</p>
+          )}
+        </Card>
+      )}
+    />
   );
 }
