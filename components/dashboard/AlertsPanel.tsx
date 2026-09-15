@@ -37,7 +37,7 @@ export function AlertsPanel({ alerts }: { alerts: DashboardAlerts }) {
             <p className="mb-1 text-xs font-medium text-muted-foreground">Tasks due today / overdue</p>
             {alerts.tasksDueTodayOrOverdue.map((t) => (
               <p key={t.id} className={t.overdue ? "text-danger" : "text-foreground"}>
-                {t.title} {t.overdue && <Badge className="ml-1 bg-tone-danger/20 text-tone-danger-fg">Overdue</Badge>}
+                {t.title} {t.overdue && <Badge tone="danger" className="ml-1">Overdue</Badge>}
               </p>
             ))}
           </div>
@@ -50,7 +50,7 @@ export function AlertsPanel({ alerts }: { alerts: DashboardAlerts }) {
               <Link key={r.dealId} href={`/pipeline/${r.dealId}`} className="block hover:underline">
                 <span className={r.status === "overdue" ? "text-danger" : "text-warning"}>
                   {r.dealName} — {r.stageLabel}
-                  {r.status === "overdue" && <Badge className="ml-1 bg-tone-danger/20 text-tone-danger-fg">Overdue</Badge>}
+                  {r.status === "overdue" && <Badge tone="danger" className="ml-1">Overdue</Badge>}
                 </span>
               </Link>
             ))}

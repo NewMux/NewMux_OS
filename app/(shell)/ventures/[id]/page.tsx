@@ -20,7 +20,7 @@ export default async function VentureDetailPage({ params }: { params: Promise<{ 
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="mb-1 text-xl font-semibold text-foreground">{venture.name}</h1>
-      <Badge className="mb-4 bg-tone-neutral/20 text-secondary-foreground capitalize">{venture.launchStatus.replace("_", " ")}</Badge>
+      <Badge tone="neutral" className="mb-4 capitalize">{venture.launchStatus.replace("_", " ")}</Badge>
 
       <Card className="mb-4">
         <CardHeader>

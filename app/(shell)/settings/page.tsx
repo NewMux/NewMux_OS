@@ -6,6 +6,8 @@ import { listProjects } from "@/lib/data/projects";
 import { PartiesPanel } from "@/components/settings/PartiesPanel";
 import { DeductionTypesPanel } from "@/components/settings/DeductionTypesPanel";
 import { ProfitSplitRuleEditor } from "@/components/settings/ProfitSplitRuleEditor";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 
 export default async function SettingsPage() {
   const session = await auth();
@@ -27,6 +29,18 @@ export default async function SettingsPage() {
       </p>
 
       <div className="flex flex-col gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Appearance</CardTitle>
+          </CardHeader>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">
+              Saved on this device. &ldquo;System&rdquo; follows your operating system setting.
+            </p>
+            <ThemeToggle showLabels />
+          </div>
+        </Card>
+
         <PartiesPanel parties={parties} />
         <DeductionTypesPanel deductionTypes={deductionTypes} />
         <ProfitSplitRuleEditor parties={parties} deductionTypes={deductionTypes} rules={rules} projects={projects} ventures={ventures} />

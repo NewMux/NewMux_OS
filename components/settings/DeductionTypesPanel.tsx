@@ -40,7 +40,7 @@ export function DeductionTypesPanel({ deductionTypes }: { deductionTypes: Deduct
         {deductionTypes.map((d) => (
           <div key={d.id} className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2 text-sm">
             <span className="text-foreground">{d.name}</span>
-            <Badge className="bg-tone-neutral/20 text-secondary-foreground capitalize">{d.kind}</Badge>
+            <Badge tone="neutral" className="capitalize">{d.kind}</Badge>
           </div>
         ))}
       </div>

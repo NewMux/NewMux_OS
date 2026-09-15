@@ -40,7 +40,7 @@ export default async function MeetingsPage() {
                 <div className="flex items-center justify-between">
                   <p className="font-medium text-foreground">{m.title}</p>
                   {m.recurring !== "none" && (
-                    <Badge className="bg-tone-neutral/20 text-secondary-foreground capitalize">{m.recurring}</Badge>
+                    <Badge tone="neutral" className="capitalize">{m.recurring}</Badge>
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">

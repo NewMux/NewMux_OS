@@ -97,7 +97,7 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
         <div>
           <h1 className="text-xl font-semibold text-foreground">{deal.name}</h1>
           <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-            <Badge className="bg-accent/60 text-foreground">{stageLabel(deal.stage)}</Badge>
+            <Badge tone="outline">{stageLabel(deal.stage)}</Badge>
             {centsToDisplay(deal.quotedValueCents, deal.currency)} · {userNames[deal.ownerId] ?? "Unassigned"}
           </p>
         </div>

@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
+import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import type { FollowUpReminder } from "@/lib/data/deals";
 
-const STATUS_STYLE: Record<FollowUpReminder["status"], string> = {
-  overdue: "bg-tone-danger/20 text-tone-danger-fg",
-  today: "bg-tone-warning/20 text-tone-warning-fg",
-  upcoming: "bg-accent/60 text-secondary-foreground",
+const STATUS_TONE: Record<FollowUpReminder["status"], BadgeTone> = {
+  overdue: "danger",
+  today: "warning",
+  upcoming: "outline",
 };
 
 export function FollowUpsPanel({
@@ -40,7 +40,7 @@ export function FollowUpsPanel({
             <span className="text-foreground">{r.dealName}</span>
             <span className="flex items-center gap-2 text-xs text-muted-foreground">
               {ownerNames[r.ownerId] ?? "Unassigned"} · {new Date(r.dueDate).toLocaleDateString()}
-              <Badge className={STATUS_STYLE[r.status]}>{r.status}</Badge>
+              <Badge tone={STATUS_TONE[r.status]}>{r.status}</Badge>
             </span>
           </Link>
         ))}
