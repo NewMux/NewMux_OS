@@ -2,8 +2,127 @@
 @tailwind components;
 @tailwind utilities;
 
+/**
+ * Design tokens.
+ *
+ * Values are raw HSL channels (no hsl() wrapper) so Tailwind can apply its
+ * own alpha: `bg-card/60` resolves to hsl(var(--card) / 0.6). Anything that
+ * used a translucent utility before keeps the alpha at the call site rather
+ * than baking it into the token.
+ *
+ * `:root` is light, `.dark` is dark. The dark values reproduce the colors the
+ * app shipped with, with one deliberate exception: --muted-foreground moves
+ * from slate-500 to slate-400, because slate-500 on this background is ~4.1:1
+ * and fails WCAG AA for body text. It was used in 145 places, so correcting
+ * the token corrects all of them at once.
+ */
 @layer base {
   :root {
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 19% 35%;
+    --secondary-foreground: 215 25% 27%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 160 84% 39%;
+
+    --primary: 163 94% 24%;
+    --primary-foreground: 0 0% 100%;
+
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --overlay: 222 47% 11%;
+
+    /* Standalone status colors (dots, meters, emphasis text). */
+    --success: 163 94% 24%;
+    --warning: 26 90% 37%;
+    --danger: 0 74% 42%;
+
+    /* Badge tones: `--tone-x` is the chip fill (used with alpha), `-fg` its text. */
+    --tone-neutral: 215 16% 47%;
+    --tone-neutral-fg: 215 25% 27%;
+    --tone-muted: 240 4% 46%;
+    --tone-muted-fg: 240 5% 34%;
+    --tone-info: 217 91% 60%;
+    --tone-info-fg: 226 71% 48%;
+    --tone-success: 160 84% 39%;
+    --tone-success-fg: 163 94% 24%;
+    --tone-warning: 38 92% 50%;
+    --tone-warning-fg: 26 90% 37%;
+    --tone-alert: 25 95% 53%;
+    --tone-alert-fg: 21 90% 40%;
+    --tone-danger: 0 84% 60%;
+    --tone-danger-fg: 0 74% 42%;
+
+    --radius: 0.75rem;
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji",
+      "Segoe UI Emoji";
+
+    color-scheme: light;
+  }
+
+  .dark {
+    --background: 222 84% 5%;
+    --foreground: 214 32% 91%;
+
+    --card: 222 47% 11%;
+    --card-foreground: 214 32% 91%;
+
+    --popover: 222 84% 5%;
+    --popover-foreground: 214 32% 91%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --secondary-foreground: 213 27% 84%;
+
+    --border: 226 26% 14%;
+    --input: 226 26% 14%;
+    --ring: 160 84% 39%;
+
+    --primary: 161 94% 30%;
+    --primary-foreground: 0 0% 100%;
+
+    --accent: 217 33% 17%;
+    --accent-foreground: 214 32% 91%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --overlay: 0 0% 0%;
+
+    --success: 160 84% 39%;
+    --warning: 38 92% 50%;
+    --danger: 0 84% 60%;
+
+    --tone-neutral: 215 16% 47%;
+    --tone-neutral-fg: 213 27% 84%;
+    --tone-muted: 240 4% 46%;
+    --tone-muted-fg: 240 5% 65%;
+    --tone-info: 217 91% 60%;
+    --tone-info-fg: 212 96% 78%;
+    --tone-success: 160 84% 39%;
+    --tone-success-fg: 156 72% 67%;
+    --tone-warning: 38 92% 50%;
+    --tone-warning-fg: 46 97% 65%;
+    --tone-alert: 25 95% 53%;
+    --tone-alert-fg: 31 97% 72%;
+    --tone-danger: 0 84% 60%;
+    --tone-danger-fg: 0 94% 82%;
+
     color-scheme: dark;
   }
 
@@ -25,5 +144,17 @@
 
   .glass-surface {
     @apply border-t border-white/10 bg-slate-950/90 backdrop-blur-md;
+  }
+}
+
+/* Respect the OS setting: disable motion rather than merely shortening it. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
