@@ -1,7 +1,17 @@
 import { randomUUID } from "crypto";
 import { store } from "./store";
-import type { DocumentRecord, DocumentLineItem, DocumentStatus, DocumentType } from "./types";
-import { subtotalCents as calcSubtotal, taxCents as calcTax, totalCents as calcTotal } from "@/lib/money";
+import type {
+  DocumentRecord,
+  DocumentLineItem,
+  DocumentStatus,
+  DocumentType,
+} from "./types";
+import {
+  subtotalCents as calcSubtotal,
+  taxCents as calcTax,
+  totalCents as calcTotal,
+} from "@/lib/money";
+import { AppError } from "@/lib/api/errors";
 
 const SEQUENCES: Record<DocumentType, { prefix: string; counter: number }> = {
   quote: { prefix: "QUO", counter: 100 },
@@ -28,17 +38,23 @@ export function assignInvoiceNumber(): string {
   return nextDocumentNumber("invoice");
 }
 
-export async function listDocuments(filter?: { type?: DocumentType }): Promise<DocumentRecord[]> {
+export async function listDocuments(filter?: {
+  type?: DocumentType;
+}): Promise<DocumentRecord[]> {
   return store.documents
     .filter((d) => !filter?.type || d.type === filter.type)
     .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
 }
 
-export async function getDocumentById(id: string): Promise<DocumentRecord | undefined> {
+export async function getDocumentById(
+  id: string,
+): Promise<DocumentRecord | undefined> {
   return store.documents.find((d) => d.id === id);
 }
 
-export async function getLineItems(documentId: string): Promise<DocumentLineItem[]> {
+export async function getLineItems(
+  documentId: string,
+): Promise<DocumentLineItem[]> {
   return store.documentLineItems
     .filter((li) => li.documentId === documentId)
     .sort((a, b) => a.sortOrder - b.sortOrder);
@@ -57,7 +73,11 @@ export async function createDocument(input: {
   taxRateBps: number;
   paymentTerms?: string;
   notes?: string;
-  lineItems: { description: string; quantity: number; unitPriceCents: number }[];
+  lineItems: {
+    description: string;
+    quantity: number;
+    unitPriceCents: number;
+  }[];
   createdBy: string;
 }): Promise<DocumentRecord> {
   const subtotal = calcSubtotal(input.lineItems);
@@ -66,8 +86,11 @@ export async function createDocument(input: {
 
   // Invoices inherit the project's default profit-split rule (PRD 5.3.1).
   // Quotations never carry one — they create no financial entry (PRD 5.4).
-  const project = input.projectId ? store.projects.find((p) => p.id === input.projectId) : undefined;
-  const profitSplitRuleId = input.type === "invoice" ? (project?.profitSplitRuleId ?? null) : null;
+  const project = input.projectId
+    ? store.projects.find((p) => p.id === input.projectId)
+    : undefined;
+  const profitSplitRuleId =
+    input.type === "invoice" ? (project?.profitSplitRuleId ?? null) : null;
 
   const doc: DocumentRecord = {
     id: randomUUID(),
@@ -122,12 +145,18 @@ export async function createDocument(input: {
 
 export async function updateDocumentLineItems(
   documentId: string,
-  lineItems: { description: string; quantity: number; unitPriceCents: number }[],
+  lineItems: {
+    description: string;
+    quantity: number;
+    unitPriceCents: number;
+  }[],
 ): Promise<DocumentRecord> {
   const doc = store.documents.find((d) => d.id === documentId);
   if (!doc) throw new Error("Document not found");
 
-  store.documentLineItems = store.documentLineItems.filter((li) => li.documentId !== documentId);
+  store.documentLineItems = store.documentLineItems.filter(
+    (li) => li.documentId !== documentId,
+  );
   lineItems.forEach((li, i) => {
     store.documentLineItems.push({
       id: randomUUID(),
@@ -183,8 +212,44 @@ export async function getStatusHistory(documentId: string) {
     .sort((a, b) => (a.changedAt < b.changedAt ? -1 : 1));
 }
 
-export async function listClients() {
-  return store.clients;
+export async function listClients(options: { includeArchived?: boolean } = {}) {
+  return options.includeArchived
+    ? store.clients
+    : store.clients.filter((c) => !c.archivedAt);
+}
+
+export async function updateClient(
+  id: string,
+  patch: {
+    name?: string;
+    nameArabic?: string | null;
+    contactPerson?: string | null;
+    contactEmail?: string | null;
+    contactPhone?: string | null;
+    billingAddress?: string | null;
+    notes?: string | null;
+  },
+) {
+  const client = store.clients.find((c) => c.id === id);
+  if (!client) throw new AppError("not_found", "That client no longer exists.");
+  Object.assign(client, patch);
+  return client;
+}
+
+/** Reversible alternative to deleting a client that still has history. */
+export async function setClientArchived(id: string, archived: boolean) {
+  const client = store.clients.find((c) => c.id === id);
+  if (!client) throw new AppError("not_found", "That client no longer exists.");
+  client.archivedAt = archived ? new Date().toISOString() : null;
+  return client;
+}
+
+/** Callers must check getReferences() first; this does not cascade. */
+export async function deleteClient(id: string) {
+  const index = store.clients.findIndex((c) => c.id === id);
+  if (index === -1)
+    throw new AppError("not_found", "That client no longer exists.");
+  store.clients.splice(index, 1);
 }
 
 function nextClientCode(): string {
@@ -211,6 +276,7 @@ export async function createClient(input: {
     contactPhone: input.contactPhone ?? null,
     billingAddress: input.billingAddress ?? null,
     notes: input.notes ?? null,
+    archivedAt: null,
   };
   store.clients.push(client);
   return client;
@@ -225,7 +291,9 @@ export async function listProducts() {
  * DB layer will additionally enforce this via FK `on delete restrict`.
  */
 export async function assertClientDeletable(clientId: string) {
-  const activeDocs = store.documents.filter((d) => d.clientId === clientId && d.status !== "archived");
+  const activeDocs = store.documents.filter(
+    (d) => d.clientId === clientId && d.status !== "archived",
+  );
   if (activeDocs.length > 0) {
     throw new Error(
       `Cannot delete client: ${activeDocs.length} non-archived document(s) reference it (${activeDocs

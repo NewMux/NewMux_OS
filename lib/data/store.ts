@@ -159,6 +159,7 @@ function seed(): Store {
     contactPhone: null,
     billingAddress: null,
     notes: "Billed annually for hosting; petty-cash-staff role precedent used as the RBAC reference example.",
+    archivedAt: null,
   };
   const clientAlHussam: Client = {
     id: randomUUID(),
@@ -170,6 +171,7 @@ function seed(): Store {
     contactPhone: null,
     billingAddress: null,
     notes: "Distinct from the productized Tailor System (Tafsell) venture — this is a specific client of that system.",
+    archivedAt: null,
   };
   const clientOxRoastery: Client = {
     id: randomUUID(),
@@ -181,6 +183,7 @@ function seed(): Store {
     contactPhone: null,
     billingAddress: null,
     notes: "Hosting cost paid to an Indian vendor is linked to this client to show true margin, not gross revenue.",
+    archivedAt: null,
   };
   const clientVoya: Client = {
     id: randomUUID(),
@@ -192,6 +195,7 @@ function seed(): Store {
     contactPhone: null,
     billingAddress: null,
     notes: "50% non-refundable deposit + 50% on delivery payment pattern.",
+    archivedAt: null,
   };
   const clients = [clientMarasi, clientAlHussam, clientOxRoastery, clientVoya];
 
@@ -238,7 +242,8 @@ function seed(): Store {
     domain: "oxroastery.example",
     domainRenewalDate: null,
     githubUrl: null,
-    profitSplitRuleId: null, // set below once the rule exists
+    profitSplitRuleId: null,
+    archivedAt: null, // set below once the rule exists
   };
   const projectAlHussam: Project = {
     id: randomUUID(),
@@ -256,6 +261,7 @@ function seed(): Store {
     domainRenewalDate: daysAgo(-433), // Nov 21, 2027-ish placeholder
     githubUrl: null,
     profitSplitRuleId: null,
+    archivedAt: null,
   };
   const projectMarasi: Project = {
     id: randomUUID(),
@@ -273,6 +279,7 @@ function seed(): Store {
     domainRenewalDate: null,
     githubUrl: null,
     profitSplitRuleId: null,
+    archivedAt: null,
   };
   const projectVoya: Project = {
     id: randomUUID(),
@@ -290,6 +297,7 @@ function seed(): Store {
     domainRenewalDate: null,
     githubUrl: null,
     profitSplitRuleId: null,
+    archivedAt: null,
   };
   const projects = [projectOxRoastery, projectAlHussam, projectMarasi, projectVoya];
 

@@ -24,7 +24,9 @@ export function ConfirmDialog({
   description?: string;
   confirmLabel?: string;
   blockedReasons?: string[];
-  onConfirm: () => Promise<void> | void;
+  /** Return false to keep the dialog open — e.g. the server refused and the
+   * dialog is now showing why. */
+  onConfirm: () => Promise<boolean | void> | boolean | void;
 }) {
   const [pending, setPending] = useState(false);
   const blocked = Boolean(blockedReasons?.length);
@@ -32,8 +34,8 @@ export function ConfirmDialog({
   async function handleConfirm() {
     setPending(true);
     try {
-      await onConfirm();
-      onOpenChange(false);
+      const result = await onConfirm();
+      if (result !== false) onOpenChange(false);
     } finally {
       setPending(false);
     }

@@ -20,6 +20,8 @@ export type Client = {
   contactPhone: string | null;
   billingAddress: string | null;
   notes: string | null;
+  /** Archived clients drop out of lists but keep their invoices and totals. */
+  archivedAt: string | null;
 };
 
 export type Product = {
@@ -102,6 +104,8 @@ export type Project = {
   domainRenewalDate: string | null;
   githubUrl: string | null;
   profitSplitRuleId: string | null;
+  /** Archived projects drop out of lists but keep their documents and history. */
+  archivedAt: string | null;
 };
 
 export type TaskPriority = "urgent" | "high" | "medium" | "low";

@@ -32,6 +32,7 @@ export async function createProject(input: {
     domainRenewalDate: null,
     githubUrl: null,
     profitSplitRuleId: null,
+    archivedAt: null,
   };
   store.projects.push(project);
   return project;
