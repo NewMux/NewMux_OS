@@ -9,16 +9,22 @@ export default async function GrowthPage() {
   const session = await auth();
   if (!canAccessGrowth(session)) redirect("/dashboard");
 
-  const [rows, campaigns] = await Promise.all([getAttributionMatrix(), listCampaigns()]);
+  const [rows, campaigns] = await Promise.all([
+    getAttributionMatrix(),
+    listCampaigns(),
+  ]);
 
   return (
     <div className="mx-auto max-w-4xl">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-foreground">Growth &amp; Marketing</h1>
+        <h1 className="text-xl font-semibold text-foreground">
+          Growth &amp; Marketing
+        </h1>
         <CampaignForm campaigns={campaigns} />
       </div>
       <p className="mb-4 text-xs text-muted-foreground">
-        Metrics are entered manually per channel (no live ad-platform API integration in this pass).
+        Metrics are entered manually per channel (no live ad-platform API
+        integration in this pass).
       </p>
       <AttributionTable rows={rows} />
     </div>

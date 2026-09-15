@@ -35,19 +35,31 @@ export default async function DashboardPage({
   return (
     <div className="mx-auto max-w-4xl">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold text-foreground">Executive Command Center</h1>
+        <h1 className="text-xl font-semibold text-foreground">
+          Executive Command Center
+        </h1>
         <ProductScopeSwitcher products={products} />
       </div>
 
       <AlertsPanel alerts={alerts} />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="MRR" value={centsToDisplay(mrrCents)} sub="Active SaaS subscriptions, USD" />
+        <StatCard
+          title="MRR"
+          value={centsToDisplay(mrrCents)}
+          sub="Active SaaS subscriptions, USD"
+        />
         <StatCard title="ARR" value={centsToDisplay(arrCents)} sub="MRR × 12" />
-        <StatCard title="Active Delivery Index" value={String(deliveryIndex)} sub="Projects in active sprint" />
+        <StatCard
+          title="Active Delivery Index"
+          value={String(deliveryIndex)}
+          sub="Projects in active sprint"
+        />
         <StatCard
           title="Subscribers"
-          value={String(subscribers.paying + subscribers.trialing + subscribers.pastDue)}
+          value={String(
+            subscribers.paying + subscribers.trialing + subscribers.pastDue,
+          )}
           sub={`${subscribers.paying} paying · ${subscribers.trialing} trialing · ${subscribers.pastDue} past due`}
         />
       </div>
@@ -59,18 +71,29 @@ export default async function DashboardPage({
           </CardHeader>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
-              <p className="text-xs text-muted-foreground">Unpaid / partially paid invoices</p>
+              <p className="text-xs text-muted-foreground">
+                Unpaid / partially paid invoices
+              </p>
               <p className="text-lg font-semibold text-foreground">
-                {erpSummary.unpaidInvoiceCount + erpSummary.partiallyPaidInvoiceCount}
+                {erpSummary.unpaidInvoiceCount +
+                  erpSummary.partiallyPaidInvoiceCount}
               </p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Outstanding balance from clients</p>
-              <p className="text-lg font-semibold text-foreground">{centsToDisplay(erpSummary.totalOutstandingBhdCents, "BHD")}</p>
+              <p className="text-xs text-muted-foreground">
+                Outstanding balance from clients
+              </p>
+              <p className="text-lg font-semibold text-foreground">
+                {centsToDisplay(erpSummary.totalOutstandingBhdCents, "BHD")}
+              </p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Net profit this month</p>
-              <p className="text-lg font-semibold text-foreground">{centsToDisplay(erpSummary.netProfitThisMonthBhdCents, "BHD")}</p>
+              <p className="text-xs text-muted-foreground">
+                Net profit this month
+              </p>
+              <p className="text-lg font-semibold text-foreground">
+                {centsToDisplay(erpSummary.netProfitThisMonthBhdCents, "BHD")}
+              </p>
             </div>
           </div>
         </Card>
@@ -84,15 +107,25 @@ export default async function DashboardPage({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
               <p className="text-xs text-muted-foreground">Cash collected</p>
-              <p className="text-lg font-semibold text-foreground">{centsToDisplay(cashFlow.cashCollected)}</p>
+              <p className="text-lg font-semibold text-foreground">
+                {centsToDisplay(cashFlow.cashCollected)}
+              </p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Pending quote pipeline</p>
-              <p className="text-lg font-semibold text-foreground">{centsToDisplay(cashFlow.pendingQuotePipeline)}</p>
+              <p className="text-xs text-muted-foreground">
+                Pending quote pipeline
+              </p>
+              <p className="text-lg font-semibold text-foreground">
+                {centsToDisplay(cashFlow.pendingQuotePipeline)}
+              </p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Outstanding invoices</p>
-              <p className="text-lg font-semibold text-foreground">{centsToDisplay(cashFlow.outstandingInvoices)}</p>
+              <p className="text-xs text-muted-foreground">
+                Outstanding invoices
+              </p>
+              <p className="text-lg font-semibold text-foreground">
+                {centsToDisplay(cashFlow.outstandingInvoices)}
+              </p>
             </div>
           </div>
         </Card>

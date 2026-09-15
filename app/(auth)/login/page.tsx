@@ -18,7 +18,11 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const result = await signIn("credentials", { email, password, redirect: false });
+    const result = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
     setLoading(false);
     if (result?.error) {
       setError("Invalid email or password.");
@@ -31,13 +35,19 @@ export default function LoginPage() {
   return (
     <Card className="w-full max-w-sm">
       <div className="mb-6 text-center">
-        <div className="mx-auto mb-3 h-10 w-10 rounded-lg bg-primary" aria-hidden />
+        <div
+          className="mx-auto mb-3 h-10 w-10 rounded-lg bg-primary"
+          aria-hidden
+        />
         <h1 className="text-lg font-semibold text-foreground">NEWMUX OS</h1>
         <p className="text-sm text-muted-foreground">Internal access only</p>
       </div>
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <div>
-          <label htmlFor="email" className="mb-1 block text-xs font-medium text-muted-foreground">
+          <label
+            htmlFor="email"
+            className="mb-1 block text-xs font-medium text-muted-foreground"
+          >
             Email
           </label>
           <Input
@@ -50,7 +60,10 @@ export default function LoginPage() {
           />
         </div>
         <div>
-          <label htmlFor="password" className="mb-1 block text-xs font-medium text-muted-foreground">
+          <label
+            htmlFor="password"
+            className="mb-1 block text-xs font-medium text-muted-foreground"
+          >
             Password
           </label>
           <Input
@@ -68,7 +81,8 @@ export default function LoginPage() {
         </Button>
       </form>
       <p className="mt-4 text-center text-xs text-muted-foreground">
-        Credentials are seeded to the server console on first run (mock data mode).
+        Credentials are seeded to the server console on first run (mock data
+        mode).
       </p>
     </Card>
   );

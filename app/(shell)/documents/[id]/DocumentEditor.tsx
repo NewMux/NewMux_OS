@@ -5,9 +5,18 @@ import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/documents/StatusBadge";
-import { LineItemEditor, type EditableLineItem } from "@/components/documents/LineItemEditor";
+import {
+  LineItemEditor,
+  type EditableLineItem,
+} from "@/components/documents/LineItemEditor";
 import { ALLOWED_TRANSITIONS } from "@/lib/validators/document";
-import type { DocumentRecord, DocumentStatus, Client, DocumentStatusHistoryEntry, Payment } from "@/lib/data/types";
+import type {
+  DocumentRecord,
+  DocumentStatus,
+  Client,
+  DocumentStatusHistoryEntry,
+  Payment,
+} from "@/lib/data/types";
 import type { ProfitBreakdown } from "@/lib/data/finance";
 import { PaymentsPanel } from "@/components/documents/PaymentsPanel";
 import { ProfitBreakdownPanel } from "@/components/documents/ProfitBreakdownPanel";
@@ -29,10 +38,13 @@ export function DocumentEditor({
   profitBreakdown: ProfitBreakdown | null;
 }) {
   const router = useRouter();
-  const [lineItems, setLineItems] = useState<EditableLineItem[]>(initialLineItems);
+  const [lineItems, setLineItems] =
+    useState<EditableLineItem[]>(initialLineItems);
   const [taxRateBps, setTaxRateBps] = useState(document.taxRateBps);
   const [saving, setSaving] = useState(false);
-  const [transitioning, setTransitioning] = useState<DocumentStatus | null>(null);
+  const [transitioning, setTransitioning] = useState<DocumentStatus | null>(
+    null,
+  );
   const [converting, setConverting] = useState(false);
   const [dirty, setDirty] = useState(false);
 
@@ -41,7 +53,10 @@ export function DocumentEditor({
 
   async function handleConvertToInvoice() {
     setConverting(true);
-    const res = await fetch(`/api/documents/${document.id}/convert-to-invoice`, { method: "POST" });
+    const res = await fetch(
+      `/api/documents/${document.id}/convert-to-invoice`,
+      { method: "POST" },
+    );
     setConverting(false);
     if (res.ok) {
       const { invoice } = await res.json();
@@ -76,14 +91,22 @@ export function DocumentEditor({
     <div className="mx-auto max-w-2xl">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">{document.documentNumber}</h1>
+          <h1 className="text-xl font-semibold text-foreground">
+            {document.documentNumber}
+          </h1>
           <p className="text-sm text-muted-foreground">{client.name}</p>
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge status={document.status} />
           {document.type === "quote" && document.status !== "archived" && (
-            <Button size="sm" variant="secondary" onClick={handleConvertToInvoice} disabled={converting}>
-              <ArrowRightLeft className="h-4 w-4" /> {converting ? "Converting…" : "Convert to Invoice"}
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={handleConvertToInvoice}
+              disabled={converting}
+            >
+              <ArrowRightLeft className="h-4 w-4" />{" "}
+              {converting ? "Converting…" : "Convert to Invoice"}
             </Button>
           )}
           <a
@@ -113,7 +136,11 @@ export function DocumentEditor({
           currency={document.currency}
         />
         {editable && (
-          <Button onClick={handleSave} disabled={saving || !dirty} className="mt-4">
+          <Button
+            onClick={handleSave}
+            disabled={saving || !dirty}
+            className="mt-4"
+          >
             {saving ? "Saving…" : "Save changes"}
           </Button>
         )}
@@ -129,12 +156,20 @@ export function DocumentEditor({
           <CardTitle>Lifecycle</CardTitle>
         </CardHeader>
         <div className="flex flex-wrap gap-2">
-          {nextStatuses.length === 0 && <p className="text-sm text-muted-foreground">No further transitions.</p>}
+          {nextStatuses.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              No further transitions.
+            </p>
+          )}
           {nextStatuses.map((status) => (
             <Button
               key={status}
               size="sm"
-              variant={status === "archived" || status === "draft" ? "secondary" : "default"}
+              variant={
+                status === "archived" || status === "draft"
+                  ? "secondary"
+                  : "default"
+              }
               disabled={transitioning !== null}
               onClick={() => handleTransition(status)}
               className="capitalize"
@@ -146,17 +181,29 @@ export function DocumentEditor({
         <div className="mt-4 space-y-1 border-t border-border pt-3">
           {history.map((h) => (
             <p key={h.id} className="text-xs text-muted-foreground">
-              {h.fromStatus ? `${h.fromStatus} → ${h.toStatus}` : `Created as ${h.toStatus}`} ·{" "}
-              {new Date(h.changedAt).toLocaleString()}
+              {h.fromStatus
+                ? `${h.fromStatus} → ${h.toStatus}`
+                : `Created as ${h.toStatus}`}{" "}
+              · {new Date(h.changedAt).toLocaleString()}
             </p>
           ))}
         </div>
       </Card>
 
       {document.type === "invoice" && (
-        <PaymentsPanel documentId={document.id} currency={document.currency} totalCents={document.totalCents} payments={payments} />
+        <PaymentsPanel
+          documentId={document.id}
+          currency={document.currency}
+          totalCents={document.totalCents}
+          payments={payments}
+        />
       )}
-      {profitBreakdown && <ProfitBreakdownPanel breakdown={profitBreakdown} currency={document.currency} />}
+      {profitBreakdown && (
+        <ProfitBreakdownPanel
+          breakdown={profitBreakdown}
+          currency={document.currency}
+        />
+      )}
     </div>
   );
 }

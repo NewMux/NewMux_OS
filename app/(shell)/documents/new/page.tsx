@@ -9,6 +9,9 @@ export default async function NewDocumentPage() {
   const session = await auth();
   if (!canAccessDocuments(session)) redirect("/dashboard");
 
-  const [clients, projects] = await Promise.all([listClients(), listProjects()]);
+  const [clients, projects] = await Promise.all([
+    listClients(),
+    listProjects(),
+  ]);
   return <NewDocumentForm clients={clients} projects={projects} />;
 }

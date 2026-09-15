@@ -6,10 +6,19 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { SegmentedControl } from "@/components/documents/SegmentedControl";
-import { LineItemEditor, type EditableLineItem } from "@/components/documents/LineItemEditor";
+import {
+  LineItemEditor,
+  type EditableLineItem,
+} from "@/components/documents/LineItemEditor";
 import type { DocumentType, Client, Project } from "@/lib/data/types";
 
-export function NewDocumentForm({ clients, projects }: { clients: Client[]; projects: Project[] }) {
+export function NewDocumentForm({
+  clients,
+  projects,
+}: {
+  clients: Client[];
+  projects: Project[];
+}) {
   const router = useRouter();
   const [type, setType] = useState<DocumentType>("quote");
   const [clientId, setClientId] = useState(clients[0]?.id ?? "");
@@ -44,7 +53,9 @@ export function NewDocumentForm({ clients, projects }: { clients: Client[]; proj
     });
     setSaving(false);
     if (!res.ok) {
-      setError("Could not create document — check that at least one line item has a description.");
+      setError(
+        "Could not create document — check that at least one line item has a description.",
+      );
       return;
     }
     const { document } = await res.json();
@@ -53,7 +64,9 @@ export function NewDocumentForm({ clients, projects }: { clients: Client[]; proj
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="mb-4 text-xl font-semibold text-foreground">New document</h1>
+      <h1 className="mb-4 text-xl font-semibold text-foreground">
+        New document
+      </h1>
       <Card className="flex flex-col gap-4">
         <SegmentedControl
           options={[
@@ -66,7 +79,9 @@ export function NewDocumentForm({ clients, projects }: { clients: Client[]; proj
         />
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Client</label>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            Client
+          </label>
           <select
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
@@ -81,7 +96,9 @@ export function NewDocumentForm({ clients, projects }: { clients: Client[]; proj
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Currency</label>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            Currency
+          </label>
           <select
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
@@ -93,12 +110,19 @@ export function NewDocumentForm({ clients, projects }: { clients: Client[]; proj
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Payment terms</label>
-          <Input value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)} />
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            Payment terms
+          </label>
+          <Input
+            value={paymentTerms}
+            onChange={(e) => setPaymentTerms(e.target.value)}
+          />
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Notes</label>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            Notes
+          </label>
           <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
 

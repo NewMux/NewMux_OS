@@ -12,18 +12,27 @@ export default async function HostingPage() {
   const session = await auth();
   if (!canAccessFinance(session)) redirect("/dashboard");
 
-  const [subscriptions, clients] = await Promise.all([listHostingSubscriptions(), listClients()]);
+  const [subscriptions, clients] = await Promise.all([
+    listHostingSubscriptions(),
+    listClients(),
+  ]);
 
   const now = new Date();
   const dueThisMonth = subscriptions.filter((s) => {
     if (!s.nextDueDate) return false;
     const due = new Date(s.nextDueDate);
-    return due.getFullYear() === now.getFullYear() && due.getMonth() === now.getMonth();
+    return (
+      due.getFullYear() === now.getFullYear() &&
+      due.getMonth() === now.getMonth()
+    );
   });
-  const dueThisMonthByCurrency = dueThisMonth.reduce<Record<string, number>>((acc, s) => {
-    acc[s.currency] = (acc[s.currency] ?? 0) + s.amountCents;
-    return acc;
-  }, {});
+  const dueThisMonthByCurrency = dueThisMonth.reduce<Record<string, number>>(
+    (acc, s) => {
+      acc[s.currency] = (acc[s.currency] ?? 0) + s.amountCents;
+      return acc;
+    },
+    {},
+  );
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -32,8 +41,9 @@ export default async function HostingPage() {
         <AddHostingModal clients={clients} />
       </div>
       <p className="mb-4 text-xs text-muted-foreground">
-        14-day and 3-day due alerts, then overdue once the date passes. &quot;Collected&quot; creates a paid invoice
-        automatically and advances the next due date by the billing cycle.
+        14-day and 3-day due alerts, then overdue once the date passes.
+        &quot;Collected&quot; creates a paid invoice automatically and advances
+        the next due date by the billing cycle.
       </p>
 
       <Card className="mb-4">
@@ -41,14 +51,21 @@ export default async function HostingPage() {
           <CardTitle>Hosting fees due this month</CardTitle>
         </CardHeader>
         {Object.keys(dueThisMonthByCurrency).length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nothing due this month.</p>
+          <p className="text-sm text-muted-foreground">
+            Nothing due this month.
+          </p>
         ) : (
           <div className="flex gap-4">
-            {Object.entries(dueThisMonthByCurrency).map(([currency, amount]) => (
-              <p key={currency} className="text-lg font-semibold text-foreground">
-                {centsToDisplay(amount, currency)}
-              </p>
-            ))}
+            {Object.entries(dueThisMonthByCurrency).map(
+              ([currency, amount]) => (
+                <p
+                  key={currency}
+                  className="text-lg font-semibold text-foreground"
+                >
+                  {centsToDisplay(amount, currency)}
+                </p>
+              ),
+            )}
           </div>
         )}
       </Card>

@@ -4,7 +4,8 @@ import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: "NEWMUX OS",
-  description: "Internal operations, finance, and delivery platform for NEWMUX.",
+  description:
+    "Internal operations, finance, and delivery platform for NEWMUX.",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
@@ -36,7 +37,11 @@ export const viewport: Viewport = {
  */
 const noFlashScript = `(function(){try{var t=localStorage.getItem("newmux-theme")||"system";var d=t==="dark"||(t==="system"&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d);document.documentElement.style.colorScheme=d?"dark":"light";}catch(e){document.documentElement.classList.add("dark");}})();`;
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>

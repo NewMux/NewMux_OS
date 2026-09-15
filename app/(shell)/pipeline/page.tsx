@@ -1,7 +1,12 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { canAccessFinance } from "@/lib/rbac";
-import { listDeals, listOutreachForDeal, listFollowUpReminders, getPipelineAnalytics } from "@/lib/data/deals";
+import {
+  listDeals,
+  listOutreachForDeal,
+  listFollowUpReminders,
+  getPipelineAnalytics,
+} from "@/lib/data/deals";
 import { listUsers } from "@/lib/data/users";
 import { DealKanban } from "@/components/pipeline/DealKanban";
 import { AddDealModal } from "@/components/pipeline/AddDealModal";
@@ -20,7 +25,9 @@ export default async function PipelinePage() {
     getPipelineAnalytics(),
   ]);
 
-  const outreachByDeal = await Promise.all(deals.map((d) => listOutreachForDeal(d.id)));
+  const outreachByDeal = await Promise.all(
+    deals.map((d) => listOutreachForDeal(d.id)),
+  );
   const lastOutreach: Record<string, OutreachActivity | undefined> = {};
   deals.forEach((d, i) => {
     lastOutreach[d.id] = outreachByDeal[i]?.[0];
@@ -35,8 +42,13 @@ export default async function PipelinePage() {
     <div className="mx-auto max-w-6xl">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Outbound Outreach &amp; Deal Pipeline</h1>
-          <p className="text-xs text-muted-foreground">Drag deals between stages. Dropping into Won converts the deal instantly.</p>
+          <h1 className="text-xl font-semibold text-foreground">
+            Outbound Outreach &amp; Deal Pipeline
+          </h1>
+          <p className="text-xs text-muted-foreground">
+            Drag deals between stages. Dropping into Won converts the deal
+            instantly.
+          </p>
         </div>
         <AddDealModal owners={users} />
       </div>
@@ -44,10 +56,16 @@ export default async function PipelinePage() {
       <FollowUpsPanel reminders={reminders} ownerNames={ownerNames} />
 
       <div className="mb-6">
-        <DealKanban deals={deals} ownerNames={ownerNames} lastOutreach={lastOutreach} />
+        <DealKanban
+          deals={deals}
+          ownerNames={ownerNames}
+          lastOutreach={lastOutreach}
+        />
       </div>
 
-      <h2 className="mb-3 text-sm font-semibold text-secondary-foreground">Pipeline Analytics</h2>
+      <h2 className="mb-3 text-sm font-semibold text-secondary-foreground">
+        Pipeline Analytics
+      </h2>
       <PipelineAnalytics analytics={analytics} />
     </div>
   );

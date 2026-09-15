@@ -6,6 +6,9 @@ import { listDocuments, listClients } from "@/lib/data/documents";
 import { TypeFilter } from "@/components/documents/TypeFilter";
 import { StatusBadge } from "@/components/documents/StatusBadge";
 import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { FileText } from "lucide-react";
 import { centsToDisplay } from "@/lib/money";
 import type { DocumentType } from "@/lib/data/types";
 import { Plus } from "lucide-react";
@@ -44,8 +47,17 @@ export default async function DocumentsPage({
 
       <div className="flex flex-col gap-2">
         {documents.length === 0 && (
-          <Card className="text-center text-sm text-muted-foreground">
-            No documents yet.
+          <Card>
+            <EmptyState
+              icon={FileText}
+              title="No documents yet"
+              description="Quotations, contracts and invoices you create will appear here."
+              action={
+                <Button asChild size="sm">
+                  <Link href="/documents/new">New document</Link>
+                </Button>
+              }
+            />
           </Card>
         )}
         {documents.map((doc) => (

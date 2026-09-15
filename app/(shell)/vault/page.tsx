@@ -2,12 +2,17 @@ import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 import { isPartnerAdmin } from "@/lib/rbac";
 import { getVaultMasterConfig, listSecrets } from "@/lib/data/vault";
-import { unpackVaultSessionCookie, VAULT_SESSION_COOKIE } from "@/lib/crypto/vaultSession";
+import {
+  unpackVaultSessionCookie,
+  VAULT_SESSION_COOKIE,
+} from "@/lib/crypto/vaultSession";
 import { SetupVaultForm } from "@/components/vault/SetupVaultForm";
 import { UnlockModal } from "@/components/vault/UnlockModal";
 import { AddSecretModal } from "@/components/vault/AddSecretModal";
 import { SecretRow } from "@/components/vault/SecretRow";
 import { LockButton } from "@/components/vault/LockButton";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { KeyRound } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 
 export default async function VaultPage() {
@@ -20,7 +25,8 @@ export default async function VaultPage() {
       return (
         <div className="mx-auto max-w-md">
           <Card className="text-center text-sm text-muted-foreground">
-            The vault has not been set up yet. Ask a Partner/Admin to initialize it.
+            The vault has not been set up yet. Ask a Partner/Admin to initialize
+            it.
           </Card>
         </div>
       );
@@ -31,7 +37,8 @@ export default async function VaultPage() {
   const secrets = await listSecrets();
   const cookieStore = await cookies();
   const cookieValue = cookieStore.get(VAULT_SESSION_COOKIE)?.value;
-  const unlocked = admin && !!cookieValue && !!unpackVaultSessionCookie(cookieValue);
+  const unlocked =
+    admin && !!cookieValue && !!unpackVaultSessionCookie(cookieValue);
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -48,12 +55,21 @@ export default async function VaultPage() {
       {admin && !unlocked && <UnlockModal />}
       {!admin && (
         <p className="mb-4 text-xs text-muted-foreground">
-          Secrets are shown masked only. Ask a Partner/Admin to reveal a value if you need it.
+          Secrets are shown masked only. Ask a Partner/Admin to reveal a value
+          if you need it.
         </p>
       )}
 
       <div className="flex flex-col gap-2">
-        {secrets.length === 0 && <Card className="text-center text-sm text-muted-foreground">No secrets stored yet.</Card>}
+        {secrets.length === 0 && (
+          <Card>
+            <EmptyState
+              icon={KeyRound}
+              title="No credentials stored"
+              description="Everything added here is encrypted with AES-256 and every reveal is logged."
+            />
+          </Card>
+        )}
         {secrets.map((s) => (
           <SecretRow
             key={s.id}
