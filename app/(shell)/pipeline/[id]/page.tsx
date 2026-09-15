@@ -89,15 +89,15 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="mx-auto max-w-3xl">
-      <Link href="/pipeline" className="mb-3 flex items-center gap-1 text-xs text-slate-500 hover:text-emerald-400">
+      <Link href="/pipeline" className="mb-3 flex items-center gap-1 text-xs text-muted-foreground hover:text-brand">
         <ArrowLeft className="h-3 w-3" /> Back to pipeline
       </Link>
 
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-white">{deal.name}</h1>
-          <p className="mt-1 flex items-center gap-2 text-sm text-slate-400">
-            <Badge className="bg-slate-700/60 text-slate-200">{stageLabel(deal.stage)}</Badge>
+          <h1 className="text-xl font-semibold text-foreground">{deal.name}</h1>
+          <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+            <Badge className="bg-accent/60 text-foreground">{stageLabel(deal.stage)}</Badge>
             {centsToDisplay(deal.quotedValueCents, deal.currency)} · {userNames[deal.ownerId] ?? "Unassigned"}
           </p>
         </div>
@@ -111,21 +111,21 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
           </CardHeader>
           <div className="flex flex-col gap-1 text-sm">
             {client && (
-              <Link href={`/clients/${client.id}`} className="text-emerald-400 hover:underline">
+              <Link href={`/clients/${client.id}`} className="text-brand hover:underline">
                 {client.name} ({client.clientCode})
               </Link>
             )}
             {project && (
-              <Link href={`/projects/${project.id}`} className="text-emerald-400 hover:underline">
+              <Link href={`/projects/${project.id}`} className="text-brand hover:underline">
                 {project.name}
               </Link>
             )}
             {invoice && (
-              <Link href={`/documents/${invoice.id}`} className="text-emerald-400 hover:underline">
+              <Link href={`/documents/${invoice.id}`} className="text-brand hover:underline">
                 {invoice.documentNumber} — {centsToDisplay(invoice.totalCents, invoice.currency)} deposit
               </Link>
             )}
-            {!client && !project && <p className="text-slate-500">No linked records.</p>}
+            {!client && !project && <p className="text-muted-foreground">No linked records.</p>}
           </div>
         </Card>
       )}
@@ -135,7 +135,7 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
           <CardHeader>
             <CardTitle>Lost reason</CardTitle>
           </CardHeader>
-          <p className="text-sm text-slate-300">{deal.lostReason}</p>
+          <p className="text-sm text-secondary-foreground">{deal.lostReason}</p>
         </Card>
       )}
 
@@ -149,24 +149,24 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
       <Card>
         <CardHeader>
           <CardTitle>Activity</CardTitle>
-          <span className="text-xs text-slate-500">{outreach.length} outreach touches</span>
+          <span className="text-xs text-muted-foreground">{outreach.length} outreach touches</span>
         </CardHeader>
-        {timeline.length === 0 && <p className="text-sm text-slate-500">Nothing logged yet.</p>}
+        {timeline.length === 0 && <p className="text-sm text-muted-foreground">Nothing logged yet.</p>}
         <div className="flex flex-col">
           {timeline.map((entry) => (
-            <div key={entry.id} className="flex gap-3 border-l border-white/10 pb-4 pl-4 last:pb-0">
-              <div className="-ml-[25px] mt-1 h-3 w-3 shrink-0 rounded-full border-2 border-slate-950 bg-slate-700" />
+            <div key={entry.id} className="flex gap-3 border-l border-border pb-4 pl-4 last:pb-0">
+              <div className="-ml-[25px] mt-1 h-3 w-3 shrink-0 rounded-full border-2 border-background bg-accent" />
               <div className="min-w-0">
-                <p className="flex items-center gap-1.5 text-sm text-slate-200">
+                <p className="flex items-center gap-1.5 text-sm text-foreground">
                   {entry.kind === "outreach" ? (
-                    <PhoneCall className="h-3 w-3 text-slate-500" />
+                    <PhoneCall className="h-3 w-3 text-muted-foreground" />
                   ) : (
-                    <MoveRight className="h-3 w-3 text-slate-500" />
+                    <MoveRight className="h-3 w-3 text-muted-foreground" />
                   )}
                   {entry.title}
                 </p>
-                {entry.detail && <p className="text-xs text-slate-500">{entry.detail}</p>}
-                <p className="text-xs text-slate-600">
+                {entry.detail && <p className="text-xs text-muted-foreground">{entry.detail}</p>}
+                <p className="text-xs text-muted-foreground">
                   {new Date(entry.at).toLocaleString()} · {entry.by}
                 </p>
               </div>

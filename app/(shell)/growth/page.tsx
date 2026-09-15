@@ -14,10 +14,10 @@ export default async function GrowthPage() {
   return (
     <div className="mx-auto max-w-4xl">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-white">Growth &amp; Marketing</h1>
+        <h1 className="text-xl font-semibold text-foreground">Growth &amp; Marketing</h1>
         <CampaignForm campaigns={campaigns} />
       </div>
-      <p className="mb-4 text-xs text-slate-500">
+      <p className="mb-4 text-xs text-muted-foreground">
         Metrics are entered manually per channel (no live ad-platform API integration in this pass).
       </p>
       <AttributionTable rows={rows} />

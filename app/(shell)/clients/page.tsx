@@ -15,25 +15,25 @@ export default async function ClientsPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-white">Client Directory</h1>
+        <h1 className="text-xl font-semibold text-foreground">Client Directory</h1>
         <AddClientModal />
       </div>
       <div className="flex flex-col gap-2">
         {clients.map((c) => (
           <Link key={c.id} href={`/clients/${c.id}`}>
-            <Card className="transition-colors hover:border-emerald-500/40">
+            <Card className="transition-colors hover:border-primary/40">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-white">
+                  <p className="text-sm font-medium text-foreground">
                     {c.name}
-                    {c.nameArabic && <span dir="rtl" className="ml-2 font-normal text-slate-400">{c.nameArabic}</span>}
+                    {c.nameArabic && <span dir="rtl" className="ml-2 font-normal text-muted-foreground">{c.nameArabic}</span>}
                   </p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     {c.clientCode}
                     {c.contactPerson ? ` · ${c.contactPerson}` : ""}
                   </p>
                 </div>
-                {c.contactEmail && <p className="text-xs text-slate-500">{c.contactEmail}</p>}
+                {c.contactEmail && <p className="text-xs text-muted-foreground">{c.contactEmail}</p>}
               </div>
             </Card>
           </Link>

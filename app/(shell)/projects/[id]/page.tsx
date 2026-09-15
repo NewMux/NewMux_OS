@@ -36,9 +36,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     <div className="mx-auto max-w-5xl">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-white">{project.name}</h1>
+          <h1 className="text-xl font-semibold text-foreground">{project.name}</h1>
           {client && (
-            <Link href={`/clients/${client.id}`} className="text-sm text-emerald-400 hover:underline">
+            <Link href={`/clients/${client.id}`} className="text-sm text-brand hover:underline">
               {client.name}
             </Link>
           )}
@@ -52,20 +52,20 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             <CardTitle>Technical Detail</CardTitle>
           </CardHeader>
           <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-            <p className="text-slate-300">Tech stack: {project.techStack ?? "—"}</p>
-            <p className="text-slate-300">Hosting: {project.hostingProvider ?? "—"}</p>
-            <p className="text-slate-300">
+            <p className="text-secondary-foreground">Tech stack: {project.techStack ?? "—"}</p>
+            <p className="text-secondary-foreground">Hosting: {project.hostingProvider ?? "—"}</p>
+            <p className="text-secondary-foreground">
               Domain: {project.domain ?? "—"}
               {project.domainRenewalDate && (
-                <span className={domainRenewalSoon ? "ml-1 text-amber-400" : "ml-1 text-slate-500"}>
+                <span className={domainRenewalSoon ? "ml-1 text-warning" : "ml-1 text-muted-foreground"}>
                   (renews {new Date(project.domainRenewalDate).toLocaleDateString()})
                 </span>
               )}
             </p>
-            <p className="flex items-center gap-1 text-slate-300">
+            <p className="flex items-center gap-1 text-secondary-foreground">
               GitHub:{" "}
               {project.githubUrl ? (
-                <a href={project.githubUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-emerald-400 hover:underline">
+                <a href={project.githubUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-brand hover:underline">
                   Repository <ExternalLink className="h-3 w-3" />
                 </a>
               ) : (
@@ -73,14 +73,14 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               )}
             </p>
           </div>
-          <Link href="/vault" className="mt-3 flex items-center gap-1 text-xs text-slate-400 hover:text-emerald-400">
+          <Link href="/vault" className="mt-3 flex items-center gap-1 text-xs text-muted-foreground hover:text-brand">
             <KeyRound className="h-3 w-3" /> {secretCount} credential{secretCount === 1 ? "" : "s"} in the vault
           </Link>
         </Card>
       )}
 
       <div className="mb-4">
-        <h2 className="mb-2 text-sm font-semibold text-slate-300">Tasks</h2>
+        <h2 className="mb-2 text-sm font-semibold text-secondary-foreground">Tasks</h2>
         <KanbanBoard tasks={tasks} />
       </div>
 
@@ -89,14 +89,14 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           <CardHeader>
             <CardTitle>Invoices & Payments</CardTitle>
           </CardHeader>
-          {documents.length === 0 && <p className="text-sm text-slate-500">No documents yet.</p>}
+          {documents.length === 0 && <p className="text-sm text-muted-foreground">No documents yet.</p>}
           <div className="flex flex-col gap-2">
             {documents.map((d) => (
               <Link key={d.id} href={`/documents/${d.id}`}>
-                <div className="flex items-center justify-between rounded-lg border border-white/5 px-3 py-2 text-sm hover:border-emerald-500/40">
-                  <span className="text-slate-200">{d.documentNumber}</span>
+                <div className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2 text-sm hover:border-primary/40">
+                  <span className="text-foreground">{d.documentNumber}</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-slate-400">{centsToDisplay(d.totalCents, d.currency)}</span>
+                    <span className="text-muted-foreground">{centsToDisplay(d.totalCents, d.currency)}</span>
                     <StatusBadge status={d.status} />
                   </div>
                 </div>

@@ -14,8 +14,8 @@ export function StatCard({
       <CardHeader>
         <CardTitle>{title}</CardTitle>
       </CardHeader>
-      <p className="text-2xl font-semibold text-white">{value}</p>
-      {sub && <p className="mt-1 text-xs text-slate-500">{sub}</p>}
+      <p className="text-2xl font-semibold text-foreground">{value}</p>
+      {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
     </Card>
   );
 }

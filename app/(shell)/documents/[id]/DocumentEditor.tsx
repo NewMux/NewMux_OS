@@ -76,8 +76,8 @@ export function DocumentEditor({
     <div className="mx-auto max-w-2xl">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-white">{document.documentNumber}</h1>
-          <p className="text-sm text-slate-500">{client.name}</p>
+          <h1 className="text-xl font-semibold text-foreground">{document.documentNumber}</h1>
+          <p className="text-sm text-muted-foreground">{client.name}</p>
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge status={document.status} />
@@ -88,7 +88,7 @@ export function DocumentEditor({
           )}
           <a
             href={`/api/documents/generate-pdf?id=${document.id}`}
-            className="inline-flex min-h-[36px] items-center gap-1 rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-100 hover:bg-slate-700"
+            className="inline-flex min-h-[36px] items-center gap-1 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent"
           >
             <Download className="h-4 w-4" /> PDF
           </a>
@@ -118,7 +118,7 @@ export function DocumentEditor({
           </Button>
         )}
         {!editable && (
-          <p className="mt-4 text-xs text-slate-500">
+          <p className="mt-4 text-xs text-muted-foreground">
             Line items can only be edited while a document is in Draft status.
           </p>
         )}
@@ -129,7 +129,7 @@ export function DocumentEditor({
           <CardTitle>Lifecycle</CardTitle>
         </CardHeader>
         <div className="flex flex-wrap gap-2">
-          {nextStatuses.length === 0 && <p className="text-sm text-slate-500">No further transitions.</p>}
+          {nextStatuses.length === 0 && <p className="text-sm text-muted-foreground">No further transitions.</p>}
           {nextStatuses.map((status) => (
             <Button
               key={status}
@@ -143,9 +143,9 @@ export function DocumentEditor({
             </Button>
           ))}
         </div>
-        <div className="mt-4 space-y-1 border-t border-white/10 pt-3">
+        <div className="mt-4 space-y-1 border-t border-border pt-3">
           {history.map((h) => (
-            <p key={h.id} className="text-xs text-slate-500">
+            <p key={h.id} className="text-xs text-muted-foreground">
               {h.fromStatus ? `${h.fromStatus} → ${h.toStatus}` : `Created as ${h.toStatus}`} ·{" "}
               {new Date(h.changedAt).toLocaleString()}
             </p>

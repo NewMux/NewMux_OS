@@ -31,13 +31,13 @@ export default function LoginPage() {
   return (
     <Card className="w-full max-w-sm">
       <div className="mb-6 text-center">
-        <div className="mx-auto mb-3 h-10 w-10 rounded-lg bg-emerald-600" aria-hidden />
-        <h1 className="text-lg font-semibold text-white">NEWMUX OS</h1>
-        <p className="text-sm text-slate-400">Internal access only</p>
+        <div className="mx-auto mb-3 h-10 w-10 rounded-lg bg-primary" aria-hidden />
+        <h1 className="text-lg font-semibold text-foreground">NEWMUX OS</h1>
+        <p className="text-sm text-muted-foreground">Internal access only</p>
       </div>
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <div>
-          <label htmlFor="email" className="mb-1 block text-xs font-medium text-slate-400">
+          <label htmlFor="email" className="mb-1 block text-xs font-medium text-muted-foreground">
             Email
           </label>
           <Input
@@ -50,7 +50,7 @@ export default function LoginPage() {
           />
         </div>
         <div>
-          <label htmlFor="password" className="mb-1 block text-xs font-medium text-slate-400">
+          <label htmlFor="password" className="mb-1 block text-xs font-medium text-muted-foreground">
             Password
           </label>
           <Input
@@ -62,12 +62,12 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p className="text-sm text-danger">{error}</p>}
         <Button type="submit" disabled={loading} className="mt-2 w-full">
           {loading ? "Signing in…" : "Sign in"}
         </Button>
       </form>
-      <p className="mt-4 text-center text-xs text-slate-500">
+      <p className="mt-4 text-center text-xs text-muted-foreground">
         Credentials are seeded to the server console on first run (mock data mode).
       </p>
     </Card>

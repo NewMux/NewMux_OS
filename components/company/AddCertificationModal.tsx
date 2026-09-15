@@ -37,11 +37,11 @@ export function AddCertificationModal() {
         </Button>
       </Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[90vw] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-white/10 bg-slate-950 p-4">
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-overlay/60" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[90vw] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-popover p-4">
           <div className="mb-3 flex items-center justify-between">
-            <Dialog.Title className="text-sm font-semibold text-white">New certification</Dialog.Title>
-            <Dialog.Close className="text-slate-500 hover:text-slate-200">
+            <Dialog.Title className="text-sm font-semibold text-foreground">New certification</Dialog.Title>
+            <Dialog.Close className="text-muted-foreground hover:text-foreground">
               <X className="h-4 w-4" />
             </Dialog.Close>
           </div>
@@ -50,7 +50,7 @@ export function AddCertificationModal() {
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as CertificationStatus)}
-              className="min-h-[44px] rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+              className="min-h-[44px] rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
             >
               <option value="pending">Pending</option>
               <option value="active">Active</option>

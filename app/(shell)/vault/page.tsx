@@ -19,7 +19,7 @@ export default async function VaultPage() {
     if (!admin) {
       return (
         <div className="mx-auto max-w-md">
-          <Card className="text-center text-sm text-slate-500">
+          <Card className="text-center text-sm text-muted-foreground">
             The vault has not been set up yet. Ask a Partner/Admin to initialize it.
           </Card>
         </div>
@@ -36,7 +36,7 @@ export default async function VaultPage() {
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-white">Secrets Vault</h1>
+        <h1 className="text-xl font-semibold text-foreground">Secrets Vault</h1>
         {admin && unlocked && (
           <div className="flex items-center gap-2">
             <LockButton />
@@ -47,13 +47,13 @@ export default async function VaultPage() {
 
       {admin && !unlocked && <UnlockModal />}
       {!admin && (
-        <p className="mb-4 text-xs text-slate-500">
+        <p className="mb-4 text-xs text-muted-foreground">
           Secrets are shown masked only. Ask a Partner/Admin to reveal a value if you need it.
         </p>
       )}
 
       <div className="flex flex-col gap-2">
-        {secrets.length === 0 && <Card className="text-center text-sm text-slate-500">No secrets stored yet.</Card>}
+        {secrets.length === 0 && <Card className="text-center text-sm text-muted-foreground">No secrets stored yet.</Card>}
         {secrets.map((s) => (
           <SecretRow
             key={s.id}

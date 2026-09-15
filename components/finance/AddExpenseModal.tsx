@@ -52,11 +52,11 @@ export function AddExpenseModal({ clients, projects }: { clients: Client[]; proj
         </Button>
       </Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[90vw] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-white/10 bg-slate-950 p-4">
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-overlay/60" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[90vw] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-popover p-4">
           <div className="mb-3 flex items-center justify-between">
-            <Dialog.Title className="text-sm font-semibold text-white">Recurring expense</Dialog.Title>
-            <Dialog.Close className="text-slate-500 hover:text-slate-200">
+            <Dialog.Title className="text-sm font-semibold text-foreground">Recurring expense</Dialog.Title>
+            <Dialog.Close className="text-muted-foreground hover:text-foreground">
               <X className="h-4 w-4" />
             </Dialog.Close>
           </div>
@@ -65,7 +65,7 @@ export function AddExpenseModal({ clients, projects }: { clients: Client[]; proj
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="min-h-[44px] rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+              className="min-h-[44px] rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
             >
               <option value="hosting">Hosting</option>
               <option value="software subscription">Software subscription</option>
@@ -77,7 +77,7 @@ export function AddExpenseModal({ clients, projects }: { clients: Client[]; proj
               <select
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
-                className="min-h-[44px] rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+                className="min-h-[44px] rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
               >
                 <option value="USD">USD</option>
                 <option value="BHD">BHD</option>
@@ -86,7 +86,7 @@ export function AddExpenseModal({ clients, projects }: { clients: Client[]; proj
             <select
               value={cycle}
               onChange={(e) => setCycle(e.target.value as RecurringExpenseCycle)}
-              className="min-h-[44px] rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+              className="min-h-[44px] rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
             >
               <option value="monthly">Monthly</option>
               <option value="quarterly">Quarterly</option>
@@ -95,7 +95,7 @@ export function AddExpenseModal({ clients, projects }: { clients: Client[]; proj
             <select
               value={linkedClientId}
               onChange={(e) => setLinkedClientId(e.target.value)}
-              className="min-h-[44px] rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+              className="min-h-[44px] rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
             >
               <option value="">Company-wide (no client)</option>
               {clients.map((c) => (

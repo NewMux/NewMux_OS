@@ -3,12 +3,12 @@ import type { DocumentStatus } from "@/lib/data/types";
 import { cn } from "@/lib/utils";
 
 const STYLES: Record<DocumentStatus, string> = {
-  draft: "bg-slate-500/20 text-slate-300",
-  sent: "bg-blue-500/20 text-blue-300",
-  accepted: "bg-amber-500/20 text-amber-300",
-  signed: "bg-amber-500/20 text-amber-300",
-  paid: "bg-emerald-500/20 text-emerald-300",
-  archived: "bg-zinc-500/20 text-zinc-400",
+  draft: "bg-tone-neutral/20 text-secondary-foreground",
+  sent: "bg-tone-info/20 text-tone-info-fg",
+  accepted: "bg-tone-warning/20 text-tone-warning-fg",
+  signed: "bg-tone-warning/20 text-tone-warning-fg",
+  paid: "bg-tone-success/20 text-tone-success-fg",
+  archived: "bg-tone-muted/20 text-tone-muted-fg",
 };
 
 export function StatusBadge({ status }: { status: DocumentStatus }) {

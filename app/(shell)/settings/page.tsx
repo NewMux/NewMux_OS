@@ -21,8 +21,8 @@ export default async function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="mb-1 text-xl font-semibold text-white">Settings</h1>
-      <p className="mb-4 text-xs text-slate-500">
+      <h1 className="mb-1 text-xl font-semibold text-foreground">Settings</h1>
+      <p className="mb-4 text-xs text-muted-foreground">
         Admin-only. Every change here is timestamped and attributed in the audit log.
       </p>
 

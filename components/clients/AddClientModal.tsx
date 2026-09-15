@@ -43,11 +43,11 @@ export function AddClientModal() {
         </Button>
       </Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[90vw] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-white/10 bg-slate-950 p-4">
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-overlay/60" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[90vw] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-popover p-4">
           <div className="mb-3 flex items-center justify-between">
-            <Dialog.Title className="text-sm font-semibold text-white">New client</Dialog.Title>
-            <Dialog.Close className="text-slate-500 hover:text-slate-200">
+            <Dialog.Title className="text-sm font-semibold text-foreground">New client</Dialog.Title>
+            <Dialog.Close className="text-muted-foreground hover:text-foreground">
               <X className="h-4 w-4" />
             </Dialog.Close>
           </div>

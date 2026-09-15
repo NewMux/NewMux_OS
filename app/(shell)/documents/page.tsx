@@ -28,10 +28,10 @@ export default async function DocumentsPage({
   return (
     <div className="mx-auto max-w-4xl">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold text-white">Documents</h1>
+        <h1 className="text-xl font-semibold text-foreground">Documents</h1>
         <Link
           href="/documents/new"
-          className="inline-flex min-h-[36px] items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500"
+          className="inline-flex min-h-[36px] items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-foreground hover:bg-success"
         >
           <Plus className="h-4 w-4" /> New document
         </Link>
@@ -43,18 +43,18 @@ export default async function DocumentsPage({
 
       <div className="flex flex-col gap-2">
         {documents.length === 0 && (
-          <Card className="text-center text-sm text-slate-500">No documents yet.</Card>
+          <Card className="text-center text-sm text-muted-foreground">No documents yet.</Card>
         )}
         {documents.map((doc) => (
           <Link key={doc.id} href={`/documents/${doc.id}`}>
-            <Card className="transition-colors hover:border-emerald-500/40">
+            <Card className="transition-colors hover:border-primary/40">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-white">{doc.documentNumber}</p>
-                  <p className="text-xs text-slate-500">{clientName(doc.clientId)}</p>
+                  <p className="text-sm font-medium text-foreground">{doc.documentNumber}</p>
+                  <p className="text-xs text-muted-foreground">{clientName(doc.clientId)}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium text-slate-200">
+                  <span className="text-sm font-medium text-foreground">
                     {centsToDisplay(doc.totalCents, doc.currency)}
                   </span>
                   <StatusBadge status={doc.status} />

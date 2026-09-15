@@ -30,12 +30,12 @@ export function PartiesPanel({ parties }: { parties: Party[] }) {
       <CardHeader>
         <CardTitle>Payout Parties</CardTitle>
       </CardHeader>
-      <p className="mb-3 text-xs text-slate-500">
+      <p className="mb-3 text-xs text-muted-foreground">
         Anyone who can receive a share of profit — a partner, or a one-off referral partner on a specific deal.
       </p>
       <div className="mb-3 flex flex-wrap gap-2">
         {parties.map((p) => (
-          <span key={p.id} className="rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-200">
+          <span key={p.id} className="rounded-full bg-accent px-3 py-1 text-sm text-foreground">
             {p.name}
           </span>
         ))}

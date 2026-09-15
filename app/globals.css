@@ -37,6 +37,9 @@
 
     --primary: 163 94% 24%;
     --primary-foreground: 0 0% 100%;
+    /* Emphasis text and links. Distinct from --primary, which is a fill that
+     * carries --primary-foreground on top of it. */
+    --brand: 163 94% 24%;
 
     --accent: 210 40% 96%;
     --accent-foreground: 222 47% 11%;
@@ -95,6 +98,7 @@
 
     --primary: 161 94% 30%;
     --primary-foreground: 0 0% 100%;
+    --brand: 158 64% 52%;
 
     --accent: 217 33% 17%;
     --accent-foreground: 214 32% 91%;
@@ -128,8 +132,7 @@
 
   html,
   body {
-    background-color: #020617;
-    color: #e2e8f0;
+    @apply bg-background text-foreground;
   }
 }
 
@@ -143,7 +146,7 @@
   }
 
   .glass-surface {
-    @apply border-t border-white/10 bg-slate-950/90 backdrop-blur-md;
+    @apply border-t border-border bg-background/90 backdrop-blur-md;
   }
 }
 

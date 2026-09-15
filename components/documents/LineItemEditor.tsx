@@ -47,7 +47,7 @@ export function LineItemEditor({
     <div>
       <div className="flex flex-col gap-2">
         {lineItems.map((item, i) => (
-          <div key={i} className="flex flex-wrap items-center gap-2 rounded-lg border border-white/10 p-2">
+          <div key={i} className="flex flex-wrap items-center gap-2 rounded-lg border border-border p-2">
             <Input
               placeholder="Description"
               className="flex-1 basis-40"
@@ -72,12 +72,12 @@ export function LineItemEditor({
               value={item.unitPriceCents / divisor}
               onChange={(e) => updateItem(i, { unitPriceCents: majorToMinorUnits(Number(e.target.value) || 0, currency) })}
             />
-            <span className="w-24 text-right text-sm text-slate-300">
+            <span className="w-24 text-right text-sm text-secondary-foreground">
               {centsToDisplay(item.quantity * item.unitPriceCents, currency)}
             </span>
             <button
               onClick={() => removeItem(i)}
-              className="rounded-lg p-2 text-slate-500 hover:bg-slate-800 hover:text-red-400"
+              className="rounded-lg p-2 text-muted-foreground hover:bg-accent hover:text-danger"
               aria-label="Remove line item"
             >
               <Trash2 className="h-4 w-4" />
@@ -90,12 +90,12 @@ export function LineItemEditor({
         <Plus className="h-4 w-4" /> Add line item
       </Button>
 
-      <div className="mt-4 flex flex-col items-end gap-1 border-t border-white/10 pt-4 text-sm">
-        <div className="flex w-56 justify-between text-slate-400">
+      <div className="mt-4 flex flex-col items-end gap-1 border-t border-border pt-4 text-sm">
+        <div className="flex w-56 justify-between text-muted-foreground">
           <span>Subtotal</span>
           <span>{centsToDisplay(subtotal, currency)}</span>
         </div>
-        <div className="flex w-56 items-center justify-between text-slate-400">
+        <div className="flex w-56 items-center justify-between text-muted-foreground">
           <span>Tax rate (%)</span>
           <Input
             type="number"
@@ -107,11 +107,11 @@ export function LineItemEditor({
             onChange={(e) => onTaxRateChange(Math.round((Number(e.target.value) || 0) * 100))}
           />
         </div>
-        <div className="flex w-56 justify-between text-slate-400">
+        <div className="flex w-56 justify-between text-muted-foreground">
           <span>Tax</span>
           <span>{centsToDisplay(tax, currency)}</span>
         </div>
-        <div className="flex w-56 justify-between border-t border-white/10 pt-1 font-semibold text-white">
+        <div className="flex w-56 justify-between border-t border-border pt-1 font-semibold text-foreground">
           <span>Total</span>
           <span>{centsToDisplay(total, currency)}</span>
         </div>

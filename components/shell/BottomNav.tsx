@@ -30,7 +30,7 @@ export function BottomNav({ items }: { items: NavItem[] }) {
               href={item.href}
               className={cn(
                 "flex min-h-[44px] flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium",
-                active ? "text-emerald-400" : "text-slate-500",
+                active ? "text-brand" : "text-muted-foreground",
               )}
             >
               <NavIcon icon={item.icon} className="h-5 w-5" />
@@ -45,7 +45,7 @@ export function BottomNav({ items }: { items: NavItem[] }) {
               <button
                 className={cn(
                   "flex min-h-[44px] flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium",
-                  overflowActive ? "text-emerald-400" : "text-slate-500",
+                  overflowActive ? "text-brand" : "text-muted-foreground",
                 )}
               >
                 <MoreHorizontal className="h-5 w-5" aria-hidden />
@@ -53,11 +53,11 @@ export function BottomNav({ items }: { items: NavItem[] }) {
               </button>
             </Dialog.Trigger>
             <Dialog.Portal>
-              <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
-              <Dialog.Content className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl border-t border-white/10 bg-slate-950 p-4 safe-bottom">
+              <Dialog.Overlay className="fixed inset-0 z-50 bg-overlay/60" />
+              <Dialog.Content className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl border-t border-border bg-popover p-4 safe-bottom">
                 <div className="mb-3 flex items-center justify-between">
-                  <Dialog.Title className="text-sm font-semibold text-white">More</Dialog.Title>
-                  <Dialog.Close className="text-slate-500 hover:text-slate-200">
+                  <Dialog.Title className="text-sm font-semibold text-foreground">More</Dialog.Title>
+                  <Dialog.Close className="text-muted-foreground hover:text-foreground">
                     <X className="h-4 w-4" />
                   </Dialog.Close>
                 </div>
@@ -71,7 +71,7 @@ export function BottomNav({ items }: { items: NavItem[] }) {
                         onClick={() => setMoreOpen(false)}
                         className={cn(
                           "flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-lg py-2 text-[11px] font-medium",
-                          active ? "bg-emerald-600/15 text-emerald-400" : "text-slate-400 hover:bg-slate-900",
+                          active ? "bg-primary/15 text-brand" : "text-muted-foreground hover:bg-card",
                         )}
                       >
                         <NavIcon icon={item.icon} className="h-5 w-5" />

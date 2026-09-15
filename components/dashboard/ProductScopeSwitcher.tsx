@@ -20,7 +20,7 @@ export function ProductScopeSwitcher({ products }: { products: Product[] }) {
         }
         router.push(`/dashboard?${params.toString()}`);
       }}
-      className="min-h-[40px] rounded-lg border border-white/10 bg-slate-900 px-3 py-1.5 text-sm text-slate-100"
+      className="min-h-[40px] rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground"
     >
       <option value="all">All Products</option>
       {products.map((p) => (

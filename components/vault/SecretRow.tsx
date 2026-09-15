@@ -55,10 +55,10 @@ export function SecretRow({
     <Card>
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-white">{label}</p>
-          <p className="text-xs text-slate-500">{TYPE_LABEL[secretType] ?? secretType}</p>
-          <p className="mt-1 truncate font-mono text-sm text-slate-300">{revealed ?? maskedPreview}</p>
-          {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
+          <p className="truncate text-sm font-medium text-foreground">{label}</p>
+          <p className="text-xs text-muted-foreground">{TYPE_LABEL[secretType] ?? secretType}</p>
+          <p className="mt-1 truncate font-mono text-sm text-secondary-foreground">{revealed ?? maskedPreview}</p>
+          {error && <p className="mt-1 text-xs text-danger">{error}</p>}
         </div>
         {canReveal && (
           <div className="flex shrink-0 items-center gap-1">

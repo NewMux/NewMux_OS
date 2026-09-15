@@ -54,21 +54,21 @@ export function DealEditForm({ deal, owners }: { deal: Deal; owners: User[] }) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
       <div>
-        <label className="mb-1 block text-xs text-slate-500">Deal name</label>
+        <label className="mb-1 block text-xs text-muted-foreground">Deal name</label>
         <Input value={name} onChange={(e) => setName(e.target.value)} required />
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
-          <label className="mb-1 block text-xs text-slate-500">Quoted value ({deal.currency})</label>
+          <label className="mb-1 block text-xs text-muted-foreground">Quoted value ({deal.currency})</label>
           <Input type="number" min="0" step="0.001" value={quotedValue} onChange={(e) => setQuotedValue(e.target.value)} />
         </div>
         <div>
-          <label className="mb-1 block text-xs text-slate-500">Owner</label>
+          <label className="mb-1 block text-xs text-muted-foreground">Owner</label>
           <select
             value={ownerId}
             onChange={(e) => setOwnerId(e.target.value)}
-            className="min-h-[44px] w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+            className="min-h-[44px] w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
           >
             {owners.map((o) => (
               <option key={o.id} value={o.id}>
@@ -78,34 +78,34 @@ export function DealEditForm({ deal, owners }: { deal: Deal; owners: User[] }) {
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-xs text-slate-500">Expected close date</label>
+          <label className="mb-1 block text-xs text-muted-foreground">Expected close date</label>
           <Input type="date" value={expectedCloseDate} onChange={(e) => setExpectedCloseDate(e.target.value)} />
         </div>
         <div>
-          <label className="mb-1 block text-xs text-slate-500">Next follow-up</label>
+          <label className="mb-1 block text-xs text-muted-foreground">Next follow-up</label>
           <Input type="date" value={nextFollowUpDate} onChange={(e) => setNextFollowUpDate(e.target.value)} />
         </div>
         <div>
-          <label className="mb-1 block text-xs text-slate-500">Contact person</label>
+          <label className="mb-1 block text-xs text-muted-foreground">Contact person</label>
           <Input value={contactPerson} onChange={(e) => setContactPerson(e.target.value)} />
         </div>
         <div>
-          <label className="mb-1 block text-xs text-slate-500">Contact phone</label>
+          <label className="mb-1 block text-xs text-muted-foreground">Contact phone</label>
           <Input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
         </div>
         <div className="sm:col-span-2">
-          <label className="mb-1 block text-xs text-slate-500">Contact email</label>
+          <label className="mb-1 block text-xs text-muted-foreground">Contact email</label>
           <Input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} />
         </div>
       </div>
 
       <div>
-        <label className="mb-1 block text-xs text-slate-500">Notes</label>
+        <label className="mb-1 block text-xs text-muted-foreground">Notes</label>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
-          className="w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
+          className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
       </div>
 
@@ -113,7 +113,7 @@ export function DealEditForm({ deal, owners }: { deal: Deal; owners: User[] }) {
         <Button type="submit" disabled={saving}>
           {saving ? "Saving…" : "Save changes"}
         </Button>
-        {saved && <span className="text-xs text-emerald-400">Saved</span>}
+        {saved && <span className="text-xs text-brand">Saved</span>}
       </div>
     </form>
   );

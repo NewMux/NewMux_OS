@@ -11,10 +11,10 @@ import type { HostingSubscription, Client } from "@/lib/data/types";
 import type { HostingAlertLevel } from "@/lib/data/hosting";
 
 const ALERT_STYLES: Record<HostingAlertLevel, string> = {
-  overdue: "bg-red-500/20 text-red-300",
-  due_soon: "bg-amber-500/20 text-amber-300",
-  upcoming: "bg-blue-500/20 text-blue-300",
-  ok: "bg-slate-500/20 text-slate-300",
+  overdue: "bg-tone-danger/20 text-tone-danger-fg",
+  due_soon: "bg-tone-warning/20 text-tone-warning-fg",
+  upcoming: "bg-tone-info/20 text-tone-info-fg",
+  ok: "bg-tone-neutral/20 text-secondary-foreground",
 };
 
 const ALERT_LABEL: Record<HostingAlertLevel, string> = {
@@ -45,7 +45,7 @@ export function HostingList({ subscriptions, clients }: { subscriptions: Hosting
   }
 
   if (subscriptions.length === 0) {
-    return <Card className="text-center text-sm text-slate-500">No hosting subscriptions yet.</Card>;
+    return <Card className="text-center text-sm text-muted-foreground">No hosting subscriptions yet.</Card>;
   }
 
   return (
@@ -57,10 +57,10 @@ export function HostingList({ subscriptions, clients }: { subscriptions: Hosting
           <Card key={sub.id}>
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-white">
-                  {client?.name ?? "Unknown client"} · <span className="capitalize text-slate-400">{sub.item}</span>
+                <p className="truncate text-sm font-medium text-foreground">
+                  {client?.name ?? "Unknown client"} · <span className="capitalize text-muted-foreground">{sub.item}</span>
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   {centsToDisplay(sub.amountCents, sub.currency)} / {sub.cycle}
                   {sub.nextDueDate ? ` · Next due: ${new Date(sub.nextDueDate).toLocaleDateString()}` : ""}
                 </p>

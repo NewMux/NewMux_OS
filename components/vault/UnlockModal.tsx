@@ -32,8 +32,8 @@ export function UnlockModal() {
   }
 
   return (
-    <Card className="mb-4 border-amber-500/30 bg-amber-500/5">
-      <div className="mb-2 flex items-center gap-2 text-amber-300">
+    <Card className="mb-4 border-warning/30 bg-warning/5">
+      <div className="mb-2 flex items-center gap-2 text-tone-warning-fg">
         <Lock className="h-4 w-4" />
         <p className="text-sm font-medium">Vault is locked</p>
       </div>
@@ -50,7 +50,7 @@ export function UnlockModal() {
           {loading ? "Unlocking…" : "Unlock (15 min)"}
         </Button>
       </form>
-      {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
+      {error && <p className="mt-2 text-sm text-danger">{error}</p>}
     </Card>
   );
 }

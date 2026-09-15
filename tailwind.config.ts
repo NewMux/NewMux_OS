@@ -33,6 +33,7 @@ const config: Config = {
           DEFAULT: token("primary"),
           foreground: token("primary-foreground"),
         },
+        brand: token("brand"),
         accent: {
           DEFAULT: token("accent"),
           foreground: token("accent-foreground"),
@@ -63,10 +64,6 @@ const config: Config = {
           "alert-fg": token("tone-alert-fg"),
           danger: token("tone-danger"),
           "danger-fg": token("tone-danger-fg"),
-        },
-        // Retained so app/layout.tsx keeps working during the token migration.
-        brand: {
-          background: token("background"),
         },
       },
       fontFamily: {

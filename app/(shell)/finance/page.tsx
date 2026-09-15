@@ -23,8 +23,8 @@ export default async function FinancePage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="mb-1 text-xl font-semibold text-white">Finance</h1>
-      <p className="mb-4 text-xs text-slate-500">
+      <h1 className="mb-1 text-xl font-semibold text-foreground">Finance</h1>
+      <p className="mb-4 text-xs text-muted-foreground">
         Quotations never enter the accounts — only invoices count toward revenue and profit (see the Documents module).
       </p>
 
@@ -32,15 +32,15 @@ export default async function FinancePage() {
         <CardHeader>
           <CardTitle>Chart of Accounts — Operating Expenses</CardTitle>
         </CardHeader>
-        <p className="text-2xl font-semibold text-white">{centsToDisplay(monthlyBhdEquivalent, "BHD")}</p>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="text-2xl font-semibold text-foreground">{centsToDisplay(monthlyBhdEquivalent, "BHD")}</p>
+        <p className="mt-1 text-xs text-muted-foreground">
           Monthly run-rate across all active recurring expenses (converted to BHD at the fixed peg rate). Per-category
           revenue rollup (client projects / hosting / ventures) arrives with the Hosting Fee module (Phase 2).
         </p>
       </Card>
 
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-slate-300">Recurring Expenses</h2>
+        <h2 className="text-sm font-semibold text-secondary-foreground">Recurring Expenses</h2>
         <AddExpenseModal clients={clients} projects={projects} />
       </div>
       <RecurringExpenseList expenses={expenses} clients={clients} projects={projects} />

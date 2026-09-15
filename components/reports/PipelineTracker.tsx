@@ -46,10 +46,10 @@ export function PipelineTracker({ items }: { items: PipelineItem[] }) {
             key={item.id}
             onClick={() => handleToggle(item.id)}
             disabled={toggling === item.id}
-            className="flex items-center justify-between rounded-lg border border-white/5 px-3 py-2 text-left text-sm hover:border-emerald-500/40"
+            className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2 text-left text-sm hover:border-primary/40"
           >
-            <span className="text-slate-200">{item.name}</span>
-            <Badge className={cn(item.stage === "complete" ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300")}>
+            <span className="text-foreground">{item.name}</span>
+            <Badge className={cn(item.stage === "complete" ? "bg-tone-success/20 text-tone-success-fg" : "bg-tone-warning/20 text-tone-warning-fg")}>
               {item.stage === "complete" ? "Complete" : "In progress"}
             </Badge>
           </button>

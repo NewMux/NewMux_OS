@@ -3,10 +3,10 @@ import type { TaskPriority } from "@/lib/data/types";
 import { cn } from "@/lib/utils";
 
 const STYLES: Record<TaskPriority, string> = {
-  urgent: "bg-red-500/20 text-red-300",
-  high: "bg-orange-500/20 text-orange-300",
-  medium: "bg-yellow-500/20 text-yellow-300",
-  low: "bg-sky-500/20 text-sky-300",
+  urgent: "bg-tone-danger/20 text-tone-danger-fg",
+  high: "bg-tone-alert/20 text-tone-alert-fg",
+  medium: "bg-tone-warning/20 text-tone-warning-fg",
+  low: "bg-tone-info/20 text-tone-info-fg",
 };
 
 export function PriorityBadge({ priority }: { priority: TaskPriority }) {

@@ -53,7 +53,7 @@ export function NewDocumentForm({ clients, projects }: { clients: Client[]; proj
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="mb-4 text-xl font-semibold text-white">New document</h1>
+      <h1 className="mb-4 text-xl font-semibold text-foreground">New document</h1>
       <Card className="flex flex-col gap-4">
         <SegmentedControl
           options={[
@@ -66,11 +66,11 @@ export function NewDocumentForm({ clients, projects }: { clients: Client[]; proj
         />
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-slate-400">Client</label>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">Client</label>
           <select
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
-            className="min-h-[44px] w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+            className="min-h-[44px] w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
           >
             {clients.map((c) => (
               <option key={c.id} value={c.id}>
@@ -81,11 +81,11 @@ export function NewDocumentForm({ clients, projects }: { clients: Client[]; proj
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-slate-400">Currency</label>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">Currency</label>
           <select
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
-            className="min-h-[44px] w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+            className="min-h-[44px] w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
           >
             <option value="BHD">BHD</option>
             <option value="USD">USD</option>
@@ -93,12 +93,12 @@ export function NewDocumentForm({ clients, projects }: { clients: Client[]; proj
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-slate-400">Payment terms</label>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">Payment terms</label>
           <Input value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)} />
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-slate-400">Notes</label>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">Notes</label>
           <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
 
@@ -110,7 +110,7 @@ export function NewDocumentForm({ clients, projects }: { clients: Client[]; proj
           currency={currency}
         />
 
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p className="text-sm text-danger">{error}</p>}
 
         <Button onClick={handleSave} disabled={saving || !clientId}>
           {saving ? "Creating…" : "Create draft"}

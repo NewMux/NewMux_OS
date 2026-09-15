@@ -29,7 +29,7 @@ export function RecurringExpenseList({
   }
 
   if (expenses.length === 0) {
-    return <Card className="text-center text-sm text-slate-500">No recurring expenses yet.</Card>;
+    return <Card className="text-center text-sm text-muted-foreground">No recurring expenses yet.</Card>;
   }
 
   return (
@@ -41,20 +41,20 @@ export function RecurringExpenseList({
           <Card key={e.id}>
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-white">{e.name}</p>
-                <p className="text-xs text-slate-500">
+                <p className="truncate text-sm font-medium text-foreground">{e.name}</p>
+                <p className="text-xs text-muted-foreground">
                   {e.category} · {e.cycle}
                   {client ? ` · ${client.name}` : ""}
                   {project ? ` · ${project.name}` : ""}
                   {!client && !project ? " · Company-wide" : ""}
                 </p>
                 {e.nextDueDate && (
-                  <p className="text-xs text-slate-500">Next due: {new Date(e.nextDueDate).toLocaleDateString()}</p>
+                  <p className="text-xs text-muted-foreground">Next due: {new Date(e.nextDueDate).toLocaleDateString()}</p>
                 )}
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                <span className="text-sm font-medium text-slate-200">{centsToDisplay(e.amountCents, e.currency)}</span>
-                <Badge className={cn(e.status === "active" ? "bg-emerald-500/20 text-emerald-300" : "bg-zinc-500/20 text-zinc-400")}>
+                <span className="text-sm font-medium text-foreground">{centsToDisplay(e.amountCents, e.currency)}</span>
+                <Badge className={cn(e.status === "active" ? "bg-tone-success/20 text-tone-success-fg" : "bg-tone-muted/20 text-tone-muted-fg")}>
                   {e.status}
                 </Badge>
                 <Button variant="ghost" size="sm" disabled={updating === e.id} onClick={() => handleToggle(e.id)}>

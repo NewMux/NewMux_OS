@@ -34,11 +34,11 @@ export function SetupVaultForm() {
 
   return (
     <Card className="mx-auto max-w-md">
-      <div className="mb-4 flex items-center gap-2 text-emerald-400">
+      <div className="mb-4 flex items-center gap-2 text-brand">
         <ShieldCheck className="h-5 w-5" />
-        <h2 className="text-sm font-semibold text-white">Set up the Secrets Vault</h2>
+        <h2 className="text-sm font-semibold text-foreground">Set up the Secrets Vault</h2>
       </div>
-      <p className="mb-4 text-sm text-slate-400">
+      <p className="mb-4 text-sm text-muted-foreground">
         Choose a master passphrase. It encrypts every secret stored here with AES-256-GCM and is never stored
         in plaintext — if it&apos;s lost, secrets cannot be recovered.
       </p>
@@ -57,7 +57,7 @@ export function SetupVaultForm() {
           value={confirmPassphrase}
           onChange={(e) => setConfirmPassphrase(e.target.value)}
         />
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p className="text-sm text-danger">{error}</p>}
         <Button type="submit" disabled={saving}>
           {saving ? "Setting up…" : "Initialize vault"}
         </Button>

@@ -1,9 +1,9 @@
 import { cn } from "@/lib/utils";
 
 const COLORS = {
-  ok: "bg-emerald-500",
-  warn: "bg-amber-500",
-  down: "bg-red-500",
+  ok: "bg-success",
+  warn: "bg-warning",
+  down: "bg-danger",
 } as const;
 
 export function StatusDot({ status }: { status: keyof typeof COLORS }) {

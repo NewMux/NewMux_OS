@@ -50,14 +50,14 @@ function Column({ column, itemIds, children }: { column: BoardColumn; itemIds: s
     // Narrow screens scroll columns sideways like a real board; wide screens lay them out in a grid.
     <div className="w-[17rem] shrink-0 lg:w-auto">
       <div className="mb-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">{column.label}</h3>
-        {column.meta && <div className="mt-0.5 text-xs text-slate-500">{column.meta}</div>}
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{column.label}</h3>
+        {column.meta && <div className="mt-0.5 text-xs text-muted-foreground">{column.meta}</div>}
       </div>
       <div
         ref={setNodeRef}
         className={cn(
           "flex min-h-[120px] flex-col gap-2 rounded-xl border border-dashed p-2 transition-colors",
-          isOver ? "border-emerald-500/60 bg-emerald-500/5" : "border-white/5",
+          isOver ? "border-primary/60 bg-success/5" : "border-border/60",
         )}
       >
         <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>

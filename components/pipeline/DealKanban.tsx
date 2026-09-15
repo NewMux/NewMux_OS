@@ -102,32 +102,32 @@ export function DealKanban({
           return (
             <Card className="cursor-grab text-sm active:cursor-grabbing">
               <div className="mb-1 flex items-start justify-between gap-2">
-                <p className="font-medium text-white">{deal.name}</p>
+                <p className="font-medium text-foreground">{deal.name}</p>
                 <Link
                   href={`/pipeline/${deal.id}`}
                   onPointerDown={(e) => e.stopPropagation()}
-                  className="shrink-0 text-slate-500 hover:text-emerald-400"
+                  className="shrink-0 text-muted-foreground hover:text-brand"
                   aria-label={`Open ${deal.name}`}
                 >
                   <ArrowUpRight className="h-4 w-4" />
                 </Link>
               </div>
-              <p className="mb-2 text-xs text-slate-500">
+              <p className="mb-2 text-xs text-muted-foreground">
                 {centsToDisplay(deal.quotedValueCents, deal.currency)} · {ownerNames[deal.ownerId] ?? "Unassigned"}
               </p>
 
               {last && (
-                <p className="mb-2 text-xs text-slate-500">
+                <p className="mb-2 text-xs text-muted-foreground">
                   Last: {OUTCOME_LABEL[last.outcome]} ({last.channel}) — {new Date(last.createdAt).toLocaleDateString()}
                 </p>
               )}
               {deal.nextFollowUpDate && deal.stage !== "won" && deal.stage !== "lost" && (
-                <p className="mb-2 text-xs text-amber-400">Follow up: {new Date(deal.nextFollowUpDate).toLocaleDateString()}</p>
+                <p className="mb-2 text-xs text-warning">Follow up: {new Date(deal.nextFollowUpDate).toLocaleDateString()}</p>
               )}
-              {deal.stage === "lost" && deal.lostReason && <p className="mb-2 text-xs text-slate-500">Lost: {deal.lostReason}</p>}
+              {deal.stage === "lost" && deal.lostReason && <p className="mb-2 text-xs text-muted-foreground">Lost: {deal.lostReason}</p>}
 
               {deal.stage === "won" && deal.convertedProjectId && (
-                <p className="mb-2 text-xs text-emerald-400">
+                <p className="mb-2 text-xs text-brand">
                   Converted →{" "}
                   <Link href={`/projects/${deal.convertedProjectId}`} onPointerDown={(e) => e.stopPropagation()} className="underline">
                     project
@@ -155,11 +155,11 @@ export function DealKanban({
 
       <Dialog.Root open={pendingLost !== null} onOpenChange={(open) => !open && confirmLost("")}>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[90vw] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-white/10 bg-slate-950 p-4">
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-overlay/60" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[90vw] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-popover p-4">
             <div className="mb-3 flex items-center justify-between">
-              <Dialog.Title className="text-sm font-semibold text-white">Why was this deal lost?</Dialog.Title>
-              <Dialog.Close className="text-slate-500 hover:text-slate-200">
+              <Dialog.Title className="text-sm font-semibold text-foreground">Why was this deal lost?</Dialog.Title>
+              <Dialog.Close className="text-muted-foreground hover:text-foreground">
                 <X className="h-4 w-4" />
               </Dialog.Close>
             </div>
@@ -169,7 +169,7 @@ export function DealKanban({
                   key={reason}
                   type="button"
                   onClick={() => confirmLost(reason)}
-                  className="min-h-[40px] rounded-lg border border-white/10 bg-slate-900 px-3 text-left text-sm text-slate-100 hover:border-emerald-500/50"
+                  className="min-h-[40px] rounded-lg border border-border bg-card px-3 text-left text-sm text-foreground hover:border-primary/50"
                 >
                   {reason}
                 </button>

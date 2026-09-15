@@ -23,7 +23,7 @@ export default async function MeetingsPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-white">Meetings & Tasks</h1>
+        <h1 className="text-xl font-semibold text-foreground">Meetings & Tasks</h1>
         <AddMeetingModal projects={projects} />
       </div>
 
@@ -31,23 +31,23 @@ export default async function MeetingsPage() {
         <CardHeader>
           <CardTitle>Meetings</CardTitle>
         </CardHeader>
-        {meetings.length === 0 && <p className="text-sm text-slate-500">No meetings scheduled.</p>}
+        {meetings.length === 0 && <p className="text-sm text-muted-foreground">No meetings scheduled.</p>}
         <div className="flex flex-col gap-2">
           {meetings.map((m) => {
             const project = projects.find((p) => p.id === m.linkedProjectId);
             return (
-              <div key={m.id} className="rounded-lg border border-white/5 px-3 py-2 text-sm">
+              <div key={m.id} className="rounded-lg border border-border/60 px-3 py-2 text-sm">
                 <div className="flex items-center justify-between">
-                  <p className="font-medium text-white">{m.title}</p>
+                  <p className="font-medium text-foreground">{m.title}</p>
                   {m.recurring !== "none" && (
-                    <Badge className="bg-slate-500/20 text-slate-300 capitalize">{m.recurring}</Badge>
+                    <Badge className="bg-tone-neutral/20 text-secondary-foreground capitalize">{m.recurring}</Badge>
                   )}
                 </div>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   {new Date(m.startsAt).toLocaleString()}
                   {project ? ` · ${project.name}` : ""}
                 </p>
-                {m.notes && <p className="mt-1 text-xs text-slate-500">{m.notes}</p>}
+                {m.notes && <p className="mt-1 text-xs text-muted-foreground">{m.notes}</p>}
               </div>
             );
           })}
@@ -58,19 +58,19 @@ export default async function MeetingsPage() {
         <CardHeader>
           <CardTitle>Tasks (all projects)</CardTitle>
         </CardHeader>
-        {sortedTasks.length === 0 && <p className="text-sm text-slate-500">Nothing outstanding.</p>}
+        {sortedTasks.length === 0 && <p className="text-sm text-muted-foreground">Nothing outstanding.</p>}
         <div className="flex flex-col gap-2">
           {sortedTasks.map((t) => {
             const project = projects.find((p) => p.id === t.projectId);
             const overdue = t.dueAt && new Date(t.dueAt).getTime() < now;
             return (
-              <div key={t.id} className="flex items-center justify-between rounded-lg border border-white/5 px-3 py-2 text-sm">
+              <div key={t.id} className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2 text-sm">
                 <div className="min-w-0">
-                  <p className="truncate text-slate-200">{t.title}</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="truncate text-foreground">{t.title}</p>
+                  <p className="text-xs text-muted-foreground">
                     {project?.name ?? "—"}
                     {t.dueAt && (
-                      <span className={cn(overdue ? "text-red-400" : "text-slate-500")}>
+                      <span className={cn(overdue ? "text-danger" : "text-muted-foreground")}>
                         {" "}
                         · due {new Date(t.dueAt).toLocaleDateString()}
                         {overdue ? " (overdue)" : ""}

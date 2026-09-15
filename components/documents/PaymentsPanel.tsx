@@ -47,19 +47,19 @@ export function PaymentsPanel({
       </CardHeader>
       <div className="mb-3 grid grid-cols-2 gap-4 sm:grid-cols-3">
         <div>
-          <p className="text-xs text-slate-500">Total paid</p>
-          <p className="text-sm font-semibold text-white">{centsToDisplay(totalPaid, currency)}</p>
+          <p className="text-xs text-muted-foreground">Total paid</p>
+          <p className="text-sm font-semibold text-foreground">{centsToDisplay(totalPaid, currency)}</p>
         </div>
         <div>
-          <p className="text-xs text-slate-500">Remaining balance</p>
-          <p className="text-sm font-semibold text-white">{centsToDisplay(remaining, currency)}</p>
+          <p className="text-xs text-muted-foreground">Remaining balance</p>
+          <p className="text-sm font-semibold text-foreground">{centsToDisplay(remaining, currency)}</p>
         </div>
       </div>
 
-      <div className="mb-3 flex flex-col gap-1 border-t border-white/10 pt-3">
-        {payments.length === 0 && <p className="text-xs text-slate-500">No payments recorded yet.</p>}
+      <div className="mb-3 flex flex-col gap-1 border-t border-border pt-3">
+        {payments.length === 0 && <p className="text-xs text-muted-foreground">No payments recorded yet.</p>}
         {payments.map((p) => (
-          <p key={p.id} className="text-xs text-slate-400">
+          <p key={p.id} className="text-xs text-muted-foreground">
             {centsToDisplay(p.amountCents, currency)} · {p.method} · {new Date(p.date).toLocaleString()}
           </p>
         ))}
@@ -79,7 +79,7 @@ export function PaymentsPanel({
           <select
             value={method}
             onChange={(e) => setMethod(e.target.value as PaymentMethod)}
-            className="min-h-[44px] rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+            className="min-h-[44px] rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
           >
             <option value="transfer">Transfer</option>
             <option value="cash">Cash</option>

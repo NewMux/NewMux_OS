@@ -56,11 +56,11 @@ export function AddDealModal({ owners }: { owners: User[] }) {
         </Button>
       </Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[90vw] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-white/10 bg-slate-950 p-4">
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-overlay/60" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[90vw] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-popover p-4">
           <div className="mb-3 flex items-center justify-between">
-            <Dialog.Title className="text-sm font-semibold text-white">New lead</Dialog.Title>
-            <Dialog.Close className="text-slate-500 hover:text-slate-200">
+            <Dialog.Title className="text-sm font-semibold text-foreground">New lead</Dialog.Title>
+            <Dialog.Close className="text-muted-foreground hover:text-foreground">
               <X className="h-4 w-4" />
             </Dialog.Close>
           </div>
@@ -70,12 +70,12 @@ export function AddDealModal({ owners }: { owners: User[] }) {
             <Input type="email" placeholder="Contact email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} />
             <Input placeholder="Contact phone" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
             <Input type="number" min="0" step="0.001" placeholder="Quoted value (BHD)" value={quotedValue} onChange={(e) => setQuotedValue(e.target.value)} />
-            <label className="-mb-1 text-xs text-slate-500">Expected close date</label>
+            <label className="-mb-1 text-xs text-muted-foreground">Expected close date</label>
             <Input type="date" value={expectedCloseDate} onChange={(e) => setExpectedCloseDate(e.target.value)} />
             <select
               value={ownerId}
               onChange={(e) => setOwnerId(e.target.value)}
-              className="min-h-[44px] w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+              className="min-h-[44px] w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
             >
               {owners.map((o) => (
                 <option key={o.id} value={o.id}>

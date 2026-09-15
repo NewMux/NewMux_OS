@@ -35,8 +35,8 @@ export default async function PipelinePage() {
     <div className="mx-auto max-w-6xl">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-white">Outbound Outreach &amp; Deal Pipeline</h1>
-          <p className="text-xs text-slate-500">Drag deals between stages. Dropping into Won converts the deal instantly.</p>
+          <h1 className="text-xl font-semibold text-foreground">Outbound Outreach &amp; Deal Pipeline</h1>
+          <p className="text-xs text-muted-foreground">Drag deals between stages. Dropping into Won converts the deal instantly.</p>
         </div>
         <AddDealModal owners={users} />
       </div>
@@ -47,7 +47,7 @@ export default async function PipelinePage() {
         <DealKanban deals={deals} ownerNames={ownerNames} lastOutreach={lastOutreach} />
       </div>
 
-      <h2 className="mb-3 text-sm font-semibold text-slate-300">Pipeline Analytics</h2>
+      <h2 className="mb-3 text-sm font-semibold text-secondary-foreground">Pipeline Analytics</h2>
       <PipelineAnalytics analytics={analytics} />
     </div>
   );

@@ -64,11 +64,11 @@ export function CampaignForm({ campaigns }: { campaigns: Campaign[] }) {
         </Button>
       </Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[90vw] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-white/10 bg-slate-950 p-4">
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-overlay/60" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[90vw] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-popover p-4">
           <div className="mb-3 flex items-center justify-between">
-            <Dialog.Title className="text-sm font-semibold text-white">Growth data</Dialog.Title>
-            <Dialog.Close className="text-slate-500 hover:text-slate-200">
+            <Dialog.Title className="text-sm font-semibold text-foreground">Growth data</Dialog.Title>
+            <Dialog.Close className="text-muted-foreground hover:text-foreground">
               <X className="h-4 w-4" />
             </Dialog.Close>
           </div>
@@ -76,14 +76,14 @@ export function CampaignForm({ campaigns }: { campaigns: Campaign[] }) {
           <div className="mb-3 flex gap-2 text-xs">
             <button
               onClick={() => setMode("metric")}
-              className={mode === "metric" ? "text-emerald-400" : "text-slate-500"}
+              className={mode === "metric" ? "text-brand" : "text-muted-foreground"}
             >
               Log today&apos;s metrics
             </button>
-            <span className="text-slate-700">|</span>
+            <span className="text-muted-foreground">|</span>
             <button
               onClick={() => setMode("campaign")}
-              className={mode === "campaign" ? "text-emerald-400" : "text-slate-500"}
+              className={mode === "campaign" ? "text-brand" : "text-muted-foreground"}
             >
               New campaign
             </button>
@@ -95,7 +95,7 @@ export function CampaignForm({ campaigns }: { campaigns: Campaign[] }) {
               <select
                 value={channel}
                 onChange={(e) => setChannel(e.target.value as CampaignChannel)}
-                className="min-h-[44px] rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+                className="min-h-[44px] rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
               >
                 <option value="meta_ads">Meta Ads</option>
                 <option value="linkedin">LinkedIn</option>
@@ -111,7 +111,7 @@ export function CampaignForm({ campaigns }: { campaigns: Campaign[] }) {
               <select
                 value={campaignId}
                 onChange={(e) => setCampaignId(e.target.value)}
-                className="min-h-[44px] rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+                className="min-h-[44px] rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
               >
                 {campaigns.map((c) => (
                   <option key={c.id} value={c.id}>

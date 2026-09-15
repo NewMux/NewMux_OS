@@ -7,11 +7,11 @@ import { cn } from "@/lib/utils";
 import type { ProjectStatus } from "@/lib/data/types";
 
 const STATUS_STYLES: Record<ProjectStatus, string> = {
-  planning: "bg-slate-500/20 text-slate-300",
-  active_sprint: "bg-emerald-500/20 text-emerald-300",
-  paused: "bg-amber-500/20 text-amber-300",
-  completed: "bg-blue-500/20 text-blue-300",
-  archived: "bg-zinc-500/20 text-zinc-400",
+  planning: "bg-tone-neutral/20 text-secondary-foreground",
+  active_sprint: "bg-tone-success/20 text-tone-success-fg",
+  paused: "bg-tone-warning/20 text-tone-warning-fg",
+  completed: "bg-tone-info/20 text-tone-info-fg",
+  archived: "bg-tone-muted/20 text-tone-muted-fg",
 };
 
 export default async function ProjectsPage() {
@@ -20,15 +20,15 @@ export default async function ProjectsPage() {
 
   return (
     <div className="mx-auto max-w-4xl">
-      <h1 className="mb-4 text-xl font-semibold text-white">Projects</h1>
+      <h1 className="mb-4 text-xl font-semibold text-foreground">Projects</h1>
       <div className="flex flex-col gap-2">
         {projects.map((project) => (
           <Link key={project.id} href={`/projects/${project.id}`}>
-            <Card className="transition-colors hover:border-emerald-500/40">
+            <Card className="transition-colors hover:border-primary/40">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-white">{project.name}</p>
-                  <p className="text-xs text-slate-500">{clientName(project.clientId)}</p>
+                  <p className="text-sm font-medium text-foreground">{project.name}</p>
+                  <p className="text-xs text-muted-foreground">{clientName(project.clientId)}</p>
                 </div>
                 <Badge className={cn(STATUS_STYLES[project.status], "capitalize")}>
                   {project.status.replace("_", " ")}

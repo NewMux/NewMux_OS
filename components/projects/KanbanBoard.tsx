@@ -46,7 +46,7 @@ export function KanbanBoard({ tasks }: { tasks: Task[] }) {
   }
 
   if (tasks.length === 0) {
-    return <p className="text-sm text-slate-500">No tasks yet. Drag cards between columns once you add some.</p>;
+    return <p className="text-sm text-muted-foreground">No tasks yet. Drag cards between columns once you add some.</p>;
   }
 
   return (
@@ -57,12 +57,12 @@ export function KanbanBoard({ tasks }: { tasks: Task[] }) {
       renderCard={(item) => (
         <Card className="cursor-grab text-sm active:cursor-grabbing">
           <div className="flex items-start justify-between gap-2">
-            <p className="font-medium text-white">{item.task.title}</p>
+            <p className="font-medium text-foreground">{item.task.title}</p>
             <PriorityBadge priority={item.task.priority} />
           </div>
-          {item.task.description && <p className="mt-1 text-xs text-slate-500">{item.task.description}</p>}
+          {item.task.description && <p className="mt-1 text-xs text-muted-foreground">{item.task.description}</p>}
           {item.task.dueAt && (
-            <p className="mt-2 text-xs text-slate-500">Due {new Date(item.task.dueAt).toLocaleDateString()}</p>
+            <p className="mt-2 text-xs text-muted-foreground">Due {new Date(item.task.dueAt).toLocaleDateString()}</p>
           )}
         </Card>
       )}

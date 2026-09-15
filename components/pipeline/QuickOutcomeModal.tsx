@@ -54,11 +54,11 @@ export function QuickOutcomeModal({ dealId, dealName }: { dealId: string; dealNa
         </Button>
       </Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[90vw] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-white/10 bg-slate-950 p-4">
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-overlay/60" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[90vw] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-popover p-4">
           <div className="mb-3 flex items-center justify-between">
-            <Dialog.Title className="text-sm font-semibold text-white">Log outcome — {dealName}</Dialog.Title>
-            <Dialog.Close className="text-slate-500 hover:text-slate-200">
+            <Dialog.Title className="text-sm font-semibold text-foreground">Log outcome — {dealName}</Dialog.Title>
+            <Dialog.Close className="text-muted-foreground hover:text-foreground">
               <X className="h-4 w-4" />
             </Dialog.Close>
           </div>
@@ -71,7 +71,7 @@ export function QuickOutcomeModal({ dealId, dealName }: { dealId: string; dealNa
                 onClick={() => setChannel(c.value)}
                 className={cn(
                   "min-h-[36px] flex-1 rounded-lg border px-2 text-xs font-medium",
-                  channel === c.value ? "border-emerald-500 bg-emerald-600/15 text-emerald-400" : "border-white/10 text-slate-400",
+                  channel === c.value ? "border-primary bg-primary/15 text-brand" : "border-border text-muted-foreground",
                 )}
               >
                 {c.label}
@@ -86,7 +86,7 @@ export function QuickOutcomeModal({ dealId, dealName }: { dealId: string; dealNa
                 type="button"
                 disabled={saving !== null}
                 onClick={() => logOutcome(o.value)}
-                className="min-h-[44px] rounded-lg border border-white/10 bg-slate-900 px-3 text-left text-sm font-medium text-slate-100 hover:border-emerald-500/50 disabled:opacity-50"
+                className="min-h-[44px] rounded-lg border border-border bg-card px-3 text-left text-sm font-medium text-foreground hover:border-primary/50 disabled:opacity-50"
               >
                 {saving === o.value ? "Saving…" : o.label}
               </button>
@@ -99,7 +99,7 @@ export function QuickOutcomeModal({ dealId, dealName }: { dealId: string; dealNa
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              className="w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
             <Input
               type="date"

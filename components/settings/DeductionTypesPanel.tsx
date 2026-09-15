@@ -32,15 +32,15 @@ export function DeductionTypesPanel({ deductionTypes }: { deductionTypes: Deduct
       <CardHeader>
         <CardTitle>Deduction Types</CardTitle>
       </CardHeader>
-      <p className="mb-3 text-xs text-slate-500">
+      <p className="mb-3 text-xs text-muted-foreground">
         Marketer commissions are tracked the same way — add a &quot;Referral Fee&quot;-style deduction here and attach
         it to the relevant project&apos;s split rule below, rather than a separate commission system (PRD 15.4).
       </p>
       <div className="mb-3 flex flex-col gap-1">
         {deductionTypes.map((d) => (
-          <div key={d.id} className="flex items-center justify-between rounded-lg border border-white/5 px-3 py-2 text-sm">
-            <span className="text-slate-200">{d.name}</span>
-            <Badge className="bg-slate-500/20 text-slate-300 capitalize">{d.kind}</Badge>
+          <div key={d.id} className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2 text-sm">
+            <span className="text-foreground">{d.name}</span>
+            <Badge className="bg-tone-neutral/20 text-secondary-foreground capitalize">{d.kind}</Badge>
           </div>
         ))}
       </div>
@@ -55,7 +55,7 @@ export function DeductionTypesPanel({ deductionTypes }: { deductionTypes: Deduct
         <select
           value={kind}
           onChange={(e) => setKind(e.target.value as DeductionKind)}
-          className="min-h-[44px] rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+          className="min-h-[44px] rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
         >
           <option value="percentage">% of invoice</option>
           <option value="fixed">Fixed amount</option>

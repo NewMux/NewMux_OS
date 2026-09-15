@@ -12,14 +12,14 @@ export function SegmentedControl<T extends string>({
   onChange: (value: T) => void;
 }) {
   return (
-    <div className="inline-flex rounded-lg border border-white/10 bg-slate-900 p-1">
+    <div className="inline-flex rounded-lg border border-border bg-card p-1">
       {options.map((opt) => (
         <button
           key={opt.value}
           onClick={() => onChange(opt.value)}
           className={cn(
             "min-h-[36px] rounded-md px-4 text-sm font-medium transition-colors",
-            value === opt.value ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-slate-200",
+            value === opt.value ? "bg-primary text-foreground" : "text-muted-foreground hover:text-foreground",
           )}
         >
           {opt.label}

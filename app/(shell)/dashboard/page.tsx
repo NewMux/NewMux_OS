@@ -35,7 +35,7 @@ export default async function DashboardPage({
   return (
     <div className="mx-auto max-w-4xl">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold text-white">Executive Command Center</h1>
+        <h1 className="text-xl font-semibold text-foreground">Executive Command Center</h1>
         <ProductScopeSwitcher products={products} />
       </div>
 
@@ -59,18 +59,18 @@ export default async function DashboardPage({
           </CardHeader>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
-              <p className="text-xs text-slate-500">Unpaid / partially paid invoices</p>
-              <p className="text-lg font-semibold text-white">
+              <p className="text-xs text-muted-foreground">Unpaid / partially paid invoices</p>
+              <p className="text-lg font-semibold text-foreground">
                 {erpSummary.unpaidInvoiceCount + erpSummary.partiallyPaidInvoiceCount}
               </p>
             </div>
             <div>
-              <p className="text-xs text-slate-500">Outstanding balance from clients</p>
-              <p className="text-lg font-semibold text-white">{centsToDisplay(erpSummary.totalOutstandingBhdCents, "BHD")}</p>
+              <p className="text-xs text-muted-foreground">Outstanding balance from clients</p>
+              <p className="text-lg font-semibold text-foreground">{centsToDisplay(erpSummary.totalOutstandingBhdCents, "BHD")}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-500">Net profit this month</p>
-              <p className="text-lg font-semibold text-white">{centsToDisplay(erpSummary.netProfitThisMonthBhdCents, "BHD")}</p>
+              <p className="text-xs text-muted-foreground">Net profit this month</p>
+              <p className="text-lg font-semibold text-foreground">{centsToDisplay(erpSummary.netProfitThisMonthBhdCents, "BHD")}</p>
             </div>
           </div>
         </Card>
@@ -83,21 +83,21 @@ export default async function DashboardPage({
           </CardHeader>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
-              <p className="text-xs text-slate-500">Cash collected</p>
-              <p className="text-lg font-semibold text-white">{centsToDisplay(cashFlow.cashCollected)}</p>
+              <p className="text-xs text-muted-foreground">Cash collected</p>
+              <p className="text-lg font-semibold text-foreground">{centsToDisplay(cashFlow.cashCollected)}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-500">Pending quote pipeline</p>
-              <p className="text-lg font-semibold text-white">{centsToDisplay(cashFlow.pendingQuotePipeline)}</p>
+              <p className="text-xs text-muted-foreground">Pending quote pipeline</p>
+              <p className="text-lg font-semibold text-foreground">{centsToDisplay(cashFlow.pendingQuotePipeline)}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-500">Outstanding invoices</p>
-              <p className="text-lg font-semibold text-white">{centsToDisplay(cashFlow.outstandingInvoices)}</p>
+              <p className="text-xs text-muted-foreground">Outstanding invoices</p>
+              <p className="text-lg font-semibold text-foreground">{centsToDisplay(cashFlow.outstandingInvoices)}</p>
             </div>
           </div>
         </Card>
       ) : (
-        <Card className="mt-4 text-sm text-slate-500">
+        <Card className="mt-4 text-sm text-muted-foreground">
           Agency cash flow is visible to Partner/Admin accounts only.
         </Card>
       )}

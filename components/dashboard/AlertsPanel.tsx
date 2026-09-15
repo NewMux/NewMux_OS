@@ -18,14 +18,14 @@ export function AlertsPanel({ alerts }: { alerts: DashboardAlerts }) {
         <CardTitle>Today</CardTitle>
       </CardHeader>
 
-      {nothingToShow && <p className="text-sm text-slate-500">Nothing urgent today.</p>}
+      {nothingToShow && <p className="text-sm text-muted-foreground">Nothing urgent today.</p>}
 
       <div className="flex flex-col gap-3 text-sm">
         {alerts.todaysMeetings.length > 0 && (
           <div>
-            <p className="mb-1 text-xs font-medium text-slate-400">Meetings today</p>
+            <p className="mb-1 text-xs font-medium text-muted-foreground">Meetings today</p>
             {alerts.todaysMeetings.map((m) => (
-              <p key={m.id} className="text-slate-200">
+              <p key={m.id} className="text-foreground">
                 {new Date(m.startsAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · {m.title}
               </p>
             ))}
@@ -34,10 +34,10 @@ export function AlertsPanel({ alerts }: { alerts: DashboardAlerts }) {
 
         {alerts.tasksDueTodayOrOverdue.length > 0 && (
           <div>
-            <p className="mb-1 text-xs font-medium text-slate-400">Tasks due today / overdue</p>
+            <p className="mb-1 text-xs font-medium text-muted-foreground">Tasks due today / overdue</p>
             {alerts.tasksDueTodayOrOverdue.map((t) => (
-              <p key={t.id} className={t.overdue ? "text-red-400" : "text-slate-200"}>
-                {t.title} {t.overdue && <Badge className="ml-1 bg-red-500/20 text-red-300">Overdue</Badge>}
+              <p key={t.id} className={t.overdue ? "text-danger" : "text-foreground"}>
+                {t.title} {t.overdue && <Badge className="ml-1 bg-tone-danger/20 text-tone-danger-fg">Overdue</Badge>}
               </p>
             ))}
           </div>
@@ -45,12 +45,12 @@ export function AlertsPanel({ alerts }: { alerts: DashboardAlerts }) {
 
         {alerts.dealFollowUps.length > 0 && (
           <div>
-            <p className="mb-1 text-xs font-medium text-slate-400">Deal follow-ups due</p>
+            <p className="mb-1 text-xs font-medium text-muted-foreground">Deal follow-ups due</p>
             {alerts.dealFollowUps.map((r) => (
               <Link key={r.dealId} href={`/pipeline/${r.dealId}`} className="block hover:underline">
-                <span className={r.status === "overdue" ? "text-red-400" : "text-amber-400"}>
+                <span className={r.status === "overdue" ? "text-danger" : "text-warning"}>
                   {r.dealName} — {r.stageLabel}
-                  {r.status === "overdue" && <Badge className="ml-1 bg-red-500/20 text-red-300">Overdue</Badge>}
+                  {r.status === "overdue" && <Badge className="ml-1 bg-tone-danger/20 text-tone-danger-fg">Overdue</Badge>}
                 </span>
               </Link>
             ))}
@@ -59,9 +59,9 @@ export function AlertsPanel({ alerts }: { alerts: DashboardAlerts }) {
 
         {alerts.renewalsWithin30Days.length > 0 && (
           <div>
-            <p className="mb-1 text-xs font-medium text-slate-400">Upcoming renewals (≤30 days)</p>
+            <p className="mb-1 text-xs font-medium text-muted-foreground">Upcoming renewals (≤30 days)</p>
             {alerts.renewalsWithin30Days.map((r, i) => (
-              <p key={i} className={r.overdue ? "text-red-400" : "text-amber-400"}>
+              <p key={i} className={r.overdue ? "text-danger" : "text-warning"}>
                 {r.label} — {new Date(r.dueDate).toLocaleDateString()}
                 {r.overdue ? " (overdue)" : ""}
               </p>
@@ -71,9 +71,9 @@ export function AlertsPanel({ alerts }: { alerts: DashboardAlerts }) {
 
         {alerts.hostingAlerts.length > 0 && (
           <div>
-            <p className="mb-1 text-xs font-medium text-slate-400">Hosting fee alerts</p>
+            <p className="mb-1 text-xs font-medium text-muted-foreground">Hosting fee alerts</p>
             {alerts.hostingAlerts.map((h) => (
-              <p key={h.subscription.id} className={h.overdue ? "text-red-400" : "text-amber-400"}>
+              <p key={h.subscription.id} className={h.overdue ? "text-danger" : "text-warning"}>
                 {centsToDisplay(h.subscription.amountCents, h.subscription.currency)} {h.subscription.item}
                 {h.subscription.nextDueDate ? ` — due ${new Date(h.subscription.nextDueDate).toLocaleDateString()}` : ""}
                 {h.overdue ? " (overdue)" : ""}
@@ -82,7 +82,7 @@ export function AlertsPanel({ alerts }: { alerts: DashboardAlerts }) {
           </div>
         )}
 
-        <div className="flex gap-4 border-t border-white/10 pt-2 text-xs text-slate-500">
+        <div className="flex gap-4 border-t border-border pt-2 text-xs text-muted-foreground">
           <span>{alerts.activeProjectCount} active projects</span>
           <span>{alerts.completedProjectCount} completed</span>
         </div>
