@@ -119,8 +119,7 @@ function seed(): Store {
     },
     {
       id: jassimId,
-      // Placeholder — replace with Jassim's real login email before real use.
-      email: "jassim@newmux.com",
+      email: "info@newmux.com",
       passwordHash: bcrypt.hashSync("changeme123", 10),
       fullName: "Jassim Baqer",
       role: "partner_admin",
@@ -649,7 +648,7 @@ function getStore(): Store {
       `[NEWMUX ERP] Seeded Mohammed's login → email: m4ahmed7@gmail.com password: ${global.__newmuxStore.seededAdminPassword} (mock in-memory store, resets on restart)`,
     );
     // eslint-disable-next-line no-console
-    console.log("[NEWMUX ERP] Seeded Jassim's login → email: jassim@newmux.com password: changeme123 (placeholder email — update to his real one)");
+        console.log("[NEWMUX ERP] Seeded Jassim's login → email: info@newmux.com password: changeme123");
     // eslint-disable-next-line no-console
     console.log("[NEWMUX ERP] Seeded demo limited-access login → email: lead.dev@newmux.internal password: changeme123");
   }
