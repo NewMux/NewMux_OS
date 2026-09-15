@@ -96,7 +96,9 @@
     --input: 226 26% 14%;
     --ring: 160 84% 39%;
 
-    --primary: 161 94% 30%;
+    /* emerald-700 rather than emerald-600: white on emerald-600 is 3.8:1 and
+     * fails AA for 14px button text. This keeps the dark-green/white look. */
+    --primary: 163 94% 24%;
     --primary-foreground: 0 0% 100%;
     --brand: 158 64% 52%;
 
