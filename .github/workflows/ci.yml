@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build
+        env:
+          # Build-time only; the app reads real secrets from the deploy environment.
+          NEXTAUTH_SECRET: ci-placeholder-secret
+          AUTH_SECRET: ci-placeholder-secret
+          VAULT_SESSION_SECRET: ci-placeholder-secret

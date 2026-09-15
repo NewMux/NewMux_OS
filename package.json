@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "check": "npm run lint && npm run typecheck",
     "seed": "tsx scripts/seed.ts",
     "test:paddle-webhook": "tsx scripts/test-paddle-webhook.ts"
   },
