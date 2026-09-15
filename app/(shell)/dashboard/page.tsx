@@ -8,9 +8,11 @@ import {
   listProductsForScopeSwitcher,
 } from "@/lib/data/metrics";
 import { getErpDashboardSummary } from "@/lib/data/finance";
+import { getDashboardAlerts } from "@/lib/data/alerts";
 import { centsToDisplay } from "@/lib/money";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { ProductScopeSwitcher } from "@/components/dashboard/ProductScopeSwitcher";
+import { AlertsPanel } from "@/components/dashboard/AlertsPanel";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 
 export default async function DashboardPage({
@@ -28,6 +30,7 @@ export default async function DashboardPage({
   const deliveryIndex = await getActiveDeliveryIndex();
   const products = listProductsForScopeSwitcher();
   const erpSummary = canSeeFinancials ? await getErpDashboardSummary() : null;
+  const alerts = await getDashboardAlerts();
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -35,6 +38,8 @@ export default async function DashboardPage({
         <h1 className="text-xl font-semibold text-white">Executive Command Center</h1>
         <ProductScopeSwitcher products={products} />
       </div>
+
+      <AlertsPanel alerts={alerts} />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard title="MRR" value={centsToDisplay(mrrCents)} sub="Active SaaS subscriptions, USD" />

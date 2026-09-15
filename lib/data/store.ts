@@ -24,6 +24,9 @@ import type {
   HostingSubscription,
   Venture,
   AuditLogEntry,
+  Meeting,
+  CompanyProfile,
+  PipelineItem,
 } from "./types";
 import { majorToMinorUnits } from "@/lib/money";
 
@@ -72,6 +75,9 @@ type Store = {
   hostingSubscriptions: HostingSubscription[];
   ventures: Venture[];
   auditLog: AuditLogEntry[];
+  meetings: Meeting[];
+  companyProfile: CompanyProfile;
+  pipelineItems: PipelineItem[];
   seededAdminPassword?: string;
 };
 
@@ -483,6 +489,55 @@ function seed(): Store {
     { id: randomUUID(), projectId: projectOxRoastery.id, title: "Collect overdue quarterly hosting fee", description: null, priority: "urgent", status: "todo", assigneeId: mohammedId, dueAt: daysAgo(0), sortOrder: 0, createdBy: mohammedId },
   ];
 
+  // --- Meetings (PRD 11) ---
+  const meetings: Meeting[] = [
+    {
+      id: randomUUID(),
+      title: "Marasi Alsawadi weekly follow-up",
+      startsAt: daysAgo(-1),
+      linkedProjectId: projectMarasi.id,
+      linkedClientId: clientMarasi.id,
+      notes: null,
+      recurring: "weekly",
+      createdBy: mohammedId,
+    },
+    {
+      id: randomUUID(),
+      title: "Al Hussam Tailor — reporting module scope review",
+      startsAt: daysAgo(-3),
+      linkedProjectId: projectAlHussam.id,
+      linkedClientId: clientAlHussam.id,
+      notes: "Walk through QUO-2026-2606 before conversion.",
+      recurring: "none",
+      createdBy: mohammedId,
+    },
+  ];
+
+  // --- Company Profile (PRD 12) ---
+  const companyProfile: CompanyProfile = {
+    crNumber: "182684-1",
+    crRenewalDate: daysAgo(-20),
+    mainDomain: "newmux.com",
+    mainDomainRenewalDate: daysAgo(-200),
+    certifications: [
+      { id: randomUUID(), name: "Tamkeen", status: "active", expiryDate: null },
+      { id: randomUUID(), name: "SME Certificate (MOIC)", status: "pending", expiryDate: null },
+      { id: randomUUID(), name: "Tenderboard Registration", status: "pending", expiryDate: null },
+    ],
+    partnerships: [
+      { id: randomUUID(), name: "ONE App / Bank AlSalam", description: null },
+      { id: randomUUID(), name: "Hatom LLC (Switzerland)", description: null },
+      { id: randomUUID(), name: "Indian software company", description: "Ox Roastery hosting vendor." },
+    ],
+  };
+
+  // --- Business dev pipeline (suggested addition, PRD 15.3) ---
+  const pipelineItems: PipelineItem[] = [
+    { id: randomUUID(), name: "Tenderboard registration", stage: "in_progress", notes: null },
+    { id: randomUUID(), name: "SME certificate (MOIC)", stage: "in_progress", notes: "Pending issuance." },
+    { id: randomUUID(), name: "Commission-based marketer agreements", stage: "in_progress", notes: null },
+  ];
+
   // --- Newmux's own ventures (PRD section 14) — profit split left empty ---
   const ventureTbadel: Venture = {
     id: randomUUID(),
@@ -579,6 +634,9 @@ function seed(): Store {
     hostingSubscriptions,
     ventures,
     auditLog,
+    meetings,
+    companyProfile,
+    pipelineItems,
     seededAdminPassword,
   };
 }

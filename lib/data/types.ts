@@ -302,6 +302,19 @@ export type Venture = {
   profitSplitRuleId: string | null;
 };
 
+// --- Meetings (PRD 11) ---
+
+export type Meeting = {
+  id: string;
+  title: string;
+  startsAt: string;
+  linkedProjectId: string | null;
+  linkedClientId: string | null;
+  notes: string | null;
+  recurring: "none" | "weekly" | "monthly";
+  createdBy: string;
+};
+
 export type AuditLogAction = "create" | "update" | "delete";
 
 /** Every change to an invoice, payment, or profit-split rule (PRD 15.1). */
@@ -313,4 +326,41 @@ export type AuditLogEntry = {
   summary: string;
   changedBy: string;
   changedAt: string;
+};
+
+// --- Company Profile (PRD 12) ---
+
+export type CertificationStatus = "active" | "pending" | "expired";
+
+export type Certification = {
+  id: string;
+  name: string;
+  status: CertificationStatus;
+  expiryDate: string | null;
+};
+
+export type Partnership = {
+  id: string;
+  name: string;
+  description: string | null;
+};
+
+export type CompanyProfile = {
+  crNumber: string;
+  crRenewalDate: string | null;
+  mainDomain: string;
+  mainDomainRenewalDate: string | null;
+  certifications: Certification[];
+  partnerships: Partnership[];
+};
+
+// --- Business development pipeline (suggested addition, PRD 15.3) ---
+
+export type PipelineStage = "in_progress" | "complete";
+
+export type PipelineItem = {
+  id: string;
+  name: string;
+  stage: PipelineStage;
+  notes: string | null;
 };

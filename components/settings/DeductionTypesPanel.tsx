@@ -32,6 +32,10 @@ export function DeductionTypesPanel({ deductionTypes }: { deductionTypes: Deduct
       <CardHeader>
         <CardTitle>Deduction Types</CardTitle>
       </CardHeader>
+      <p className="mb-3 text-xs text-slate-500">
+        Marketer commissions are tracked the same way — add a &quot;Referral Fee&quot;-style deduction here and attach
+        it to the relevant project&apos;s split rule below, rather than a separate commission system (PRD 15.4).
+      </p>
       <div className="mb-3 flex flex-col gap-1">
         {deductionTypes.map((d) => (
           <div key={d.id} className="flex items-center justify-between rounded-lg border border-white/5 px-3 py-2 text-sm">

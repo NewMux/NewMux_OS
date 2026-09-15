@@ -187,6 +187,33 @@ export async function listClients() {
   return store.clients;
 }
 
+function nextClientCode(): string {
+  const n = store.clients.length + 1;
+  return `CL-${String(n).padStart(3, "0")}`;
+}
+
+export async function createClient(input: {
+  name: string;
+  contactPerson?: string | null;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
+  billingAddress?: string | null;
+  notes?: string | null;
+}) {
+  const client = {
+    id: randomUUID(),
+    clientCode: nextClientCode(),
+    name: input.name,
+    contactPerson: input.contactPerson ?? null,
+    contactEmail: input.contactEmail ?? null,
+    contactPhone: input.contactPhone ?? null,
+    billingAddress: input.billingAddress ?? null,
+    notes: input.notes ?? null,
+  };
+  store.clients.push(client);
+  return client;
+}
+
 export async function listProducts() {
   return store.products;
 }

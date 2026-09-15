@@ -1,0 +1,41 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { canAccessFinance } from "@/lib/rbac";
+import { listClients } from "@/lib/data/documents";
+import { AddClientModal } from "@/components/clients/AddClientModal";
+import { Card } from "@/components/ui/Card";
+
+export default async function ClientsPage() {
+  const session = await auth();
+  if (!canAccessFinance(session)) redirect("/dashboard");
+
+  const clients = await listClients();
+
+  return (
+    <div className="mx-auto max-w-3xl">
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="text-xl font-semibold text-white">Client Directory</h1>
+        <AddClientModal />
+      </div>
+      <div className="flex flex-col gap-2">
+        {clients.map((c) => (
+          <Link key={c.id} href={`/clients/${c.id}`}>
+            <Card className="transition-colors hover:border-emerald-500/40">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-white">{c.name}</p>
+                  <p className="text-xs text-slate-500">
+                    {c.clientCode}
+                    {c.contactPerson ? ` · ${c.contactPerson}` : ""}
+                  </p>
+                </div>
+                {c.contactEmail && <p className="text-xs text-slate-500">{c.contactEmail}</p>}
+              </div>
+            </Card>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}

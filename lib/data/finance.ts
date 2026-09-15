@@ -12,13 +12,17 @@ import type {
   PaymentMethod,
   DocumentRecord,
 } from "./types";
-import { taxCents as calcPercentage, convertMinorUnits } from "@/lib/money";
+import { taxCents as calcPercentage, convertMinorUnits, centsToDisplay } from "@/lib/money";
 import { assignInvoiceNumber } from "./documents";
 
 // --- Ventures (PRD 14) ---
 
 export async function listVentures() {
   return store.ventures;
+}
+
+export async function getVentureById(id: string) {
+  return store.ventures.find((v) => v.id === id);
 }
 
 // --- Parties ---
@@ -84,6 +88,10 @@ export async function upsertProfitSplitRule(input: {
 
   const existing = store.profitSplitRules.find((r) => r.scopeType === input.scopeType && r.scopeId === input.scopeId);
   const now = new Date().toISOString();
+  const scopeName =
+    input.scopeType === "project"
+      ? store.projects.find((p) => p.id === input.scopeId)?.name ?? input.scopeId
+      : store.ventures.find((v) => v.id === input.scopeId)?.name ?? input.scopeId;
 
   if (existing) {
     existing.splits = input.splits;
@@ -95,7 +103,7 @@ export async function upsertProfitSplitRule(input: {
       entityType: "profit_split_rule",
       entityId: existing.id,
       action: "update",
-      summary: `Updated profit-split rule for ${input.scopeType} ${input.scopeId}`,
+      summary: `Updated profit-split rule for ${input.scopeType} "${scopeName}"`,
       changedBy: input.updatedBy,
     });
     return existing;
@@ -125,7 +133,7 @@ export async function upsertProfitSplitRule(input: {
     entityType: "profit_split_rule",
     entityId: rule.id,
     action: "create",
-    summary: `Created profit-split rule for ${input.scopeType} ${input.scopeId}`,
+    summary: `Created profit-split rule for ${input.scopeType} "${scopeName}"`,
     changedBy: input.updatedBy,
   });
   return rule;
@@ -225,7 +233,7 @@ export async function addPayment(input: {
     entityType: "payment",
     entityId: payment.id,
     action: "create",
-    summary: `Recorded payment of ${input.amountCents} minor units on document ${input.documentId}`,
+    summary: `Recorded payment of ${centsToDisplay(input.amountCents, doc?.currency ?? "USD")} on ${doc?.documentNumber ?? input.documentId}`,
     changedBy: input.recordedBy,
   });
 
