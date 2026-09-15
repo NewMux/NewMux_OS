@@ -3,14 +3,14 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import * as Dialog from "@radix-ui/react-dialog";
+import { Dialog, DialogContent } from "@/components/ui/Dialog";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { QuickOutcomeModal } from "./QuickOutcomeModal";
 import { DragBoard, type BoardItem } from "@/components/kanban/DragBoard";
 import { centsToDisplay } from "@/lib/money";
-import { ArrowUpRight, X } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import type { Deal, DealStage, OutreachActivity } from "@/lib/data/types";
 
 const COLUMNS: { stage: DealStage; label: string }[] = [
@@ -29,7 +29,13 @@ const OUTCOME_LABEL: Record<OutreachActivity["outcome"], string> = {
   meeting_booked: "Meeting Booked",
 };
 
-const COMMON_LOST_REASONS = ["Price", "Timeline", "Went with a competitor", "No budget", "Went quiet"];
+const COMMON_LOST_REASONS = [
+  "Price",
+  "Timeline",
+  "Went with a competitor",
+  "No budget",
+  "Went quiet",
+];
 
 type DealBoardItem = BoardItem & { deal: Deal };
 
@@ -43,11 +49,17 @@ export function DealKanban({
   lastOutreach: Record<string, OutreachActivity | undefined>;
 }) {
   const router = useRouter();
-  const [pendingLost, setPendingLost] = useState<{ dealId: string; index: number } | null>(null);
+  const [pendingLost, setPendingLost] = useState<{
+    dealId: string;
+    index: number;
+  } | null>(null);
   const [lostReason, setLostReason] = useState("");
 
   const items = useMemo<DealBoardItem[]>(
-    () => [...deals].sort((a, b) => a.sortOrder - b.sortOrder).map((d) => ({ id: d.id, columnId: d.stage, deal: d })),
+    () =>
+      [...deals]
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map((d) => ({ id: d.id, columnId: d.stage, deal: d })),
     [deals],
   );
 
@@ -61,11 +73,20 @@ export function DealKanban({
     };
   });
 
-  async function persistMove(dealId: string, stage: DealStage, index: number, reason?: string) {
+  async function persistMove(
+    dealId: string,
+    stage: DealStage,
+    index: number,
+    reason?: string,
+  ) {
     await fetch(`/api/deals/${dealId}/stage`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ stage, index, ...(reason ? { lostReason: reason } : {}) }),
+      body: JSON.stringify({
+        stage,
+        index,
+        ...(reason ? { lostReason: reason } : {}),
+      }),
     });
     router.refresh();
   }
@@ -113,29 +134,48 @@ export function DealKanban({
                 </Link>
               </div>
               <p className="mb-2 text-xs text-muted-foreground">
-                {centsToDisplay(deal.quotedValueCents, deal.currency)} · {ownerNames[deal.ownerId] ?? "Unassigned"}
+                {centsToDisplay(deal.quotedValueCents, deal.currency)} ·{" "}
+                {ownerNames[deal.ownerId] ?? "Unassigned"}
               </p>
 
               {last && (
                 <p className="mb-2 text-xs text-muted-foreground">
-                  Last: {OUTCOME_LABEL[last.outcome]} ({last.channel}) — {new Date(last.createdAt).toLocaleDateString()}
+                  Last: {OUTCOME_LABEL[last.outcome]} ({last.channel}) —{" "}
+                  {new Date(last.createdAt).toLocaleDateString()}
                 </p>
               )}
-              {deal.nextFollowUpDate && deal.stage !== "won" && deal.stage !== "lost" && (
-                <p className="mb-2 text-xs text-warning">Follow up: {new Date(deal.nextFollowUpDate).toLocaleDateString()}</p>
+              {deal.nextFollowUpDate &&
+                deal.stage !== "won" &&
+                deal.stage !== "lost" && (
+                  <p className="mb-2 text-xs text-warning">
+                    Follow up:{" "}
+                    {new Date(deal.nextFollowUpDate).toLocaleDateString()}
+                  </p>
+                )}
+              {deal.stage === "lost" && deal.lostReason && (
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Lost: {deal.lostReason}
+                </p>
               )}
-              {deal.stage === "lost" && deal.lostReason && <p className="mb-2 text-xs text-muted-foreground">Lost: {deal.lostReason}</p>}
 
               {deal.stage === "won" && deal.convertedProjectId && (
                 <p className="mb-2 text-xs text-brand">
                   Converted →{" "}
-                  <Link href={`/projects/${deal.convertedProjectId}`} onPointerDown={(e) => e.stopPropagation()} className="underline">
+                  <Link
+                    href={`/projects/${deal.convertedProjectId}`}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    className="underline"
+                  >
                     project
                   </Link>
                   {deal.convertedInvoiceId && (
                     <>
                       {" · "}
-                      <Link href={`/documents/${deal.convertedInvoiceId}`} onPointerDown={(e) => e.stopPropagation()} className="underline">
+                      <Link
+                        href={`/documents/${deal.convertedInvoiceId}`}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        className="underline"
+                      >
                         deposit invoice
                       </Link>
                     </>
@@ -153,43 +193,44 @@ export function DealKanban({
         }}
       />
 
-      <Dialog.Root open={pendingLost !== null} onOpenChange={(open) => !open && confirmLost("")}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-50 bg-overlay/60" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[90vw] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-popover p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <Dialog.Title className="text-sm font-semibold text-foreground">Why was this deal lost?</Dialog.Title>
-              <Dialog.Close className="text-muted-foreground hover:text-foreground">
-                <X className="h-4 w-4" />
-              </Dialog.Close>
-            </div>
-            <div className="mb-3 flex flex-col gap-2">
-              {COMMON_LOST_REASONS.map((reason) => (
-                <button
-                  key={reason}
-                  type="button"
-                  onClick={() => confirmLost(reason)}
-                  className="min-h-[40px] rounded-lg border border-border bg-card px-3 text-left text-sm text-foreground hover:border-primary/50"
-                >
-                  {reason}
-                </button>
-              ))}
-            </div>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                confirmLost(lostReason);
-              }}
-              className="flex flex-col gap-2"
-            >
-              <Input placeholder="Another reason…" value={lostReason} onChange={(e) => setLostReason(e.target.value)} />
-              <Button type="submit" variant="secondary">
-                Save reason
-              </Button>
-            </form>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+      <Dialog
+        open={pendingLost !== null}
+        onOpenChange={(open) => !open && confirmLost("")}
+      >
+        <DialogContent
+          title="Why was this deal lost?"
+          description="Recorded against the deal and shown in the win/loss breakdown."
+        >
+          <div className="mb-3 flex flex-col gap-2">
+            {COMMON_LOST_REASONS.map((reason) => (
+              <button
+                key={reason}
+                type="button"
+                onClick={() => confirmLost(reason)}
+                className="min-h-[40px] rounded-lg border border-border bg-card px-3 text-left text-sm text-foreground hover:border-primary/50"
+              >
+                {reason}
+              </button>
+            ))}
+          </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              confirmLost(lostReason);
+            }}
+            className="flex flex-col gap-2"
+          >
+            <Input
+              placeholder="Another reason…"
+              value={lostReason}
+              onChange={(e) => setLostReason(e.target.value)}
+            />
+            <Button type="submit" variant="secondary">
+              Save reason
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

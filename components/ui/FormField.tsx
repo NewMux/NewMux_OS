@@ -20,7 +20,11 @@ export function FormField({
   error?: string;
   hint?: string;
   className?: string;
-  children: (props: { id: string; "aria-invalid": boolean; "aria-describedby": string | undefined }) => React.ReactNode;
+  children: (props: {
+    id: string;
+    "aria-invalid": boolean;
+    "aria-describedby": string | undefined;
+  }) => React.ReactNode;
 }) {
   const id = useId();
   const errorId = `${id}-error`;
@@ -30,7 +34,11 @@ export function FormField({
   return (
     <div className={cn("flex flex-col gap-1", className)}>
       <Label htmlFor={id}>{label}</Label>
-      {children({ id, "aria-invalid": Boolean(error), "aria-describedby": describedBy })}
+      {children({
+        id,
+        "aria-invalid": Boolean(error),
+        "aria-describedby": describedBy,
+      })}
       {error ? (
         <p id={errorId} role="alert" className="text-xs text-danger">
           {error}

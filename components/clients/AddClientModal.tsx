@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import * as Dialog from "@radix-ui/react-dialog";
 import { useRouter } from "next/navigation";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Plus, X } from "lucide-react";
+import { Plus } from "lucide-react";
 
 export function AddClientModal() {
   const router = useRouter();
@@ -23,7 +23,13 @@ export function AddClientModal() {
     await fetch("/api/clients", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, nameArabic, contactPerson, contactEmail, contactPhone }),
+      body: JSON.stringify({
+        name,
+        nameArabic,
+        contactPerson,
+        contactEmail,
+        contactPhone,
+      }),
     });
     setSaving(false);
     setName("");
@@ -36,33 +42,47 @@ export function AddClientModal() {
   }
 
   return (
-    <Dialog.Root open={open} onOpenChange={setOpen}>
-      <Dialog.Trigger asChild>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
         <Button size="sm">
           <Plus className="h-4 w-4" /> Add client
         </Button>
-      </Dialog.Trigger>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-overlay/60" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[90vw] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-popover p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <Dialog.Title className="text-sm font-semibold text-foreground">New client</Dialog.Title>
-            <Dialog.Close className="text-muted-foreground hover:text-foreground">
-              <X className="h-4 w-4" />
-            </Dialog.Close>
-          </div>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-            <Input placeholder="Client / company name" required value={name} onChange={(e) => setName(e.target.value)} />
-            <Input placeholder="Arabic name (اسم العميل)" dir="rtl" value={nameArabic} onChange={(e) => setNameArabic(e.target.value)} />
-            <Input placeholder="Contact person" value={contactPerson} onChange={(e) => setContactPerson(e.target.value)} />
-            <Input type="email" placeholder="Contact email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} />
-            <Input placeholder="Contact phone" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
-            <Button type="submit" disabled={saving || !name}>
-              {saving ? "Saving…" : "Add client"}
-            </Button>
-          </form>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+      </DialogTrigger>
+      <DialogContent title="New client">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <Input
+            placeholder="Client / company name"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <Input
+            placeholder="Arabic name (اسم العميل)"
+            dir="rtl"
+            value={nameArabic}
+            onChange={(e) => setNameArabic(e.target.value)}
+          />
+          <Input
+            placeholder="Contact person"
+            value={contactPerson}
+            onChange={(e) => setContactPerson(e.target.value)}
+          />
+          <Input
+            type="email"
+            placeholder="Contact email"
+            value={contactEmail}
+            onChange={(e) => setContactEmail(e.target.value)}
+          />
+          <Input
+            placeholder="Contact phone"
+            value={contactPhone}
+            onChange={(e) => setContactPhone(e.target.value)}
+          />
+          <Button type="submit" loading={saving} disabled={!name}>
+            Add client
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

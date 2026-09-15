@@ -19,7 +19,9 @@ export function SegmentedControl<T extends string>({
           onClick={() => onChange(opt.value)}
           className={cn(
             "min-h-[36px] rounded-md px-4 text-sm font-medium transition-colors",
-            value === opt.value ? "bg-primary text-foreground" : "text-muted-foreground hover:text-foreground",
+            value === opt.value
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground",
           )}
         >
           {opt.label}

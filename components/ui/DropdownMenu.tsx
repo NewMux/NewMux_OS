@@ -31,7 +31,9 @@ export function DropdownMenuItem({
   className,
   destructive,
   ...props
-}: React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item> & { destructive?: boolean }) {
+}: React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item> & {
+  destructive?: boolean;
+}) {
   return (
     <DropdownMenuPrimitive.Item
       className={cn(
@@ -49,5 +51,10 @@ export function DropdownMenuSeparator({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Separator>) {
-  return <DropdownMenuPrimitive.Separator className={cn("my-1 h-px bg-border", className)} {...props} />;
+  return (
+    <DropdownMenuPrimitive.Separator
+      className={cn("my-1 h-px bg-border", className)}
+      {...props}
+    />
+  );
 }

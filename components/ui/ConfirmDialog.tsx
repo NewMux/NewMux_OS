@@ -54,7 +54,11 @@ export function ConfirmDialog({
             Cancel
           </Button>
           {!blocked && (
-            <Button variant="destructive" loading={pending} onClick={handleConfirm}>
+            <Button
+              variant="destructive"
+              loading={pending}
+              onClick={handleConfirm}
+            >
               {confirmLabel}
             </Button>
           )}
