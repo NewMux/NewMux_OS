@@ -7,6 +7,7 @@ import {
   getActiveDeliveryIndex,
   listProductsForScopeSwitcher,
 } from "@/lib/data/metrics";
+import { getErpDashboardSummary } from "@/lib/data/finance";
 import { centsToDisplay } from "@/lib/money";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { ProductScopeSwitcher } from "@/components/dashboard/ProductScopeSwitcher";
@@ -26,6 +27,7 @@ export default async function DashboardPage({
   const cashFlow = getCashFlowCents();
   const deliveryIndex = await getActiveDeliveryIndex();
   const products = listProductsForScopeSwitcher();
+  const erpSummary = canSeeFinancials ? await getErpDashboardSummary() : null;
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -45,10 +47,34 @@ export default async function DashboardPage({
         />
       </div>
 
+      {erpSummary && (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle>Finance (PRD section 4 daily summary)</CardTitle>
+          </CardHeader>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div>
+              <p className="text-xs text-slate-500">Unpaid / partially paid invoices</p>
+              <p className="text-lg font-semibold text-white">
+                {erpSummary.unpaidInvoiceCount + erpSummary.partiallyPaidInvoiceCount}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">Outstanding balance from clients</p>
+              <p className="text-lg font-semibold text-white">{centsToDisplay(erpSummary.totalOutstandingBhdCents, "BHD")}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">Net profit this month</p>
+              <p className="text-lg font-semibold text-white">{centsToDisplay(erpSummary.netProfitThisMonthBhdCents, "BHD")}</p>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {canSeeFinancials ? (
         <Card className="mt-4">
           <CardHeader>
-            <CardTitle>Agency Cash Flow</CardTitle>
+            <CardTitle>Agency Cash Flow (USD, legacy)</CardTitle>
           </CardHeader>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>

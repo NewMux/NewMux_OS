@@ -24,6 +24,8 @@ export const createDocumentSchema = z.object({
   type: z.enum(["quote", "contract", "invoice"]) satisfies z.ZodType<DocumentType>,
   clientId: z.string().uuid(),
   productId: z.string().uuid().nullable().optional(),
+  projectId: z.string().uuid().nullable().optional(),
+  currency: z.string().length(3).optional(),
   taxRateBps: z.number().int().min(0).max(10000).default(0),
   paymentTerms: z.string().optional(),
   notes: z.string().optional(),

@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { centsToDisplay, subtotalCents, taxCents, totalCents, dollarsToCents } from "@/lib/money";
+import { centsToDisplay, subtotalCents, taxCents, totalCents, majorToMinorUnits, minorUnitDigits } from "@/lib/money";
 import { Trash2, Plus } from "lucide-react";
 
 export type EditableLineItem = {
@@ -28,6 +28,7 @@ export function LineItemEditor({
   const subtotal = useMemo(() => subtotalCents(lineItems), [lineItems]);
   const tax = useMemo(() => taxCents(subtotal, taxRateBps), [subtotal, taxRateBps]);
   const total = totalCents(subtotal, tax);
+  const divisor = 10 ** minorUnitDigits(currency);
 
   function updateItem(index: number, patch: Partial<EditableLineItem>) {
     const next = lineItems.map((item, i) => (i === index ? { ...item, ...patch } : item));
@@ -68,8 +69,8 @@ export function LineItemEditor({
               step="0.01"
               placeholder="Unit price"
               className="w-28"
-              value={item.unitPriceCents / 100}
-              onChange={(e) => updateItem(i, { unitPriceCents: dollarsToCents(Number(e.target.value) || 0) })}
+              value={item.unitPriceCents / divisor}
+              onChange={(e) => updateItem(i, { unitPriceCents: majorToMinorUnits(Number(e.target.value) || 0, currency) })}
             />
             <span className="w-24 text-right text-sm text-slate-300">
               {centsToDisplay(item.quantity * item.unitPriceCents, currency)}

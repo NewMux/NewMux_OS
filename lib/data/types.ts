@@ -11,7 +11,9 @@ export type User = {
 
 export type Client = {
   id: string;
+  clientCode: string;
   name: string;
+  contactPerson: string | null;
   contactEmail: string | null;
   contactPhone: string | null;
   billingAddress: string | null;
@@ -44,6 +46,13 @@ export type DocumentRecord = {
   status: DocumentStatus;
   clientId: string;
   productId: string | null;
+  projectId: string | null;
+  /** Invoice created from an approved quote via "Convert to Invoice" (PRD 5.4). */
+  convertedFromQuotationId: string | null;
+  /** Which ProfitSplitRule governs this invoice's payout — inherited from the
+   * project/venture default at creation, editable per invoice. Quotes never
+   * carry one: they create no financial entry (PRD 5.4). */
+  profitSplitRuleId: string | null;
   documentNumber: string;
   currency: string;
   subtotalCents: number;
@@ -82,6 +91,15 @@ export type Project = {
   startedAt: string | null;
   targetEndAt: string | null;
   createdBy: string;
+  // Technical detail (PRD section 10.2) — access credentials live in the
+  // Secrets Vault (lib/data/vault.ts), never stored here as plaintext.
+  techStack: string | null;
+  hostingProvider: string | null;
+  controlPanelUrl: string | null;
+  domain: string | null;
+  domainRenewalDate: string | null;
+  githubUrl: string | null;
+  profitSplitRuleId: string | null;
 };
 
 export type TaskPriority = "urgent" | "high" | "medium" | "low";
@@ -180,4 +198,119 @@ export type CampaignMetric = {
   leadsCaptured: number;
   conversions: number;
   revenueCents: number;
+};
+
+// --- ERP: Finance (PRD sections 5, 6, 14) ---
+
+/** A payout party in a profit split — Jassim, Mohammed, or a future partner/referral. Not a login user. */
+export type Party = {
+  id: string;
+  name: string;
+};
+
+export type DeductionKind = "fixed" | "percentage";
+
+/** Reusable deduction categories (vendor cost, marketing commission, tax/zakat reserve, referral fee). */
+export type DeductionType = {
+  id: string;
+  name: string;
+  kind: DeductionKind;
+};
+
+export type ProfitSplitScope = "project" | "venture";
+
+export type ProfitSplitSplit = {
+  partyId: string;
+  percentageBps: number; // basis points, 5000 = 50.00%
+};
+
+export type ProfitSplitDeduction = {
+  deductionTypeId: string;
+  /** Fixed-kind: cents. Percentage-kind: basis points of the invoice total. */
+  value: number;
+};
+
+/** Fully editable via Settings (PRD 5.3.1) — never hard-coded per company. */
+export type ProfitSplitRule = {
+  id: string;
+  scopeType: ProfitSplitScope;
+  scopeId: string;
+  splits: ProfitSplitSplit[];
+  deductions: ProfitSplitDeduction[];
+  isDefault: boolean;
+  updatedBy: string;
+  updatedAt: string;
+};
+
+export type RecurringExpenseCycle = "monthly" | "quarterly" | "annual";
+export type RecurringExpenseStatus = "active" | "paused";
+
+export type RecurringExpense = {
+  id: string;
+  name: string;
+  category: string;
+  amountCents: number;
+  currency: string;
+  cycle: RecurringExpenseCycle;
+  lastPaymentDate: string | null;
+  nextDueDate: string | null;
+  linkedClientId: string | null;
+  linkedProjectId: string | null;
+  status: RecurringExpenseStatus;
+};
+
+export type PaymentMethod = "cash" | "transfer";
+
+/** A partial or full payment against an invoice. Never changes the invoice's
+ * original value (PRD 5.5) — only the payment log grows. */
+export type Payment = {
+  id: string;
+  documentId: string;
+  amountCents: number;
+  date: string;
+  method: PaymentMethod;
+  recordedBy: string;
+};
+
+export type HostingItemType = "server" | "domain" | "other";
+export type HostingSubscriptionStatus = "active" | "overdue" | "paused";
+
+export type HostingSubscription = {
+  id: string;
+  clientId: string;
+  item: HostingItemType;
+  amountCents: number;
+  currency: string;
+  cycle: RecurringExpenseCycle;
+  lastCollectedDate: string | null;
+  nextDueDate: string | null;
+  status: HostingSubscriptionStatus;
+  linkedInvoiceId: string | null;
+};
+
+export type VentureLaunchStatus = "planning" | "in_development" | "launched" | "paused";
+
+/** Ventures personally held by the founders, not company assets (PRD 14).
+ * Ownership/split is intentionally empty until configured in Settings. */
+export type Venture = {
+  id: string;
+  name: string;
+  slug: string;
+  brandDescription: string | null;
+  websiteUrl: string | null;
+  launchStatus: VentureLaunchStatus;
+  profitSplitRuleId: string | null;
+};
+
+export type AuditLogAction = "create" | "update" | "delete";
+
+/** Every change to an invoice, payment, or profit-split rule (PRD 15.1). */
+export type AuditLogEntry = {
+  id: string;
+  entityType: "document" | "payment" | "profit_split_rule" | "deduction_type" | "recurring_expense";
+  entityId: string;
+  action: AuditLogAction;
+  summary: string;
+  changedBy: string;
+  changedAt: string;
 };

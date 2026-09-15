@@ -31,17 +31,25 @@ export function getSubscriberBreakdown(): SubscriberBreakdown {
   };
 }
 
+/**
+ * USD-only rollup (legacy agency/SaaS dashboard widget). Mixing currencies
+ * without an FX table would silently misreport totals, so BHD-denominated
+ * invoices (the real Newmux ERP data) are deliberately excluded here — see
+ * lib/data/erpMetrics.ts for the BHD-native Finance module reporting.
+ */
 export function getCashFlowCents() {
   const cashCollected =
     store.saasTransactions.filter((t) => t.status === "completed").reduce((sum, t) => sum + t.amountCents, 0) +
-    store.documents.filter((d) => d.type === "invoice" && d.status === "paid").reduce((sum, d) => sum + d.totalCents, 0);
+    store.documents
+      .filter((d) => d.type === "invoice" && d.status === "paid" && d.currency === "USD")
+      .reduce((sum, d) => sum + d.totalCents, 0);
 
   const pendingQuotePipeline = store.documents
-    .filter((d) => d.type === "quote" && d.status === "sent")
+    .filter((d) => d.type === "quote" && d.status === "sent" && d.currency === "USD")
     .reduce((sum, d) => sum + d.totalCents, 0);
 
   const outstandingInvoices = store.documents
-    .filter((d) => d.type === "invoice" && ["sent", "accepted"].includes(d.status))
+    .filter((d) => d.type === "invoice" && ["sent", "accepted"].includes(d.status) && d.currency === "USD")
     .reduce((sum, d) => sum + d.totalCents, 0);
 
   return { cashCollected, pendingQuotePipeline, outstandingInvoices };

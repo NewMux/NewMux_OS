@@ -7,29 +7,47 @@ import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/documents/StatusBadge";
 import { LineItemEditor, type EditableLineItem } from "@/components/documents/LineItemEditor";
 import { ALLOWED_TRANSITIONS } from "@/lib/validators/document";
-import type { DocumentRecord, DocumentStatus, Client, DocumentStatusHistoryEntry } from "@/lib/data/types";
-import { Download } from "lucide-react";
+import type { DocumentRecord, DocumentStatus, Client, DocumentStatusHistoryEntry, Payment } from "@/lib/data/types";
+import type { ProfitBreakdown } from "@/lib/data/finance";
+import { PaymentsPanel } from "@/components/documents/PaymentsPanel";
+import { ProfitBreakdownPanel } from "@/components/documents/ProfitBreakdownPanel";
+import { Download, ArrowRightLeft } from "lucide-react";
 
 export function DocumentEditor({
   document,
   lineItems: initialLineItems,
   client,
   history,
+  payments,
+  profitBreakdown,
 }: {
   document: DocumentRecord;
   lineItems: EditableLineItem[];
   client: Client;
   history: DocumentStatusHistoryEntry[];
+  payments: Payment[];
+  profitBreakdown: ProfitBreakdown | null;
 }) {
   const router = useRouter();
   const [lineItems, setLineItems] = useState<EditableLineItem[]>(initialLineItems);
   const [taxRateBps, setTaxRateBps] = useState(document.taxRateBps);
   const [saving, setSaving] = useState(false);
   const [transitioning, setTransitioning] = useState<DocumentStatus | null>(null);
+  const [converting, setConverting] = useState(false);
   const [dirty, setDirty] = useState(false);
 
   const editable = document.status === "draft";
   const nextStatuses = ALLOWED_TRANSITIONS[document.status];
+
+  async function handleConvertToInvoice() {
+    setConverting(true);
+    const res = await fetch(`/api/documents/${document.id}/convert-to-invoice`, { method: "POST" });
+    setConverting(false);
+    if (res.ok) {
+      const { invoice } = await res.json();
+      router.push(`/documents/${invoice.id}`);
+    }
+  }
 
   async function handleSave() {
     setSaving(true);
@@ -63,6 +81,11 @@ export function DocumentEditor({
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge status={document.status} />
+          {document.type === "quote" && document.status !== "archived" && (
+            <Button size="sm" variant="secondary" onClick={handleConvertToInvoice} disabled={converting}>
+              <ArrowRightLeft className="h-4 w-4" /> {converting ? "Converting…" : "Convert to Invoice"}
+            </Button>
+          )}
           <a
             href={`/api/documents/generate-pdf?id=${document.id}`}
             className="inline-flex min-h-[36px] items-center gap-1 rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-100 hover:bg-slate-700"
@@ -129,6 +152,11 @@ export function DocumentEditor({
           ))}
         </div>
       </Card>
+
+      {document.type === "invoice" && (
+        <PaymentsPanel documentId={document.id} currency={document.currency} totalCents={document.totalCents} payments={payments} />
+      )}
+      {profitBreakdown && <ProfitBreakdownPanel breakdown={profitBreakdown} currency={document.currency} />}
     </div>
   );
 }

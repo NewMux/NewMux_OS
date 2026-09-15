@@ -9,17 +9,23 @@ const SEQUENCES: Record<DocumentType, { prefix: string; counter: number }> = {
   invoice: { prefix: "INV", counter: 100 },
 };
 
-// Seed data already used QUO-2026-0004 / CON-2025-0012 / INV-2026-0001 —
-// bump counters so newly created documents don't collide.
-SEQUENCES.quote.counter = 4;
+// Seed data already used QUO-2026-2606 / INV-2026-0265 (matching Newmux's
+// existing real numbering) — bump counters so new documents don't collide.
+SEQUENCES.quote.counter = 2606;
 SEQUENCES.contract.counter = 12;
-SEQUENCES.invoice.counter = 1;
+SEQUENCES.invoice.counter = 265;
 
 function nextDocumentNumber(type: DocumentType): string {
   const seq = SEQUENCES[type];
   seq.counter += 1;
   const year = new Date().getFullYear();
   return `${seq.prefix}-${year}-${String(seq.counter).padStart(4, "0")}`;
+}
+
+/** Exposed for lib/data/finance.ts's quotation→invoice conversion, which
+ * needs a fresh number from the invoice sequence, separate from quotes'. */
+export function assignInvoiceNumber(): string {
+  return nextDocumentNumber("invoice");
 }
 
 export async function listDocuments(filter?: { type?: DocumentType }): Promise<DocumentRecord[]> {
@@ -46,6 +52,8 @@ export async function createDocument(input: {
   type: DocumentType;
   clientId: string;
   productId?: string | null;
+  projectId?: string | null;
+  currency?: string;
   taxRateBps: number;
   paymentTerms?: string;
   notes?: string;
@@ -56,14 +64,22 @@ export async function createDocument(input: {
   const tax = calcTax(subtotal, input.taxRateBps);
   const now = new Date().toISOString();
 
+  // Invoices inherit the project's default profit-split rule (PRD 5.3.1).
+  // Quotations never carry one — they create no financial entry (PRD 5.4).
+  const project = input.projectId ? store.projects.find((p) => p.id === input.projectId) : undefined;
+  const profitSplitRuleId = input.type === "invoice" ? (project?.profitSplitRuleId ?? null) : null;
+
   const doc: DocumentRecord = {
     id: randomUUID(),
     type: input.type,
     status: "draft",
     clientId: input.clientId,
     productId: input.productId ?? null,
+    projectId: input.projectId ?? null,
+    convertedFromQuotationId: null,
+    profitSplitRuleId,
     documentNumber: nextDocumentNumber(input.type),
-    currency: "USD",
+    currency: input.currency ?? "USD",
     subtotalCents: subtotal,
     taxRateBps: input.taxRateBps,
     taxCents: tax,

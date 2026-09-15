@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { SegmentedControl } from "@/components/documents/SegmentedControl";
 import { LineItemEditor, type EditableLineItem } from "@/components/documents/LineItemEditor";
-import type { DocumentType, Client } from "@/lib/data/types";
+import type { DocumentType, Client, Project } from "@/lib/data/types";
 
-export function NewDocumentForm({ clients }: { clients: Client[] }) {
+export function NewDocumentForm({ clients, projects }: { clients: Client[]; projects: Project[] }) {
   const router = useRouter();
   const [type, setType] = useState<DocumentType>("quote");
   const [clientId, setClientId] = useState(clients[0]?.id ?? "");
+  const [currency, setCurrency] = useState("BHD");
   const [paymentTerms, setPaymentTerms] = useState("Net 30");
   const [notes, setNotes] = useState("");
   const [taxRateBps, setTaxRateBps] = useState(0);
@@ -21,6 +22,8 @@ export function NewDocumentForm({ clients }: { clients: Client[] }) {
   ]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const clientProject = projects.find((p) => p.clientId === clientId);
 
   async function handleSave() {
     setSaving(true);
@@ -31,6 +34,8 @@ export function NewDocumentForm({ clients }: { clients: Client[] }) {
       body: JSON.stringify({
         type,
         clientId,
+        projectId: clientProject?.id ?? null,
+        currency,
         taxRateBps,
         paymentTerms,
         notes,
@@ -76,6 +81,18 @@ export function NewDocumentForm({ clients }: { clients: Client[] }) {
         </div>
 
         <div>
+          <label className="mb-1 block text-xs font-medium text-slate-400">Currency</label>
+          <select
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
+            className="min-h-[44px] w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+          >
+            <option value="BHD">BHD</option>
+            <option value="USD">USD</option>
+          </select>
+        </div>
+
+        <div>
           <label className="mb-1 block text-xs font-medium text-slate-400">Payment terms</label>
           <Input value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)} />
         </div>
@@ -90,6 +107,7 @@ export function NewDocumentForm({ clients }: { clients: Client[] }) {
           onChange={setLineItems}
           taxRateBps={taxRateBps}
           onTaxRateChange={setTaxRateBps}
+          currency={currency}
         />
 
         {error && <p className="text-sm text-red-400">{error}</p>}

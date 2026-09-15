@@ -34,3 +34,13 @@ export function canAccessGrowth(session: Session | null): boolean {
 export function canRevealVaultSecrets(session: Session | null): boolean {
   return session?.user?.role === "partner_admin";
 }
+
+/** Finance (recurring expenses, profit distribution) is admin-only per PRD 2.1. */
+export function canAccessFinance(session: Session | null): boolean {
+  return session?.user?.role === "partner_admin";
+}
+
+/** Settings (profit-split rules, deduction types) is admin-only per PRD 5.3.1. */
+export function canAccessSettings(session: Session | null): boolean {
+  return session?.user?.role === "partner_admin";
+}
