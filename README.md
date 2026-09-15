@@ -68,12 +68,9 @@ On first request, the server console prints seeded login credentials:
 
 ```
 [NEWMUX ERP] Seeded Mohammed's login → email: m4ahmed7@gmail.com password: <random>
-[NEWMUX ERP] Seeded Jassim's login → email: jassim@newmux.com password: changeme123 (placeholder email)
+[NEWMUX ERP] Seeded Jassim's login → email: info@newmux.com password: changeme123
 [NEWMUX ERP] Seeded demo limited-access login → email: lead.dev@newmux.internal password: changeme123
 ```
-
-Jassim's seeded email is a placeholder — update `lib/data/store.ts` with his
-real login email before this goes anywhere near real use.
 
 Copy `.env.example` to `.env.local` and fill in at least `NEXTAUTH_SECRET` /
 `AUTH_SECRET` and `VAULT_SESSION_SECRET` (random strings) before running —
