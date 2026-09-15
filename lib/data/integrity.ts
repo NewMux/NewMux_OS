@@ -67,8 +67,9 @@ export function getReferences(kind: EntityKind, id: string): Reference[] {
       break;
 
     case "project":
+      // Tasks are deliberately absent: they are owned children that cannot
+      // exist without their project, so deleteProject removes them with it.
       found.push(
-        ref("task", store.tasks.filter((t) => t.projectId === id).length),
         ref(
           "document",
           store.documents.filter((d) => d.projectId === id).length,
