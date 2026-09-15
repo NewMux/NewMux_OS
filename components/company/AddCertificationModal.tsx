@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Plus } from "lucide-react";
 import type { CertificationStatus } from "@/lib/data/types";
+import { apiMutate } from "@/lib/api/client";
 
 export function AddCertificationModal() {
   const router = useRouter();
@@ -18,9 +19,8 @@ export function AddCertificationModal() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    await fetch("/api/company/certifications", {
+    await apiMutate("/api/company/certifications", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, status }),
     });
     setSaving(false);

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Plus } from "lucide-react";
 import type { Campaign, CampaignChannel } from "@/lib/data/types";
+import { apiMutate } from "@/lib/api/client";
 
 export function CampaignForm({ campaigns }: { campaigns: Campaign[] }) {
   const router = useRouter();
@@ -26,9 +27,8 @@ export function CampaignForm({ campaigns }: { campaigns: Campaign[] }) {
   async function handleCreateCampaign(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    await fetch("/api/campaigns", {
+    await apiMutate("/api/campaigns", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, channel }),
     });
     setSaving(false);
@@ -40,9 +40,8 @@ export function CampaignForm({ campaigns }: { campaigns: Campaign[] }) {
   async function handleAddMetric(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    await fetch(`/api/campaigns/${campaignId}/metrics`, {
+    await apiMutate(`/api/campaigns/${campaignId}/metrics`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         metricDate: new Date().toISOString().slice(0, 10),
         spendCents: Math.round(Number(spend) * 100),

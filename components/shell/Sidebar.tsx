@@ -35,7 +35,9 @@ export function Sidebar({
               href={item.href}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                active ? "bg-primary/15 text-brand" : "text-muted-foreground hover:bg-card hover:text-foreground",
+                active
+                  ? "bg-primary/15 text-brand"
+                  : "text-muted-foreground hover:bg-card hover:text-foreground",
               )}
             >
               <NavIcon icon={item.icon} className="h-4 w-4" />
@@ -52,7 +54,9 @@ export function Sidebar({
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-foreground">{userName}</p>
-            <p className="text-xs capitalize text-muted-foreground">{userRole.replace("_", " ")}</p>
+            <p className="text-xs capitalize text-muted-foreground">
+              {userRole.replace("_", " ")}
+            </p>
           </div>
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}

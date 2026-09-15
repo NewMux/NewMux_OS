@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Plus } from "lucide-react";
 import type { TaskPriority } from "@/lib/data/types";
+import { apiMutate } from "@/lib/api/client";
 
 export function NewTaskButton({ projectId }: { projectId: string }) {
   const router = useRouter();
@@ -18,9 +19,8 @@ export function NewTaskButton({ projectId }: { projectId: string }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    await fetch("/api/tasks", {
+    await apiMutate("/api/tasks", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ projectId, title, priority }),
     });
     setSaving(false);

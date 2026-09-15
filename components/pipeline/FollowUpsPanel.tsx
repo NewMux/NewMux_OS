@@ -28,7 +28,11 @@ export function FollowUpsPanel({
         </span>
       </CardHeader>
 
-      {reminders.length === 0 && <p className="text-sm text-muted-foreground">No follow-ups scheduled in the next two weeks.</p>}
+      {reminders.length === 0 && (
+        <p className="text-sm text-muted-foreground">
+          No follow-ups scheduled in the next two weeks.
+        </p>
+      )}
 
       <div className="flex flex-col gap-1">
         {reminders.map((r) => (
@@ -39,7 +43,8 @@ export function FollowUpsPanel({
           >
             <span className="text-foreground">{r.dealName}</span>
             <span className="flex items-center gap-2 text-xs text-muted-foreground">
-              {ownerNames[r.ownerId] ?? "Unassigned"} · {new Date(r.dueDate).toLocaleDateString()}
+              {ownerNames[r.ownerId] ?? "Unassigned"} ·{" "}
+              {new Date(r.dueDate).toLocaleDateString()}
               <Badge tone={STATUS_TONE[r.status]}>{r.status}</Badge>
             </span>
           </Link>

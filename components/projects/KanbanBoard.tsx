@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { PriorityBadge } from "./PriorityBadge";
 import { DragBoard, type BoardItem } from "@/components/kanban/DragBoard";
 import type { Task, TaskStatus } from "@/lib/data/types";
+import { apiMutate } from "@/lib/api/client";
 
 const COLUMNS: { status: TaskStatus; label: string }[] = [
   { status: "todo", label: "Todo" },
@@ -18,35 +19,54 @@ type TaskBoardItem = BoardItem & { task: Task };
 
 export function KanbanBoard({ tasks }: { tasks: Task[] }) {
   const router = useRouter();
-  const [tasksById, setTasksById] = useState<Record<string, Task>>(() => Object.fromEntries(tasks.map((t) => [t.id, t])));
+  const [tasksById, setTasksById] = useState<Record<string, Task>>(() =>
+    Object.fromEntries(tasks.map((t) => [t.id, t])),
+  );
 
   const items = useMemo<TaskBoardItem[]>(
     () =>
       [...tasks]
         .sort((a, b) => a.sortOrder - b.sortOrder)
-        .map((t) => ({ id: t.id, columnId: t.status, task: tasksById[t.id] ?? t })),
+        .map((t) => ({
+          id: t.id,
+          columnId: t.status,
+          task: tasksById[t.id] ?? t,
+        })),
     [tasks, tasksById],
   );
 
   const columns = COLUMNS.map((col) => {
     const count = items.filter((i) => i.columnId === col.status).length;
-    return { id: col.status, label: col.label, meta: `${count} task${count === 1 ? "" : "s"}` };
+    return {
+      id: col.status,
+      label: col.label,
+      meta: `${count} task${count === 1 ? "" : "s"}`,
+    };
   });
 
   async function handleMove(taskId: string, toColumnId: string, index: number) {
     const status = toColumnId as TaskStatus;
-    setTasksById((prev) => ({ ...prev, [taskId]: { ...(prev[taskId] ?? tasks.find((t) => t.id === taskId)!), status } }));
+    setTasksById((prev) => ({
+      ...prev,
+      [taskId]: {
+        ...(prev[taskId] ?? tasks.find((t) => t.id === taskId)!),
+        status,
+      },
+    }));
 
-    await fetch(`/api/tasks/${taskId}`, {
+    await apiMutate(`/api/tasks/${taskId}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status, index }),
     });
     router.refresh();
   }
 
   if (tasks.length === 0) {
-    return <p className="text-sm text-muted-foreground">No tasks yet. Drag cards between columns once you add some.</p>;
+    return (
+      <p className="text-sm text-muted-foreground">
+        No tasks yet. Drag cards between columns once you add some.
+      </p>
+    );
   }
 
   return (
@@ -60,9 +80,15 @@ export function KanbanBoard({ tasks }: { tasks: Task[] }) {
             <p className="font-medium text-foreground">{item.task.title}</p>
             <PriorityBadge priority={item.task.priority} />
           </div>
-          {item.task.description && <p className="mt-1 text-xs text-muted-foreground">{item.task.description}</p>}
+          {item.task.description && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {item.task.description}
+            </p>
+          )}
           {item.task.dueAt && (
-            <p className="mt-2 text-xs text-muted-foreground">Due {new Date(item.task.dueAt).toLocaleDateString()}</p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Due {new Date(item.task.dueAt).toLocaleDateString()}
+            </p>
           )}
         </Card>
       )}

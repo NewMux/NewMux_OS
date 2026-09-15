@@ -3,7 +3,14 @@
 import { useMemo } from "react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { centsToDisplay, subtotalCents, taxCents, totalCents, majorToMinorUnits, minorUnitDigits } from "@/lib/money";
+import {
+  centsToDisplay,
+  subtotalCents,
+  taxCents,
+  totalCents,
+  majorToMinorUnits,
+  minorUnitDigits,
+} from "@/lib/money";
 import { Trash2, Plus } from "lucide-react";
 
 export type EditableLineItem = {
@@ -26,12 +33,17 @@ export function LineItemEditor({
   currency?: string;
 }) {
   const subtotal = useMemo(() => subtotalCents(lineItems), [lineItems]);
-  const tax = useMemo(() => taxCents(subtotal, taxRateBps), [subtotal, taxRateBps]);
+  const tax = useMemo(
+    () => taxCents(subtotal, taxRateBps),
+    [subtotal, taxRateBps],
+  );
   const total = totalCents(subtotal, tax);
   const divisor = 10 ** minorUnitDigits(currency);
 
   function updateItem(index: number, patch: Partial<EditableLineItem>) {
-    const next = lineItems.map((item, i) => (i === index ? { ...item, ...patch } : item));
+    const next = lineItems.map((item, i) =>
+      i === index ? { ...item, ...patch } : item,
+    );
     onChange(next);
   }
 
@@ -40,14 +52,20 @@ export function LineItemEditor({
   }
 
   function addItem() {
-    onChange([...lineItems, { description: "", quantity: 1, unitPriceCents: 0 }]);
+    onChange([
+      ...lineItems,
+      { description: "", quantity: 1, unitPriceCents: 0 },
+    ]);
   }
 
   return (
     <div>
       <div className="flex flex-col gap-2">
         {lineItems.map((item, i) => (
-          <div key={i} className="flex flex-wrap items-center gap-2 rounded-lg border border-border p-2">
+          <div
+            key={i}
+            className="flex flex-wrap items-center gap-2 rounded-lg border border-border p-2"
+          >
             <Input
               placeholder="Description"
               className="flex-1 basis-40"
@@ -61,7 +79,9 @@ export function LineItemEditor({
               placeholder="Qty"
               className="w-20"
               value={item.quantity}
-              onChange={(e) => updateItem(i, { quantity: Number(e.target.value) || 0 })}
+              onChange={(e) =>
+                updateItem(i, { quantity: Number(e.target.value) || 0 })
+              }
             />
             <Input
               type="number"
@@ -70,7 +90,14 @@ export function LineItemEditor({
               placeholder="Unit price"
               className="w-28"
               value={item.unitPriceCents / divisor}
-              onChange={(e) => updateItem(i, { unitPriceCents: majorToMinorUnits(Number(e.target.value) || 0, currency) })}
+              onChange={(e) =>
+                updateItem(i, {
+                  unitPriceCents: majorToMinorUnits(
+                    Number(e.target.value) || 0,
+                    currency,
+                  ),
+                })
+              }
             />
             <span className="w-24 text-right text-sm text-secondary-foreground">
               {centsToDisplay(item.quantity * item.unitPriceCents, currency)}
@@ -104,7 +131,9 @@ export function LineItemEditor({
             step="0.1"
             className="w-20 text-right"
             value={taxRateBps / 100}
-            onChange={(e) => onTaxRateChange(Math.round((Number(e.target.value) || 0) * 100))}
+            onChange={(e) =>
+              onTaxRateChange(Math.round((Number(e.target.value) || 0) * 100))
+            }
           />
         </div>
         <div className="flex w-56 justify-between text-muted-foreground">

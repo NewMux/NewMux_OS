@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import type { Party } from "@/lib/data/types";
+import { apiMutate } from "@/lib/api/client";
 
 export function PartiesPanel({ parties }: { parties: Party[] }) {
   const router = useRouter();
@@ -15,9 +16,8 @@ export function PartiesPanel({ parties }: { parties: Party[] }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    await fetch("/api/finance/parties", {
+    await apiMutate("/api/finance/parties", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name }),
     });
     setSaving(false);
@@ -31,17 +31,27 @@ export function PartiesPanel({ parties }: { parties: Party[] }) {
         <CardTitle>Payout Parties</CardTitle>
       </CardHeader>
       <p className="mb-3 text-xs text-muted-foreground">
-        Anyone who can receive a share of profit — a partner, or a one-off referral partner on a specific deal.
+        Anyone who can receive a share of profit — a partner, or a one-off
+        referral partner on a specific deal.
       </p>
       <div className="mb-3 flex flex-wrap gap-2">
         {parties.map((p) => (
-          <span key={p.id} className="rounded-full bg-accent px-3 py-1 text-sm text-foreground">
+          <span
+            key={p.id}
+            className="rounded-full bg-accent px-3 py-1 text-sm text-foreground"
+          >
             {p.name}
           </span>
         ))}
       </div>
       <form onSubmit={handleSubmit} className="flex items-center gap-2">
-        <Input placeholder="New party name" value={name} onChange={(e) => setName(e.target.value)} className="max-w-xs" required />
+        <Input
+          placeholder="New party name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="max-w-xs"
+          required
+        />
         <Button type="submit" size="sm" disabled={saving || !name}>
           Add
         </Button>

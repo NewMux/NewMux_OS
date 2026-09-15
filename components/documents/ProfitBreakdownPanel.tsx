@@ -2,7 +2,13 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { centsToDisplay } from "@/lib/money";
 import type { ProfitBreakdown } from "@/lib/data/finance";
 
-export function ProfitBreakdownPanel({ breakdown, currency }: { breakdown: ProfitBreakdown; currency: string }) {
+export function ProfitBreakdownPanel({
+  breakdown,
+  currency,
+}: {
+  breakdown: ProfitBreakdown;
+  currency: string;
+}) {
   return (
     <Card className="mt-4">
       <CardHeader>
@@ -25,7 +31,10 @@ export function ProfitBreakdownPanel({ breakdown, currency }: { breakdown: Profi
         </div>
         <div className="mt-2 flex flex-col gap-1 border-t border-border pt-2">
           {breakdown.splits.map((s) => (
-            <div key={s.partyId} className="flex justify-between text-secondary-foreground">
+            <div
+              key={s.partyId}
+              className="flex justify-between text-secondary-foreground"
+            >
               <span>
                 {s.partyName} ({(s.percentageBps / 100).toFixed(0)}%)
               </span>

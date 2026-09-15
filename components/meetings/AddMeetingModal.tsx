@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Plus } from "lucide-react";
 import type { Project, Meeting } from "@/lib/data/types";
+import { apiMutate } from "@/lib/api/client";
 
 export function AddMeetingModal({ projects }: { projects: Project[] }) {
   const router = useRouter();
@@ -21,9 +22,8 @@ export function AddMeetingModal({ projects }: { projects: Project[] }) {
     e.preventDefault();
     setSaving(true);
     const project = projects.find((p) => p.id === projectId);
-    await fetch("/api/meetings", {
+    await apiMutate("/api/meetings", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title,
         startsAt: new Date(startsAt).toISOString(),

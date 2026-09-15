@@ -55,9 +55,15 @@ export function SecretRow({
     <Card>
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-foreground">{label}</p>
-          <p className="text-xs text-muted-foreground">{TYPE_LABEL[secretType] ?? secretType}</p>
-          <p className="mt-1 truncate font-mono text-sm text-secondary-foreground">{revealed ?? maskedPreview}</p>
+          <p className="truncate text-sm font-medium text-foreground">
+            {label}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {TYPE_LABEL[secretType] ?? secretType}
+          </p>
+          <p className="mt-1 truncate font-mono text-sm text-secondary-foreground">
+            {revealed ?? maskedPreview}
+          </p>
           {error && <p className="mt-1 text-xs text-danger">{error}</p>}
         </div>
         {canReveal && (
@@ -72,8 +78,18 @@ export function SecretRow({
                 <Copy className="h-4 w-4" />
               </Button>
             )}
-            <Button variant="ghost" size="icon" onClick={handleReveal} disabled={loading} aria-label="Reveal secret">
-              {revealed ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleReveal}
+              disabled={loading}
+              aria-label="Reveal secret"
+            >
+              {revealed ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
             </Button>
           </div>
         )}

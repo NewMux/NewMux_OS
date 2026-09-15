@@ -12,6 +12,7 @@ import { DragBoard, type BoardItem } from "@/components/kanban/DragBoard";
 import { centsToDisplay } from "@/lib/money";
 import { ArrowUpRight } from "lucide-react";
 import type { Deal, DealStage, OutreachActivity } from "@/lib/data/types";
+import { apiMutate } from "@/lib/api/client";
 
 const COLUMNS: { stage: DealStage; label: string }[] = [
   { stage: "lead_discovery", label: "Lead Discovery" },
@@ -79,9 +80,8 @@ export function DealKanban({
     index: number,
     reason?: string,
   ) {
-    await fetch(`/api/deals/${dealId}/stage`, {
+    await apiMutate(`/api/deals/${dealId}/stage`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         stage,
         index,

@@ -2,13 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { apiMutate } from "@/lib/api/client";
 import { Lock } from "lucide-react";
 
 export function LockButton() {
   const router = useRouter();
 
   async function handleLock() {
-    await fetch("/api/vault/lock", { method: "POST" });
+    await apiMutate("/api/vault/lock", { method: "POST" });
     router.refresh();
   }
 

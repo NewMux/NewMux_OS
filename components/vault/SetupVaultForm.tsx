@@ -26,7 +26,11 @@ export function SetupVaultForm() {
     setSaving(false);
     if (!res.ok) {
       const body = await res.json().catch(() => null);
-      setError(body?.error?.formErrors?.[0] ?? body?.error?.fieldErrors?.confirmPassphrase?.[0] ?? "Could not set up vault.");
+      setError(
+        body?.error?.formErrors?.[0] ??
+          body?.error?.fieldErrors?.confirmPassphrase?.[0] ??
+          "Could not set up vault.",
+      );
       return;
     }
     router.refresh();
@@ -36,11 +40,14 @@ export function SetupVaultForm() {
     <Card className="mx-auto max-w-md">
       <div className="mb-4 flex items-center gap-2 text-brand">
         <ShieldCheck className="h-5 w-5" />
-        <h2 className="text-sm font-semibold text-foreground">Set up the Secrets Vault</h2>
+        <h2 className="text-sm font-semibold text-foreground">
+          Set up the Secrets Vault
+        </h2>
       </div>
       <p className="mb-4 text-sm text-muted-foreground">
-        Choose a master passphrase. It encrypts every secret stored here with AES-256-GCM and is never stored
-        in plaintext — if it&apos;s lost, secrets cannot be recovered.
+        Choose a master passphrase. It encrypts every secret stored here with
+        AES-256-GCM and is never stored in plaintext — if it&apos;s lost,
+        secrets cannot be recovered.
       </p>
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <Input

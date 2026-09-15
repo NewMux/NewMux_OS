@@ -37,7 +37,10 @@ export function UnlockModal() {
         <Lock className="h-4 w-4" />
         <p className="text-sm font-medium">Vault is locked</p>
       </div>
-      <form onSubmit={handleUnlock} className="flex flex-wrap items-center gap-2">
+      <form
+        onSubmit={handleUnlock}
+        className="flex flex-wrap items-center gap-2"
+      >
         <Input
           type="password"
           placeholder="Master passphrase"

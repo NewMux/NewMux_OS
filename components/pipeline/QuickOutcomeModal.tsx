@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
 import { PhoneCall } from "lucide-react";
 import type { OutreachChannel, OutreachOutcome } from "@/lib/data/types";
+import { apiMutate } from "@/lib/api/client";
 
 const CHANNELS: { value: OutreachChannel; label: string }[] = [
   { value: "call", label: "Call" },
@@ -40,9 +41,8 @@ export function QuickOutcomeModal({
 
   async function logOutcome(outcome: OutreachOutcome) {
     setSaving(outcome);
-    await fetch(`/api/deals/${dealId}/outreach`, {
+    await apiMutate(`/api/deals/${dealId}/outreach`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         channel,
         outcome,

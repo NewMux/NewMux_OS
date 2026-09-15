@@ -14,7 +14,13 @@ import {
   type DragOverEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 
@@ -27,8 +33,21 @@ export type BoardColumn = {
   meta?: React.ReactNode;
 };
 
-function SortableCard({ id, children }: { id: string; children: React.ReactNode }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+function SortableCard({
+  id,
+  children,
+}: {
+  id: string;
+  children: React.ReactNode;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
 
   return (
     <div
@@ -43,15 +62,29 @@ function SortableCard({ id, children }: { id: string; children: React.ReactNode 
   );
 }
 
-function Column({ column, itemIds, children }: { column: BoardColumn; itemIds: string[]; children: React.ReactNode }) {
+function Column({
+  column,
+  itemIds,
+  children,
+}: {
+  column: BoardColumn;
+  itemIds: string[];
+  children: React.ReactNode;
+}) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
 
   return (
     // Narrow screens scroll columns sideways like a real board; wide screens lay them out in a grid.
     <div className="w-[17rem] shrink-0 lg:w-auto">
       <div className="mb-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{column.label}</h3>
-        {column.meta && <div className="mt-0.5 text-xs text-muted-foreground">{column.meta}</div>}
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          {column.label}
+        </h3>
+        {column.meta && (
+          <div className="mt-0.5 text-xs text-muted-foreground">
+            {column.meta}
+          </div>
+        )}
       </div>
       <div
         ref={setNodeRef}
@@ -81,7 +114,11 @@ export function DragBoard<T extends BoardItem>({
 }: {
   items: T[];
   columns: BoardColumn[];
-  onMove: (itemId: string, toColumnId: string, index: number) => void | Promise<void>;
+  onMove: (
+    itemId: string,
+    toColumnId: string,
+    index: number,
+  ) => void | Promise<void>;
   renderCard: (item: T) => React.ReactNode;
 }) {
   const [items, setItems] = useState(itemsProp);
@@ -93,7 +130,9 @@ export function DragBoard<T extends BoardItem>({
   const sensors = useSensors(
     // A small activation distance keeps taps on buttons inside cards working.
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
   );
 
   const columnOf = (id: string): string | undefined => {
@@ -114,7 +153,11 @@ export function DragBoard<T extends BoardItem>({
     const overColumn = columnOf(String(over.id));
     if (!activeColumn || !overColumn || activeColumn === overColumn) return;
 
-    setItems((prev) => prev.map((i) => (i.id === String(active.id) ? { ...i, columnId: overColumn } : i)));
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === String(active.id) ? { ...i, columnId: overColumn } : i,
+      ),
+    );
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -135,7 +178,10 @@ export function DragBoard<T extends BoardItem>({
 
     if (oldIndex !== -1 && oldIndex !== newIndex) {
       const reordered = arrayMove(column, oldIndex, newIndex);
-      setItems((prev) => [...prev.filter((i) => i.columnId !== targetColumn), ...reordered]);
+      setItems((prev) => [
+        ...prev.filter((i) => i.columnId !== targetColumn),
+        ...reordered,
+      ]);
     }
 
     void onMove(activeId, targetColumn, Math.max(0, newIndex));
@@ -154,12 +200,18 @@ export function DragBoard<T extends BoardItem>({
     >
       <div
         className="flex gap-4 overflow-x-auto pb-2 lg:grid lg:overflow-x-visible"
-        style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
+        style={{
+          gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`,
+        }}
       >
         {columns.map((column) => {
           const columnItems = items.filter((i) => i.columnId === column.id);
           return (
-            <Column key={column.id} column={column} itemIds={columnItems.map((i) => i.id)}>
+            <Column
+              key={column.id}
+              column={column}
+              itemIds={columnItems.map((i) => i.id)}
+            >
               {columnItems.map((item) => (
                 <SortableCard key={item.id} id={item.id}>
                   {renderCard(item)}
@@ -170,7 +222,13 @@ export function DragBoard<T extends BoardItem>({
         })}
       </div>
 
-      <DragOverlay>{activeItem ? <div className="rotate-2 opacity-90 shadow-xl">{renderCard(activeItem)}</div> : null}</DragOverlay>
+      <DragOverlay>
+        {activeItem ? (
+          <div className="rotate-2 opacity-90 shadow-xl">
+            {renderCard(activeItem)}
+          </div>
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 }

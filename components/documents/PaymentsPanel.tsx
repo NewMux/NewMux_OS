@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { centsToDisplay } from "@/lib/money";
 import type { Payment, PaymentMethod } from "@/lib/data/types";
+import { apiMutate } from "@/lib/api/client";
 
 export function PaymentsPanel({
   documentId,
@@ -30,9 +31,8 @@ export function PaymentsPanel({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    await fetch(`/api/documents/${documentId}/payments`, {
+    await apiMutate(`/api/documents/${documentId}/payments`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ amount: Number(amount), method }),
     });
     setSaving(false);
@@ -48,25 +48,37 @@ export function PaymentsPanel({
       <div className="mb-3 grid grid-cols-2 gap-4 sm:grid-cols-3">
         <div>
           <p className="text-xs text-muted-foreground">Total paid</p>
-          <p className="text-sm font-semibold text-foreground">{centsToDisplay(totalPaid, currency)}</p>
+          <p className="text-sm font-semibold text-foreground">
+            {centsToDisplay(totalPaid, currency)}
+          </p>
         </div>
         <div>
           <p className="text-xs text-muted-foreground">Remaining balance</p>
-          <p className="text-sm font-semibold text-foreground">{centsToDisplay(remaining, currency)}</p>
+          <p className="text-sm font-semibold text-foreground">
+            {centsToDisplay(remaining, currency)}
+          </p>
         </div>
       </div>
 
       <div className="mb-3 flex flex-col gap-1 border-t border-border pt-3">
-        {payments.length === 0 && <p className="text-xs text-muted-foreground">No payments recorded yet.</p>}
+        {payments.length === 0 && (
+          <p className="text-xs text-muted-foreground">
+            No payments recorded yet.
+          </p>
+        )}
         {payments.map((p) => (
           <p key={p.id} className="text-xs text-muted-foreground">
-            {centsToDisplay(p.amountCents, currency)} · {p.method} · {new Date(p.date).toLocaleString()}
+            {centsToDisplay(p.amountCents, currency)} · {p.method} ·{" "}
+            {new Date(p.date).toLocaleString()}
           </p>
         ))}
       </div>
 
       {remaining > 0 && (
-        <form onSubmit={handleSubmit} className="flex flex-wrap items-center gap-2">
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-wrap items-center gap-2"
+        >
           <Input
             type="number"
             step="0.001"

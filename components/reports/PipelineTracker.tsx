@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import type { PipelineItem } from "@/lib/data/types";
+import { apiMutate } from "@/lib/api/client";
 
 export function PipelineTracker({ items }: { items: PipelineItem[] }) {
   const router = useRouter();
@@ -17,7 +18,7 @@ export function PipelineTracker({ items }: { items: PipelineItem[] }) {
 
   async function handleToggle(id: string) {
     setToggling(id);
-    await fetch(`/api/pipeline/${id}/toggle`, { method: "POST" });
+    await apiMutate(`/api/pipeline/${id}/toggle`, { method: "POST" });
     setToggling(null);
     router.refresh();
   }
@@ -25,9 +26,8 @@ export function PipelineTracker({ items }: { items: PipelineItem[] }) {
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    await fetch("/api/pipeline", {
+    await apiMutate("/api/pipeline", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name }),
     });
     setSaving(false);
@@ -49,14 +49,26 @@ export function PipelineTracker({ items }: { items: PipelineItem[] }) {
             className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2 text-left text-sm hover:border-primary/40"
           >
             <span className="text-foreground">{item.name}</span>
-            <Badge className={cn(item.stage === "complete" ? "bg-tone-success/20 text-tone-success-fg" : "bg-tone-warning/20 text-tone-warning-fg")}>
+            <Badge
+              className={cn(
+                item.stage === "complete"
+                  ? "bg-tone-success/20 text-tone-success-fg"
+                  : "bg-tone-warning/20 text-tone-warning-fg",
+              )}
+            >
               {item.stage === "complete" ? "Complete" : "In progress"}
             </Badge>
           </button>
         ))}
       </div>
       <form onSubmit={handleAdd} className="flex items-center gap-2">
-        <Input placeholder="New pipeline item" value={name} onChange={(e) => setName(e.target.value)} className="max-w-xs" required />
+        <Input
+          placeholder="New pipeline item"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="max-w-xs"
+          required
+        />
         <Button type="submit" size="sm" disabled={saving || !name}>
           Add
         </Button>

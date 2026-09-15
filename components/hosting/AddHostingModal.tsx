@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { apiMutate } from "@/lib/api/client";
 import { Plus } from "lucide-react";
 import type {
   Client,
@@ -24,9 +25,8 @@ export function AddHostingModal({ clients }: { clients: Client[] }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    await fetch("/api/hosting", {
+    await apiMutate("/api/hosting", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         clientId,
         item,

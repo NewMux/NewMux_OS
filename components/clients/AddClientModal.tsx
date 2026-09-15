@@ -1,44 +1,39 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { apiFetch, useApiMutation } from "@/lib/api/client";
 import { Plus } from "lucide-react";
 
 export function AddClientModal() {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [nameArabic, setNameArabic] = useState("");
   const [contactPerson, setContactPerson] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
-  const [saving, setSaving] = useState(false);
+
+  const { run, pending } = useApiMutation(
+    (body: Record<string, string>) =>
+      apiFetch("/api/clients", { method: "POST", body: JSON.stringify(body) }),
+    {
+      successMessage: "Client added.",
+      onSuccess: () => {
+        setName("");
+        setNameArabic("");
+        setContactPerson("");
+        setContactEmail("");
+        setContactPhone("");
+        setOpen(false);
+      },
+    },
+  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSaving(true);
-    await fetch("/api/clients", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        nameArabic,
-        contactPerson,
-        contactEmail,
-        contactPhone,
-      }),
-    });
-    setSaving(false);
-    setName("");
-    setNameArabic("");
-    setContactPerson("");
-    setContactEmail("");
-    setContactPhone("");
-    setOpen(false);
-    router.refresh();
+    await run({ name, nameArabic, contactPerson, contactEmail, contactPhone });
   }
 
   return (
@@ -78,7 +73,7 @@ export function AddClientModal() {
             value={contactPhone}
             onChange={(e) => setContactPhone(e.target.value)}
           />
-          <Button type="submit" loading={saving} disabled={!name}>
+          <Button type="submit" loading={pending} disabled={!name}>
             Add client
           </Button>
         </form>

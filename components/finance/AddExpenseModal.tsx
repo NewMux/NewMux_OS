@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Plus } from "lucide-react";
 import type { Client, Project, RecurringExpenseCycle } from "@/lib/data/types";
+import { apiMutate } from "@/lib/api/client";
 
 export function AddExpenseModal({
   clients,
@@ -30,9 +31,8 @@ export function AddExpenseModal({
     setSaving(true);
     const client = clients.find((c) => c.id === linkedClientId);
     const project = projects.find((p) => p.clientId === linkedClientId);
-    await fetch("/api/finance/recurring-expenses", {
+    await apiMutate("/api/finance/recurring-expenses", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name,
         category,

@@ -7,8 +7,13 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import type { DeductionType, DeductionKind } from "@/lib/data/types";
+import { apiMutate } from "@/lib/api/client";
 
-export function DeductionTypesPanel({ deductionTypes }: { deductionTypes: DeductionType[] }) {
+export function DeductionTypesPanel({
+  deductionTypes,
+}: {
+  deductionTypes: DeductionType[];
+}) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [kind, setKind] = useState<DeductionKind>("percentage");
@@ -17,9 +22,8 @@ export function DeductionTypesPanel({ deductionTypes }: { deductionTypes: Deduct
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    await fetch("/api/finance/deduction-types", {
+    await apiMutate("/api/finance/deduction-types", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, kind }),
     });
     setSaving(false);
@@ -33,18 +37,28 @@ export function DeductionTypesPanel({ deductionTypes }: { deductionTypes: Deduct
         <CardTitle>Deduction Types</CardTitle>
       </CardHeader>
       <p className="mb-3 text-xs text-muted-foreground">
-        Marketer commissions are tracked the same way — add a &quot;Referral Fee&quot;-style deduction here and attach
-        it to the relevant project&apos;s split rule below, rather than a separate commission system (PRD 15.4).
+        Marketer commissions are tracked the same way — add a &quot;Referral
+        Fee&quot;-style deduction here and attach it to the relevant
+        project&apos;s split rule below, rather than a separate commission
+        system (PRD 15.4).
       </p>
       <div className="mb-3 flex flex-col gap-1">
         {deductionTypes.map((d) => (
-          <div key={d.id} className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2 text-sm">
+          <div
+            key={d.id}
+            className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2 text-sm"
+          >
             <span className="text-foreground">{d.name}</span>
-            <Badge tone="neutral" className="capitalize">{d.kind}</Badge>
+            <Badge tone="neutral" className="capitalize">
+              {d.kind}
+            </Badge>
           </div>
         ))}
       </div>
-      <form onSubmit={handleSubmit} className="flex flex-wrap items-center gap-2">
+      <form
+        onSubmit={handleSubmit}
+        className="flex flex-wrap items-center gap-2"
+      >
         <Input
           placeholder="New deduction type"
           value={name}

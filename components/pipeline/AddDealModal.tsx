@@ -1,15 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { apiFetch, useApiMutation } from "@/lib/api/client";
 import { Plus } from "lucide-react";
 import type { User } from "@/lib/data/types";
 
 export function AddDealModal({ owners }: { owners: User[] }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [contactPerson, setContactPerson] = useState("");
@@ -18,34 +17,35 @@ export function AddDealModal({ owners }: { owners: User[] }) {
   const [quotedValue, setQuotedValue] = useState("");
   const [expectedCloseDate, setExpectedCloseDate] = useState("");
   const [ownerId, setOwnerId] = useState(owners[0]?.id ?? "");
-  const [saving, setSaving] = useState(false);
+  const { run, pending } = useApiMutation(
+    (body: Record<string, unknown>) =>
+      apiFetch("/api/deals", { method: "POST", body: JSON.stringify(body) }),
+    {
+      successMessage: "Lead added.",
+      onSuccess: () => {
+        setName("");
+        setContactPerson("");
+        setContactEmail("");
+        setContactPhone("");
+        setQuotedValue("");
+        setExpectedCloseDate("");
+        setOpen(false);
+      },
+    },
+  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSaving(true);
-    await fetch("/api/deals", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        contactPerson,
-        contactEmail,
-        contactPhone,
-        quotedValue: Number(quotedValue) || 0,
-        currency: "BHD",
-        ownerId,
-        expectedCloseDate,
-      }),
+    await run({
+      name,
+      contactPerson,
+      contactEmail,
+      contactPhone,
+      quotedValue: Number(quotedValue) || 0,
+      currency: "BHD",
+      ownerId,
+      expectedCloseDate,
     });
-    setSaving(false);
-    setName("");
-    setContactPerson("");
-    setContactEmail("");
-    setContactPhone("");
-    setQuotedValue("");
-    setExpectedCloseDate("");
-    setOpen(false);
-    router.refresh();
   }
 
   return (
@@ -106,8 +106,8 @@ export function AddDealModal({ owners }: { owners: User[] }) {
               </option>
             ))}
           </select>
-          <Button type="submit" disabled={saving || !name}>
-            {saving ? "Saving…" : "Add lead"}
+          <Button type="submit" loading={pending} disabled={!name}>
+            Add lead
           </Button>
         </form>
       </DialogContent>
