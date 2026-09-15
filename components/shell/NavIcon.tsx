@@ -12,6 +12,7 @@ import {
   Building2,
   Rocket,
   BarChart3,
+  Target,
   type LucideProps,
 } from "lucide-react";
 import type { NavItem } from "@/lib/nav";
@@ -30,6 +31,7 @@ const ICONS: Record<NavItem["icon"], React.ComponentType<LucideProps>> = {
   building: Building2,
   rocket: Rocket,
   barChart: BarChart3,
+  target: Target,
 };
 
 export function NavIcon({ icon, className }: { icon: NavItem["icon"]; className?: string }) {

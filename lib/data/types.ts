@@ -13,6 +13,8 @@ export type Client = {
   id: string;
   clientCode: string;
   name: string;
+  /** Bilingual directory entry (PRD Module 3) — Arabic name, optional. */
+  nameArabic: string | null;
   contactPerson: string | null;
   contactEmail: string | null;
   contactPhone: string | null;
@@ -320,7 +322,7 @@ export type AuditLogAction = "create" | "update" | "delete";
 /** Every change to an invoice, payment, or profit-split rule (PRD 15.1). */
 export type AuditLogEntry = {
   id: string;
-  entityType: "document" | "payment" | "profit_split_rule" | "deduction_type" | "recurring_expense";
+  entityType: "document" | "payment" | "profit_split_rule" | "deduction_type" | "recurring_expense" | "deal";
   entityId: string;
   action: AuditLogAction;
   summary: string;
@@ -363,4 +365,50 @@ export type PipelineItem = {
   name: string;
   stage: PipelineStage;
   notes: string | null;
+};
+
+// --- Outbound Outreach & CRM Pipeline (PRD Module 1) ---
+
+/** Kanban stages of a deal: Lead Discovery → Proposal/Quotation Sent → Negotiation → Won/Lost. */
+export type DealStage = "lead_discovery" | "proposal_sent" | "negotiation" | "won" | "lost";
+
+export type DealCurrency = string;
+
+export type Deal = {
+  id: string;
+  name: string;
+  contactPerson: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  stage: DealStage;
+  /** Value quoted for this deal — becomes the deposit invoice basis on Won. */
+  quotedValueCents: number;
+  currency: DealCurrency;
+  /** Mohammed, Jassim, or a marketer — who owns this lead (PRD "who contacted the lead"). */
+  ownerId: string;
+  notes: string | null;
+  nextFollowUpDate: string | null;
+  /** Set by one-click conversion when the deal is moved to Won. */
+  convertedClientId: string | null;
+  convertedProjectId: string | null;
+  convertedInvoiceId: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type OutreachChannel = "call" | "email" | "whatsapp";
+
+/** PRD: log a call/email/WhatsApp result in under 10 seconds. */
+export type OutreachOutcome = "no_answer" | "gatekeeper_blocked" | "not_interested" | "info_requested" | "meeting_booked";
+
+export type OutreachActivity = {
+  id: string;
+  dealId: string;
+  channel: OutreachChannel;
+  contactedBy: string;
+  outcome: OutreachOutcome;
+  notes: string | null;
+  nextFollowUpDate: string | null;
+  createdAt: string;
 };

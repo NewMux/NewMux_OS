@@ -194,6 +194,7 @@ function nextClientCode(): string {
 
 export async function createClient(input: {
   name: string;
+  nameArabic?: string | null;
   contactPerson?: string | null;
   contactEmail?: string | null;
   contactPhone?: string | null;
@@ -204,6 +205,7 @@ export async function createClient(input: {
     id: randomUUID(),
     clientCode: nextClientCode(),
     name: input.name,
+    nameArabic: input.nameArabic ?? null,
     contactPerson: input.contactPerson ?? null,
     contactEmail: input.contactEmail ?? null,
     contactPhone: input.contactPhone ?? null,

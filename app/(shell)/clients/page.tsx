@@ -24,7 +24,10 @@ export default async function ClientsPage() {
             <Card className="transition-colors hover:border-emerald-500/40">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-white">{c.name}</p>
+                  <p className="text-sm font-medium text-white">
+                    {c.name}
+                    {c.nameArabic && <span dir="rtl" className="ml-2 font-normal text-slate-400">{c.nameArabic}</span>}
+                  </p>
                   <p className="text-xs text-slate-500">
                     {c.clientCode}
                     {c.contactPerson ? ` · ${c.contactPerson}` : ""}

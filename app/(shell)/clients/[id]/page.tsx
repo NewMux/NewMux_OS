@@ -28,7 +28,10 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-4">
-        <h1 className="text-xl font-semibold text-white">{client.name}</h1>
+        <h1 className="text-xl font-semibold text-white">
+          {client.name}
+          {client.nameArabic && <span dir="rtl" className="ml-2 font-normal text-slate-400">{client.nameArabic}</span>}
+        </h1>
         <p className="text-sm text-slate-500">{client.clientCode}</p>
       </div>
 

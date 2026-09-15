@@ -10,6 +10,33 @@ export async function getProjectById(id: string): Promise<Project | undefined> {
   return store.projects.find((p) => p.id === id);
 }
 
+export async function createProject(input: {
+  clientId: string;
+  productId?: string | null;
+  name: string;
+  createdBy: string;
+}): Promise<Project> {
+  const project: Project = {
+    id: randomUUID(),
+    clientId: input.clientId,
+    productId: input.productId ?? null,
+    name: input.name,
+    status: "planning",
+    startedAt: new Date().toISOString(),
+    targetEndAt: null,
+    createdBy: input.createdBy,
+    techStack: null,
+    hostingProvider: null,
+    controlPanelUrl: null,
+    domain: null,
+    domainRenewalDate: null,
+    githubUrl: null,
+    profitSplitRuleId: null,
+  };
+  store.projects.push(project);
+  return project;
+}
+
 export async function listTasks(): Promise<Task[]> {
   return store.tasks;
 }

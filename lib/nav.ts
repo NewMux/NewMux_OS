@@ -16,12 +16,14 @@ export type NavItem = {
     | "calendar"
     | "building"
     | "rocket"
-    | "barChart";
+    | "barChart"
+    | "target";
   roles: UserRole[];
 };
 
 export const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: "layoutDashboard", roles: ["partner_admin", "lead_dev"] },
+  { href: "/pipeline", label: "Outreach", icon: "target", roles: ["partner_admin"] },
   { href: "/finance", label: "Finance", icon: "wallet", roles: ["partner_admin"] },
   { href: "/documents", label: "Documents", icon: "fileText", roles: ["partner_admin"] },
   { href: "/hosting", label: "Hosting", icon: "server", roles: ["partner_admin"] },

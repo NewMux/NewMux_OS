@@ -27,6 +27,8 @@ import type {
   Meeting,
   CompanyProfile,
   PipelineItem,
+  Deal,
+  OutreachActivity,
 } from "./types";
 import { majorToMinorUnits } from "@/lib/money";
 
@@ -78,6 +80,8 @@ type Store = {
   meetings: Meeting[];
   companyProfile: CompanyProfile;
   pipelineItems: PipelineItem[];
+  deals: Deal[];
+  outreachActivities: OutreachActivity[];
   seededAdminPassword?: string;
 };
 
@@ -147,6 +151,7 @@ function seed(): Store {
     id: randomUUID(),
     clientCode: "CL-001",
     name: "Marasi Alsawadi",
+    nameArabic: "مراسي الصواديّ",
     contactPerson: null,
     contactEmail: null,
     contactPhone: null,
@@ -157,6 +162,7 @@ function seed(): Store {
     id: randomUUID(),
     clientCode: "CL-002",
     name: "Al Hussam Tailor",
+    nameArabic: "الحسام للخياطة",
     contactPerson: null,
     contactEmail: null,
     contactPhone: null,
@@ -167,6 +173,7 @@ function seed(): Store {
     id: randomUUID(),
     clientCode: "CL-003",
     name: "Ox Roastery",
+    nameArabic: "أوكس روستري",
     contactPerson: null,
     contactEmail: null,
     contactPhone: null,
@@ -177,6 +184,7 @@ function seed(): Store {
     id: randomUUID(),
     clientCode: "CL-004",
     name: "Voya Travel & Tourism",
+    nameArabic: "فويا للسفر والسياحة",
     contactPerson: null,
     contactEmail: null,
     contactPhone: null,
@@ -538,6 +546,94 @@ function seed(): Store {
     { id: randomUUID(), name: "Commission-based marketer agreements", stage: "in_progress", notes: null },
   ];
 
+  // --- Outbound Outreach & CRM Pipeline (PRD Module 1) ---
+  const dealNewBakery: Deal = {
+    id: randomUUID(),
+    name: "Sundus Bakery — POS & online ordering",
+    contactPerson: "Fatima Al-Sindi",
+    contactEmail: "fatima@sundusbakery.example",
+    contactPhone: "+973 3300 1122",
+    stage: "lead_discovery",
+    quotedValueCents: bhd(1200),
+    currency: "BHD",
+    ownerId: mohammedId,
+    notes: "Cold-called from Instagram DM list.",
+    nextFollowUpDate: daysAgo(-2),
+    convertedClientId: null,
+    convertedProjectId: null,
+    convertedInvoiceId: null,
+    createdBy: mohammedId,
+    createdAt: daysAgo(6),
+    updatedAt: daysAgo(1),
+  };
+  const dealGymApp: Deal = {
+    id: randomUUID(),
+    name: "PowerHouse Gym — membership app",
+    contactPerson: "Khalid Marzooq",
+    contactEmail: "khalid@powerhousegym.example",
+    contactPhone: "+973 3300 5566",
+    stage: "proposal_sent",
+    quotedValueCents: bhd(3500),
+    currency: "BHD",
+    ownerId: jassimId,
+    notes: "Quotation QUO draft sent, awaiting decision.",
+    nextFollowUpDate: daysAgo(-4),
+    convertedClientId: null,
+    convertedProjectId: null,
+    convertedInvoiceId: null,
+    createdBy: jassimId,
+    createdAt: daysAgo(14),
+    updatedAt: daysAgo(3),
+  };
+  const dealClinic: Deal = {
+    id: randomUUID(),
+    name: "Al Waha Clinic — booking system",
+    contactPerson: "Dr. Noor Isa",
+    contactEmail: "noor@alwahaclinic.example",
+    contactPhone: "+973 3300 7788",
+    stage: "negotiation",
+    quotedValueCents: bhd(2800),
+    currency: "BHD",
+    ownerId: mohammedId,
+    notes: "Negotiating payment schedule — 50/50 vs. 3 installments.",
+    nextFollowUpDate: daysAgo(-1),
+    convertedClientId: null,
+    convertedProjectId: null,
+    convertedInvoiceId: null,
+    createdBy: mohammedId,
+    createdAt: daysAgo(21),
+    updatedAt: daysAgo(0),
+  };
+  const dealRestaurant: Deal = {
+    id: randomUUID(),
+    name: "Firas Grill — delivery integration",
+    contactPerson: "Firas Yousif",
+    contactEmail: null,
+    contactPhone: "+973 3300 9900",
+    stage: "lost",
+    quotedValueCents: bhd(900),
+    currency: "BHD",
+    ownerId: jassimId,
+    notes: "Went with a cheaper local freelancer.",
+    nextFollowUpDate: null,
+    convertedClientId: null,
+    convertedProjectId: null,
+    convertedInvoiceId: null,
+    createdBy: jassimId,
+    createdAt: daysAgo(40),
+    updatedAt: daysAgo(30),
+  };
+  const deals: Deal[] = [dealNewBakery, dealGymApp, dealClinic, dealRestaurant];
+
+  const outreachActivities: OutreachActivity[] = [
+    { id: randomUUID(), dealId: dealNewBakery.id, channel: "call", contactedBy: mohammedId, outcome: "no_answer", notes: null, nextFollowUpDate: daysAgo(-2), createdAt: daysAgo(6) },
+    { id: randomUUID(), dealId: dealNewBakery.id, channel: "whatsapp", contactedBy: mohammedId, outcome: "info_requested", notes: "Sent portfolio link.", nextFollowUpDate: daysAgo(-2), createdAt: daysAgo(1) },
+    { id: randomUUID(), dealId: dealGymApp.id, channel: "call", contactedBy: jassimId, outcome: "meeting_booked", notes: "Demo scheduled next week.", nextFollowUpDate: daysAgo(-4), createdAt: daysAgo(14) },
+    { id: randomUUID(), dealId: dealGymApp.id, channel: "email", contactedBy: jassimId, outcome: "info_requested", notes: "Quotation sent by email.", nextFollowUpDate: daysAgo(-4), createdAt: daysAgo(3) },
+    { id: randomUUID(), dealId: dealClinic.id, channel: "call", contactedBy: mohammedId, outcome: "meeting_booked", notes: "Discussed scope in person.", nextFollowUpDate: daysAgo(-1), createdAt: daysAgo(0) },
+    { id: randomUUID(), dealId: dealRestaurant.id, channel: "call", contactedBy: jassimId, outcome: "not_interested", notes: "Chose a cheaper freelancer.", nextFollowUpDate: null, createdAt: daysAgo(30) },
+  ];
+
   // --- Newmux's own ventures (PRD section 14) — profit split left empty ---
   const ventureTbadel: Venture = {
     id: randomUUID(),
@@ -637,6 +733,8 @@ function seed(): Store {
     meetings,
     companyProfile,
     pipelineItems,
+    deals,
+    outreachActivities,
     seededAdminPassword,
   };
 }

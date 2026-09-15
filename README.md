@@ -10,17 +10,25 @@ both sets of modules coexist:
   profit-split engine, quotation→invoice conversion, partial payments,
   automatic profit/loss calculation) and admin Settings (payout parties,
   deduction types, per-project/venture profit-split rules).
+- **Phases 2–5 (built)**: Hosting Fee Tracking & Reminders (14-day/3-day
+  alerts, one-click collection), Client Directory (bilingual English/Arabic
+  names), Project Detail technical pages, Meetings & Tasks, Company Profile,
+  Reports & Export, Newmux's Own Ventures page.
+- **Outbound Outreach & Deal Pipeline (PRD Module 1, `/pipeline`)**: a
+  5-stage Kanban (Lead Discovery → Proposal/Quotation Sent → Negotiation →
+  Won/Lost) with a call/email/WhatsApp outreach log, a Quick Outcome Modal
+  for logging a result in a few taps (No Answer, Gatekeeper Blocked, Not
+  Interested, Info Requested, Meeting Booked), and one-click conversion:
+  moving a deal to Won auto-creates the client directory record, a project
+  workspace, and a draft 50% deposit invoice (`lib/data/deals.ts`).
 - **Original generic modules (kept per "merge both" decision)**: Executive
   Dashboard, Documents (PDF export), Projects/Tasks, Secrets Vault, Paddle
   webhook ingestion, Growth attribution tracker.
-- **Not yet built** (PRD phases 2–5): Hosting Fee Tracking & Reminders,
-  Client Directory page, Project Detail technical pages, Meetings & Tasks,
-  Company Profile, Reports & Export, Newmux's Own Ventures page, and the
-  suggested additions (audit log UI, cash flow forecast, Notion migration
-  checklist). Seed data for these already exists in `lib/data/store.ts`
-  (real clients: Marasi Alsawadi, Al Hussam Tailor, Ox Roastery, Voya; real
-  ventures: Tbadel, Al-Mutadarrib/MTDRB, the Tailor System) — only the UI is
-  missing.
+- **Not yet built**: Developer task assignment to named external
+  contractors (Shah, Abdulrahman) with per-project cost-line payout
+  tracking, billing-linked milestones (deposit/delivery unlocking specific
+  milestones), automated daily site/SSL monitoring cron, and the
+  magic-link passwordless client portal.
 
 **Money handling is currency-aware, not USD-only**: BHD (Newmux's real
 invoicing currency) has 3 decimal places, and `lib/money.ts` divides by the
