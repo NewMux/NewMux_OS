@@ -1,14 +1,19 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { apiError, forbidden, unauthorized, withRoute } from "@/lib/api/errors";
 import { auth } from "@/lib/auth";
 import { canAccessFinance } from "@/lib/rbac";
-import { getProfitByProjectReport, getProfitByPartnerReport, getInvoiceStatusReport } from "@/lib/data/reports";
+import {
+  getProfitByProjectReport,
+  getProfitByPartnerReport,
+  getInvoiceStatusReport,
+} from "@/lib/data/reports";
 import { toCsv } from "@/lib/csv";
 import { centsToDisplay } from "@/lib/money";
 
-export async function GET(req: NextRequest) {
+export const GET = withRoute(async (req: NextRequest) => {
   const session = await auth();
-  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!canAccessFinance(session)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  if (!session) return unauthorized();
+  if (!canAccessFinance(session)) return forbidden();
 
   const type = req.nextUrl.searchParams.get("type");
   let csv: string;
@@ -18,7 +23,12 @@ export async function GET(req: NextRequest) {
     const rows = await getProfitByProjectReport();
     csv = toCsv(
       ["Project", "Revenue (BHD)", "Deductions (BHD)", "Net Profit (BHD)"],
-      rows.map((r) => [r.projectName, centsToDisplay(r.revenueBhdCents, "BHD"), centsToDisplay(r.deductionsBhdCents, "BHD"), centsToDisplay(r.netProfitBhdCents, "BHD")]),
+      rows.map((r) => [
+        r.projectName,
+        centsToDisplay(r.revenueBhdCents, "BHD"),
+        centsToDisplay(r.deductionsBhdCents, "BHD"),
+        centsToDisplay(r.netProfitBhdCents, "BHD"),
+      ]),
     );
     filename = "profit-by-project.csv";
   } else if (type === "partner-profit") {
@@ -34,14 +44,18 @@ export async function GET(req: NextRequest) {
       ["Status", "Count", "Amount (BHD)"],
       [
         ["Paid", r.paidCount, centsToDisplay(r.paidBhdCents, "BHD")],
-        ["Partially Paid", r.partialCount, centsToDisplay(r.partialOutstandingBhdCents, "BHD")],
+        [
+          "Partially Paid",
+          r.partialCount,
+          centsToDisplay(r.partialOutstandingBhdCents, "BHD"),
+        ],
         ["Unpaid", r.unpaidCount, centsToDisplay(r.unpaidBhdCents, "BHD")],
         ["Overdue", r.overdueCount, centsToDisplay(r.overdueBhdCents, "BHD")],
       ],
     );
     filename = "invoice-status.csv";
   } else {
-    return NextResponse.json({ error: "unknown report type" }, { status: 400 });
+    return apiError("validation", "Unknown report type.");
   }
 
   return new NextResponse(csv, {
@@ -50,4 +64,4 @@ export async function GET(req: NextRequest) {
       "Content-Disposition": `attachment; filename="${filename}"`,
     },
   });
-}
+});

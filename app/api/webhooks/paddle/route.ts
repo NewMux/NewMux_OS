@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { withRoute } from "@/lib/api/errors";
 import { verifyPaddleSignature } from "@/lib/paddle/verify";
 import { hasProcessedEvent, markEventProcessed } from "@/lib/data/saas";
 import {
@@ -14,7 +15,7 @@ export const runtime = "nodejs";
  * The only public-facing route in this app (spec: zero public API exposure
  * elsewhere). Signature verification is a hard security requirement here.
  */
-export async function POST(req: NextRequest) {
+export const POST = withRoute(async (req: NextRequest) => {
   const rawBody = await req.text();
   const signature = req.headers.get("Paddle-Signature");
   const secret = process.env.PADDLE_WEBHOOK_SECRET;
@@ -23,7 +24,11 @@ export async function POST(req: NextRequest) {
     return new NextResponse("invalid signature", { status: 401 });
   }
 
-  let event: { event_id: string; event_type: string; data: Record<string, unknown> };
+  let event: {
+    event_id: string;
+    event_type: string;
+    data: Record<string, unknown>;
+  };
   try {
     event = JSON.parse(rawBody);
   } catch {
@@ -57,4 +62,4 @@ export async function POST(req: NextRequest) {
 
   markEventProcessed(event.event_id);
   return new NextResponse("ok", { status: 200 });
-}
+});
