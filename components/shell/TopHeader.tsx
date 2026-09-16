@@ -4,6 +4,7 @@ import useSWR from "swr";
 import { StatusDot } from "./StatusDot";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { CommandPaletteTrigger } from "@/components/command/CommandPaletteTrigger";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -18,6 +19,7 @@ export function TopHeader({ title }: { title: string }) {
       <h1 className="text-sm font-semibold text-foreground">{title}</h1>
       <div className="flex items-center gap-3 text-xs text-muted-foreground">
         <CommandPaletteTrigger />
+        <NotificationBell />
         <ThemeToggle />
         <span className="flex items-center gap-2">
           <StatusDot status={ok ? "ok" : "warn"} />
