@@ -5,6 +5,7 @@ import { BottomNav } from "@/components/shell/BottomNav";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { TopHeader } from "@/components/shell/TopHeader";
 import { QuickActionDrawer } from "@/components/shell/QuickActionDrawer";
+import { CommandPalette } from "@/components/command/CommandPalette";
 
 export default async function ShellLayout({
   children,
@@ -26,6 +27,7 @@ export default async function ShellLayout({
         userRole={session.user.role}
       />
       <TopHeader title="NEWMUX OS" />
+      <CommandPalette role={session.user.role} />
       <main className="min-h-screen px-4 pb-24 pt-20 md:ml-64 md:px-8 md:pb-10">
         {children}
       </main>
