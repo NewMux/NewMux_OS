@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import type { DeductionType, DeductionKind } from "@/lib/data/types";
 import { apiMutate } from "@/lib/api/client";
+import { DeductionTypeRowActions } from "./DeductionTypeRowActions";
 
 export function DeductionTypesPanel({
   deductionTypes,
@@ -49,9 +50,12 @@ export function DeductionTypesPanel({
             className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2 text-sm"
           >
             <span className="text-foreground">{d.name}</span>
-            <Badge tone="neutral" className="capitalize">
-              {d.kind}
-            </Badge>
+            <div className="flex items-center gap-1">
+              <Badge tone="neutral" className="capitalize">
+                {d.kind}
+              </Badge>
+              <DeductionTypeRowActions deductionType={d} />
+            </div>
           </div>
         ))}
       </div>

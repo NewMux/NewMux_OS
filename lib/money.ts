@@ -16,7 +16,10 @@ export function minorUnitDigits(currency: string): number {
   return 2;
 }
 
-export function centsToDisplay(amountMinorUnits: number, currency = "USD"): string {
+export function centsToDisplay(
+  amountMinorUnits: number,
+  currency = "USD",
+): string {
   const digits = minorUnitDigits(currency);
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -35,12 +38,28 @@ export function majorToMinorUnits(amount: number, currency = "USD"): number {
   return Math.round(amount * 10 ** minorUnitDigits(currency));
 }
 
-export function lineItemTotalCents(quantity: number, unitPriceCents: number): number {
+/** The inverse of majorToMinorUnits, for prefilling an amount input. */
+export function minorUnitsToMajor(
+  amountMinorUnits: number,
+  currency = "USD",
+): number {
+  return amountMinorUnits / 10 ** minorUnitDigits(currency);
+}
+
+export function lineItemTotalCents(
+  quantity: number,
+  unitPriceCents: number,
+): number {
   return Math.round(quantity * unitPriceCents);
 }
 
-export function subtotalCents(lineItems: { quantity: number; unitPriceCents: number }[]): number {
-  return lineItems.reduce((sum, item) => sum + lineItemTotalCents(item.quantity, item.unitPriceCents), 0);
+export function subtotalCents(
+  lineItems: { quantity: number; unitPriceCents: number }[],
+): number {
+  return lineItems.reduce(
+    (sum, item) => sum + lineItemTotalCents(item.quantity, item.unitPriceCents),
+    0,
+  );
 }
 
 /** taxRateBps is in basis points, e.g. 800 = 8.00% */
@@ -64,12 +83,18 @@ const USD_PER_UNIT: Record<string, number> = {
 };
 
 /** Converts an integer minor-units amount from one currency to another. */
-export function convertMinorUnits(amountMinorUnits: number, fromCurrency: string, toCurrency: string): number {
+export function convertMinorUnits(
+  amountMinorUnits: number,
+  fromCurrency: string,
+  toCurrency: string,
+): number {
   if (fromCurrency === toCurrency) return amountMinorUnits;
   const fromRate = USD_PER_UNIT[fromCurrency];
   const toRate = USD_PER_UNIT[toCurrency];
   if (!fromRate || !toRate) {
-    throw new Error(`No fixed FX rate configured for ${fromCurrency} → ${toCurrency}`);
+    throw new Error(
+      `No fixed FX rate configured for ${fromCurrency} → ${toCurrency}`,
+    );
   }
   const fromMajor = amountMinorUnits / 10 ** minorUnitDigits(fromCurrency);
   const usdMajor = fromMajor * fromRate;

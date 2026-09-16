@@ -3,8 +3,13 @@ import { store } from "./store";
 import type { HostingSubscription, RecurringExpenseCycle } from "./types";
 import { createDocument } from "./documents";
 import { addPayment } from "./finance";
+import { AppError } from "@/lib/api/errors";
 
-const CYCLE_MONTHS: Record<RecurringExpenseCycle, number> = { monthly: 1, quarterly: 3, annual: 12 };
+const CYCLE_MONTHS: Record<RecurringExpenseCycle, number> = {
+  monthly: 1,
+  quarterly: 3,
+  annual: 12,
+};
 
 function addMonths(iso: string, months: number): string {
   const d = new Date(iso);
@@ -12,11 +17,15 @@ function addMonths(iso: string, months: number): string {
   return d.toISOString();
 }
 
-export async function listHostingSubscriptions(): Promise<HostingSubscription[]> {
+export async function listHostingSubscriptions(): Promise<
+  HostingSubscription[]
+> {
   return store.hostingSubscriptions;
 }
 
-export async function listHostingSubscriptionsForClient(clientId: string): Promise<HostingSubscription[]> {
+export async function listHostingSubscriptionsForClient(
+  clientId: string,
+): Promise<HostingSubscription[]> {
   return store.hostingSubscriptions.filter((h) => h.clientId === clientId);
 }
 
@@ -25,16 +34,23 @@ export type HostingAlertLevel = "overdue" | "due_soon" | "upcoming" | "ok";
 /** PRD section 6: 14-day alert, 3-day alert, then overdue once the due date passes. */
 export function hostingAlertLevel(sub: HostingSubscription): HostingAlertLevel {
   if (!sub.nextDueDate || sub.status === "paused") return "ok";
-  const daysUntil = Math.ceil((new Date(sub.nextDueDate).getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+  const daysUntil = Math.ceil(
+    (new Date(sub.nextDueDate).getTime() - Date.now()) / (24 * 60 * 60 * 1000),
+  );
   if (daysUntil < 0) return "overdue";
   if (daysUntil <= 3) return "due_soon";
   if (daysUntil <= 14) return "upcoming";
   return "ok";
 }
 
-export async function listHostingAlerts(): Promise<{ subscription: HostingSubscription; level: HostingAlertLevel }[]> {
+export async function listHostingAlerts(): Promise<
+  { subscription: HostingSubscription; level: HostingAlertLevel }[]
+> {
   return store.hostingSubscriptions
-    .map((subscription) => ({ subscription, level: hostingAlertLevel(subscription) }))
+    .map((subscription) => ({
+      subscription,
+      level: hostingAlertLevel(subscription),
+    }))
     .filter((x) => x.level !== "ok");
 }
 
@@ -66,12 +82,20 @@ export async function createHostingSubscription(input: {
  * the next due date by the subscription's cycle. The invoice is recorded as
  * immediately paid in full, since "Collected" means the client already paid.
  */
-export async function collectHostingFee(subscriptionId: string, collectedBy: string) {
+export async function collectHostingFee(
+  subscriptionId: string,
+  collectedBy: string,
+) {
   const sub = store.hostingSubscriptions.find((s) => s.id === subscriptionId);
   if (!sub) throw new Error("Hosting subscription not found");
 
   const project = store.projects.find((p) => p.clientId === sub.clientId);
-  const itemLabel = sub.item === "server" ? "Server/hosting" : sub.item === "domain" ? "Domain" : "Hosting";
+  const itemLabel =
+    sub.item === "server"
+      ? "Server/hosting"
+      : sub.item === "domain"
+        ? "Domain"
+        : "Hosting";
 
   const invoice = await createDocument({
     type: "invoice",
@@ -82,7 +106,13 @@ export async function collectHostingFee(subscriptionId: string, collectedBy: str
     taxRateBps: 0,
     paymentTerms: "Due on receipt",
     notes: `${itemLabel} — ${sub.cycle} hosting fee collection.`,
-    lineItems: [{ description: `${itemLabel} (${sub.cycle})`, quantity: 1, unitPriceCents: sub.amountCents }],
+    lineItems: [
+      {
+        description: `${itemLabel} (${sub.cycle})`,
+        quantity: 1,
+        unitPriceCents: sub.amountCents,
+      },
+    ],
     createdBy: collectedBy,
   });
 
@@ -100,4 +130,41 @@ export async function collectHostingFee(subscriptionId: string, collectedBy: str
   sub.status = "active";
 
   return { subscription: sub, invoice };
+}
+
+export async function updateHostingSubscription(
+  id: string,
+  patch: {
+    item?: HostingSubscription["item"];
+    amountCents?: number;
+    currency?: string;
+    cycle?: RecurringExpenseCycle;
+    nextDueDate?: string | null;
+    status?: HostingSubscription["status"];
+  },
+): Promise<HostingSubscription> {
+  const sub = store.hostingSubscriptions.find((s) => s.id === id);
+  if (!sub)
+    throw new AppError(
+      "not_found",
+      "That hosting subscription no longer exists.",
+    );
+  Object.assign(sub, patch);
+  return sub;
+}
+
+export async function deleteHostingSubscription(id: string): Promise<void> {
+  const index = store.hostingSubscriptions.findIndex((s) => s.id === id);
+  if (index === -1)
+    throw new AppError(
+      "not_found",
+      "That hosting subscription no longer exists.",
+    );
+  store.hostingSubscriptions.splice(index, 1);
+}
+
+export async function getHostingSubscriptionById(
+  id: string,
+): Promise<HostingSubscription | undefined> {
+  return store.hostingSubscriptions.find((s) => s.id === id);
 }

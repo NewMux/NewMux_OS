@@ -16,8 +16,19 @@ export const unlockVaultSchema = z.object({
 
 export const createSecretSchema = z.object({
   label: z.string().min(1),
-  secretType: z.enum(["api_token", "db_connection", "deploy_key", "ssh_login", "other"]),
+  secretType: z.enum([
+    "api_token",
+    "db_connection",
+    "deploy_key",
+    "ssh_login",
+    "other",
+  ]),
   value: z.string().min(1),
   clientId: z.string().uuid().nullable().optional(),
   projectId: z.string().uuid().nullable().optional(),
+});
+
+/** Only the label is editable: changing a value means storing a new credential. */
+export const updateSecretSchema = z.object({
+  label: z.string().min(1),
 });

@@ -1,28 +1,55 @@
 import { randomUUID } from "crypto";
 import { store } from "./store";
+import { AppError } from "@/lib/api/errors";
 import type { SecretRecord, SecretType } from "./types";
 
 export async function getVaultMasterConfig() {
   return store.vaultMasterConfig;
 }
 
-export async function setVaultMasterConfig(kdfSalt: Buffer, passphraseVerifier: Buffer) {
+export async function setVaultMasterConfig(
+  kdfSalt: Buffer,
+  passphraseVerifier: Buffer,
+) {
   store.vaultMasterConfig = { kdfSalt, passphraseVerifier };
 }
 
-export async function listSecrets(): Promise<Pick<SecretRecord, "id" | "label" | "secretType" | "maskedPreview" | "clientId" | "projectId" | "createdAt">[]> {
-  return store.secrets.map(({ id, label, secretType, maskedPreview, clientId, projectId, createdAt }) => ({
-    id,
-    label,
-    secretType,
-    maskedPreview,
-    clientId,
-    projectId,
-    createdAt,
-  }));
+export async function listSecrets(): Promise<
+  Pick<
+    SecretRecord,
+    | "id"
+    | "label"
+    | "secretType"
+    | "maskedPreview"
+    | "clientId"
+    | "projectId"
+    | "createdAt"
+  >[]
+> {
+  return store.secrets.map(
+    ({
+      id,
+      label,
+      secretType,
+      maskedPreview,
+      clientId,
+      projectId,
+      createdAt,
+    }) => ({
+      id,
+      label,
+      secretType,
+      maskedPreview,
+      clientId,
+      projectId,
+      createdAt,
+    }),
+  );
 }
 
-export async function getSecretById(id: string): Promise<SecretRecord | undefined> {
+export async function getSecretById(
+  id: string,
+): Promise<SecretRecord | undefined> {
   return store.secrets.find((s) => s.id === id);
 }
 
@@ -66,4 +93,46 @@ export async function logVaultAccess(entry: {
     action: entry.action,
     accessedAt: new Date().toISOString(),
   });
+}
+
+export async function updateSecretLabel(
+  id: string,
+  label: string,
+  changedBy: string,
+): Promise<SecretRecord> {
+  const secret = store.secrets.find((s) => s.id === id);
+  if (!secret)
+    throw new AppError("not_found", "That credential no longer exists.");
+  secret.label = label;
+  await logVaultAccess({
+    secretId: id,
+    accessedBy: changedBy,
+    action: "update",
+  });
+  return secret;
+}
+
+/**
+ * Deleting a credential is the most sensitive vault event, so it is recorded in
+ * the access log before the record goes — the log entry outlives the secret.
+ */
+export async function deleteSecret(
+  id: string,
+  deletedBy: string,
+): Promise<void> {
+  const index = store.secrets.findIndex((s) => s.id === id);
+  if (index === -1)
+    throw new AppError("not_found", "That credential no longer exists.");
+  await logVaultAccess({
+    secretId: id,
+    accessedBy: deletedBy,
+    action: "delete",
+  });
+  store.secrets.splice(index, 1);
+}
+
+export async function listVaultAccessLog(limit = 50) {
+  return [...store.vaultAccessLog]
+    .sort((a, b) => (a.accessedAt < b.accessedAt ? 1 : -1))
+    .slice(0, limit);
 }

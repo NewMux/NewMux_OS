@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import type { HostingSubscription, Client } from "@/lib/data/types";
 import type { HostingAlertLevel } from "@/lib/data/hosting";
 import { apiMutate } from "@/lib/api/client";
+import { HostingRowActions } from "./HostingRowActions";
 
 const ALERT_STYLES: Record<HostingAlertLevel, string> = {
   overdue: "bg-tone-danger/20 text-tone-danger-fg",
@@ -94,6 +95,10 @@ export function HostingList({
                 >
                   {collecting === sub.id ? "Recording…" : "Collected"}
                 </Button>
+                <HostingRowActions
+                  subscription={sub}
+                  clientName={client?.name ?? "Unknown client"}
+                />
               </div>
             </div>
           </Card>

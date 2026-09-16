@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Eye, EyeOff, Copy } from "lucide-react";
+import { SecretRowActions } from "./SecretRowActions";
 
 const TYPE_LABEL: Record<string, string> = {
   api_token: "API token",
@@ -91,6 +92,7 @@ export function SecretRow({
                 <Eye className="h-4 w-4" />
               )}
             </Button>
+            <SecretRowActions id={id} label={label} />
           </div>
         )}
       </div>

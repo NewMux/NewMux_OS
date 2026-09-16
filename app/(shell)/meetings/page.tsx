@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { listMeetings } from "@/lib/data/meetings";
 import { listTasks, listProjects } from "@/lib/data/projects";
 import { AddMeetingModal } from "@/components/meetings/AddMeetingModal";
+import { MeetingRowActions } from "@/components/meetings/MeetingRowActions";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Calendar, CheckCircle2 } from "lucide-react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -54,13 +55,18 @@ export default async function MeetingsPage() {
                 key={m.id}
                 className="rounded-lg border border-border/60 px-3 py-2 text-sm"
               >
-                <div className="flex items-center justify-between">
-                  <p className="font-medium text-foreground">{m.title}</p>
-                  {m.recurring !== "none" && (
-                    <Badge tone="neutral" className="capitalize">
-                      {m.recurring}
-                    </Badge>
-                  )}
+                <div className="flex items-center justify-between gap-2">
+                  <p className="min-w-0 truncate font-medium text-foreground">
+                    {m.title}
+                  </p>
+                  <div className="flex shrink-0 items-center gap-1">
+                    {m.recurring !== "none" && (
+                      <Badge tone="neutral" className="capitalize">
+                        {m.recurring}
+                      </Badge>
+                    )}
+                    <MeetingRowActions meeting={m} />
+                  </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {new Date(m.startsAt).toLocaleString()}

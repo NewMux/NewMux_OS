@@ -41,3 +41,35 @@ export const addPaymentSchema = z.object({
 export const createPartySchema = z.object({
   name: z.string().min(1),
 });
+
+/**
+ * Edit-form values arrive as strings from the row-action dialog, so amounts are
+ * coerced rather than expected as numbers.
+ */
+export const updateRecurringExpenseSchema = z.object({
+  name: z.string().min(1).optional(),
+  category: z.string().min(1).optional(),
+  amount: z.coerce.number().positive().optional(),
+  currency: z.string().length(3).optional(),
+  cycle: z.enum(["monthly", "quarterly", "annual"]).optional(),
+  nextDueDate: z.string().nullable().optional().or(z.literal("")),
+  lastPaymentDate: z.string().nullable().optional().or(z.literal("")),
+});
+
+export const updatePartySchema = z.object({
+  name: z.string().min(1).optional(),
+});
+
+export const updateDeductionTypeSchema = z.object({
+  name: z.string().min(1).optional(),
+  kind: z.enum(["fixed", "percentage"]).optional(),
+});
+
+export const updateVentureSchema = z.object({
+  name: z.string().min(1).optional(),
+  brandDescription: z.string().nullable().optional(),
+  websiteUrl: z.string().url().nullable().optional().or(z.literal("")),
+  launchStatus: z
+    .enum(["planning", "in_development", "launched", "paused"])
+    .optional(),
+});

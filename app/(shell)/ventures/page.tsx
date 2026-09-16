@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Rocket } from "lucide-react";
+import { VentureRowActions } from "@/components/ventures/VentureRowActions";
 
 const STATUS_TONES: Record<string, BadgeTone> = {
   planning: "neutral",
@@ -42,28 +43,33 @@ export default async function VenturesPage() {
 
       <div className="flex flex-col gap-2">
         {ventures.map((v) => (
-          <Link key={v.id} href={`/ventures/${v.id}`}>
-            <Card className="transition-colors hover:border-primary/40">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-foreground">
-                    {v.name}
+          <Card
+            key={v.id}
+            className="transition-colors hover:border-primary/40"
+          >
+            <div className="flex items-center justify-between gap-3">
+              {/* The link wraps only the text so the action menu stays clickable. */}
+              <Link href={`/ventures/${v.id}`} className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-foreground">
+                  {v.name}
+                </p>
+                {v.brandDescription && (
+                  <p className="truncate text-xs text-muted-foreground">
+                    {v.brandDescription}
                   </p>
-                  {v.brandDescription && (
-                    <p className="text-xs text-muted-foreground">
-                      {v.brandDescription}
-                    </p>
-                  )}
-                </div>
+                )}
+              </Link>
+              <div className="flex shrink-0 items-center gap-1">
                 <Badge
                   tone={STATUS_TONES[v.launchStatus] ?? "neutral"}
                   className="capitalize"
                 >
                   {v.launchStatus.replace("_", " ")}
                 </Badge>
+                <VentureRowActions venture={v} />
               </div>
-            </Card>
-          </Link>
+            </div>
+          </Card>
         ))}
       </div>
     </div>

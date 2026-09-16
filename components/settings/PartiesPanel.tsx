@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import type { Party } from "@/lib/data/types";
 import { apiMutate } from "@/lib/api/client";
+import { PartyRowActions } from "./PartyRowActions";
 
 export function PartiesPanel({ parties }: { parties: Party[] }) {
   const router = useRouter();
@@ -34,14 +35,15 @@ export function PartiesPanel({ parties }: { parties: Party[] }) {
         Anyone who can receive a share of profit — a partner, or a one-off
         referral partner on a specific deal.
       </p>
-      <div className="mb-3 flex flex-wrap gap-2">
+      <div className="mb-3 flex flex-col gap-1">
         {parties.map((p) => (
-          <span
+          <div
             key={p.id}
-            className="rounded-full bg-accent px-3 py-1 text-sm text-foreground"
+            className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2 text-sm"
           >
-            {p.name}
-          </span>
+            <span className="text-foreground">{p.name}</span>
+            <PartyRowActions party={p} />
+          </div>
         ))}
       </div>
       <form onSubmit={handleSubmit} className="flex items-center gap-2">

@@ -9,6 +9,7 @@ import { centsToDisplay } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import type { RecurringExpense, Client, Project } from "@/lib/data/types";
 import { apiMutate } from "@/lib/api/client";
+import { ExpenseRowActions } from "./ExpenseRowActions";
 
 export function RecurringExpenseList({
   expenses,
@@ -88,6 +89,7 @@ export function RecurringExpenseList({
                 >
                   {e.status === "active" ? "Pause" : "Resume"}
                 </Button>
+                <ExpenseRowActions expense={e} />
               </div>
             </div>
           </Card>

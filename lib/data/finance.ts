@@ -11,9 +11,15 @@ import type {
   Payment,
   PaymentMethod,
   DocumentRecord,
+  Venture,
 } from "./types";
-import { taxCents as calcPercentage, convertMinorUnits, centsToDisplay } from "@/lib/money";
+import {
+  taxCents as calcPercentage,
+  convertMinorUnits,
+  centsToDisplay,
+} from "@/lib/money";
 import { assignInvoiceNumber } from "./documents";
+import { AppError } from "@/lib/api/errors";
 
 // --- Ventures (PRD 14) ---
 
@@ -43,30 +49,49 @@ export async function listDeductionTypes(): Promise<DeductionType[]> {
   return store.deductionTypes;
 }
 
-export async function createDeductionType(name: string, kind: DeductionKind): Promise<DeductionType> {
+export async function createDeductionType(
+  name: string,
+  kind: DeductionKind,
+): Promise<DeductionType> {
   const type: DeductionType = { id: randomUUID(), name, kind };
   store.deductionTypes.push(type);
   return type;
 }
 
 function logAudit(entry: {
-  entityType: "document" | "payment" | "profit_split_rule" | "deduction_type" | "recurring_expense";
+  entityType:
+    | "document"
+    | "payment"
+    | "profit_split_rule"
+    | "deduction_type"
+    | "recurring_expense";
   entityId: string;
   action: "create" | "update" | "delete";
   summary: string;
   changedBy: string;
 }) {
-  store.auditLog.push({ id: randomUUID(), changedAt: new Date().toISOString(), ...entry });
+  store.auditLog.push({
+    id: randomUUID(),
+    changedAt: new Date().toISOString(),
+    ...entry,
+  });
 }
 
 // --- Profit-split rules (PRD 5.3, 5.3.1) ---
 
-export async function getProfitSplitRule(id: string): Promise<ProfitSplitRule | undefined> {
+export async function getProfitSplitRule(
+  id: string,
+): Promise<ProfitSplitRule | undefined> {
   return store.profitSplitRules.find((r) => r.id === id);
 }
 
-export async function getRuleForScope(scopeType: ProfitSplitScope, scopeId: string): Promise<ProfitSplitRule | undefined> {
-  return store.profitSplitRules.find((r) => r.scopeType === scopeType && r.scopeId === scopeId);
+export async function getRuleForScope(
+  scopeType: ProfitSplitScope,
+  scopeId: string,
+): Promise<ProfitSplitRule | undefined> {
+  return store.profitSplitRules.find(
+    (r) => r.scopeType === scopeType && r.scopeId === scopeId,
+  );
 }
 
 export async function listProfitSplitRules(): Promise<ProfitSplitRule[]> {
@@ -83,15 +108,21 @@ export async function upsertProfitSplitRule(input: {
 }): Promise<ProfitSplitRule> {
   const totalBps = input.splits.reduce((sum, s) => sum + s.percentageBps, 0);
   if (totalBps !== 10000) {
-    throw new Error(`Split percentages must total 100% (got ${(totalBps / 100).toFixed(2)}%)`);
+    throw new Error(
+      `Split percentages must total 100% (got ${(totalBps / 100).toFixed(2)}%)`,
+    );
   }
 
-  const existing = store.profitSplitRules.find((r) => r.scopeType === input.scopeType && r.scopeId === input.scopeId);
+  const existing = store.profitSplitRules.find(
+    (r) => r.scopeType === input.scopeType && r.scopeId === input.scopeId,
+  );
   const now = new Date().toISOString();
   const scopeName =
     input.scopeType === "project"
-      ? store.projects.find((p) => p.id === input.scopeId)?.name ?? input.scopeId
-      : store.ventures.find((v) => v.id === input.scopeId)?.name ?? input.scopeId;
+      ? (store.projects.find((p) => p.id === input.scopeId)?.name ??
+        input.scopeId)
+      : (store.ventures.find((v) => v.id === input.scopeId)?.name ??
+        input.scopeId);
 
   if (existing) {
     existing.splits = input.splits;
@@ -145,7 +176,11 @@ export async function listRecurringExpenses(): Promise<RecurringExpense[]> {
   return store.recurringExpenses;
 }
 
-const CYCLE_MONTHS: Record<RecurringExpenseCycle, number> = { monthly: 1, quarterly: 3, annual: 12 };
+const CYCLE_MONTHS: Record<RecurringExpenseCycle, number> = {
+  monthly: 1,
+  quarterly: 3,
+  annual: 12,
+};
 
 function addMonths(iso: string, months: number): string {
   const d = new Date(iso);
@@ -180,7 +215,9 @@ export async function createRecurringExpense(input: {
   return expense;
 }
 
-export async function toggleRecurringExpenseStatus(id: string): Promise<RecurringExpense> {
+export async function toggleRecurringExpenseStatus(
+  id: string,
+): Promise<RecurringExpense> {
   const expense = store.recurringExpenses.find((e) => e.id === id);
   if (!expense) throw new Error("Recurring expense not found");
   expense.status = expense.status === "active" ? "paused" : "active";
@@ -188,7 +225,10 @@ export async function toggleRecurringExpenseStatus(id: string): Promise<Recurrin
 }
 
 /** Prorates a recurring expense's amount into a specific invoice's billing cycle. */
-export function prorateExpenseCents(expense: RecurringExpense, targetCycle: RecurringExpenseCycle): number {
+export function prorateExpenseCents(
+  expense: RecurringExpense,
+  targetCycle: RecurringExpenseCycle,
+): number {
   const expenseMonths = CYCLE_MONTHS[expense.cycle];
   const targetMonths = CYCLE_MONTHS[targetCycle];
   return Math.round((expense.amountCents / expenseMonths) * targetMonths);
@@ -196,8 +236,12 @@ export function prorateExpenseCents(expense: RecurringExpense, targetCycle: Recu
 
 // --- Payments (PRD 5.5) ---
 
-export async function listPaymentsForDocument(documentId: string): Promise<Payment[]> {
-  return store.payments.filter((p) => p.documentId === documentId).sort((a, b) => (a.date < b.date ? -1 : 1));
+export async function listPaymentsForDocument(
+  documentId: string,
+): Promise<Payment[]> {
+  return store.payments
+    .filter((p) => p.documentId === documentId)
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
 }
 
 export async function addPayment(input: {
@@ -240,7 +284,10 @@ export async function addPayment(input: {
   return payment;
 }
 
-export function remainingBalanceCents(doc: Pick<DocumentRecord, "totalCents">, payments: Payment[]): number {
+export function remainingBalanceCents(
+  doc: Pick<DocumentRecord, "totalCents">,
+  payments: Payment[],
+): number {
   const paid = payments.reduce((sum, p) => sum + p.amountCents, 0);
   return Math.max(doc.totalCents - paid, 0);
 }
@@ -249,10 +296,19 @@ export function remainingBalanceCents(doc: Pick<DocumentRecord, "totalCents">, p
 
 export type ProfitBreakdown = {
   invoiceTotalCents: number;
-  deductions: { deductionTypeId: string | null; name: string; amountCents: number }[];
+  deductions: {
+    deductionTypeId: string | null;
+    name: string;
+    amountCents: number;
+  }[];
   totalDeductionsCents: number;
   netProfitCents: number;
-  splits: { partyId: string; partyName: string; percentageBps: number; amountCents: number }[];
+  splits: {
+    partyId: string;
+    partyName: string;
+    percentageBps: number;
+    amountCents: number;
+  }[];
 };
 
 /**
@@ -268,29 +324,52 @@ export type ProfitBreakdown = {
  * worked example, PRD section 17). A per-invoice billing period would
  * replace this once the Hosting Fee module (Phase 2) is built.
  */
-export async function getInvoiceProfitBreakdown(documentId: string): Promise<ProfitBreakdown | null> {
+export async function getInvoiceProfitBreakdown(
+  documentId: string,
+): Promise<ProfitBreakdown | null> {
   const doc = store.documents.find((d) => d.id === documentId);
   if (!doc || doc.type !== "invoice" || !doc.profitSplitRuleId) return null;
 
-  const rule = store.profitSplitRules.find((r) => r.id === doc.profitSplitRuleId);
+  const rule = store.profitSplitRules.find(
+    (r) => r.id === doc.profitSplitRuleId,
+  );
   if (!rule) return null;
 
   const linkedExpenseDeductions = store.recurringExpenses
-    .filter((e) => e.status === "active" && doc.projectId && e.linkedProjectId === doc.projectId)
+    .filter(
+      (e) =>
+        e.status === "active" &&
+        doc.projectId &&
+        e.linkedProjectId === doc.projectId,
+    )
     .map((e) => {
       const proratedInExpenseCurrency = prorateExpenseCents(e, "quarterly");
-      const amountCents = convertMinorUnits(proratedInExpenseCurrency, e.currency, doc.currency);
+      const amountCents = convertMinorUnits(
+        proratedInExpenseCurrency,
+        e.currency,
+        doc.currency,
+      );
       return { deductionTypeId: null, name: e.name, amountCents };
     });
 
   const configuredDeductions = rule.deductions.map((d) => {
     const type = store.deductionTypes.find((t) => t.id === d.deductionTypeId);
-    const amountCents = type?.kind === "percentage" ? calcPercentage(doc.totalCents, d.value) : d.value;
-    return { deductionTypeId: d.deductionTypeId, name: type?.name ?? "Deduction", amountCents };
+    const amountCents =
+      type?.kind === "percentage"
+        ? calcPercentage(doc.totalCents, d.value)
+        : d.value;
+    return {
+      deductionTypeId: d.deductionTypeId,
+      name: type?.name ?? "Deduction",
+      amountCents,
+    };
   });
 
   const deductions = [...linkedExpenseDeductions, ...configuredDeductions];
-  const totalDeductionsCents = deductions.reduce((sum, d) => sum + d.amountCents, 0);
+  const totalDeductionsCents = deductions.reduce(
+    (sum, d) => sum + d.amountCents,
+    0,
+  );
   const netProfitCents = doc.totalCents - totalDeductionsCents;
 
   const splits = rule.splits.map((s) => {
@@ -325,7 +404,9 @@ export type ErpDashboardSummary = {
  * currency) via the fixed peg rate, so mixed-currency invoices still sum
  * correctly instead of silently mis-adding minor units across currencies. */
 export async function getErpDashboardSummary(): Promise<ErpDashboardSummary> {
-  const invoices = store.documents.filter((d) => d.type === "invoice" && d.status !== "archived");
+  const invoices = store.documents.filter(
+    (d) => d.type === "invoice" && d.status !== "archived",
+  );
 
   let unpaidInvoiceCount = 0;
   let partiallyPaidInvoiceCount = 0;
@@ -333,41 +414,67 @@ export async function getErpDashboardSummary(): Promise<ErpDashboardSummary> {
 
   for (const doc of invoices) {
     if (doc.status === "paid") continue;
-    const paid = store.payments.filter((p) => p.documentId === doc.id).reduce((sum, p) => sum + p.amountCents, 0);
+    const paid = store.payments
+      .filter((p) => p.documentId === doc.id)
+      .reduce((sum, p) => sum + p.amountCents, 0);
     const outstanding = Math.max(doc.totalCents - paid, 0);
     if (outstanding <= 0) continue;
     if (paid > 0) partiallyPaidInvoiceCount += 1;
     else unpaidInvoiceCount += 1;
-    totalOutstandingBhdCents += convertMinorUnits(outstanding, doc.currency, "BHD");
+    totalOutstandingBhdCents += convertMinorUnits(
+      outstanding,
+      doc.currency,
+      "BHD",
+    );
   }
 
   const now = new Date();
   const thisMonthInvoices = invoices.filter((d) => {
     if (!d.issuedAt) return false;
     const issued = new Date(d.issuedAt);
-    return issued.getFullYear() === now.getFullYear() && issued.getMonth() === now.getMonth();
+    return (
+      issued.getFullYear() === now.getFullYear() &&
+      issued.getMonth() === now.getMonth()
+    );
   });
 
   let netProfitThisMonthBhdCents = 0;
   for (const doc of thisMonthInvoices) {
     const breakdown = await getInvoiceProfitBreakdown(doc.id);
     if (breakdown) {
-      netProfitThisMonthBhdCents += convertMinorUnits(breakdown.netProfitCents, doc.currency, "BHD");
+      netProfitThisMonthBhdCents += convertMinorUnits(
+        breakdown.netProfitCents,
+        doc.currency,
+        "BHD",
+      );
     }
   }
 
-  return { unpaidInvoiceCount, partiallyPaidInvoiceCount, totalOutstandingBhdCents, netProfitThisMonthBhdCents };
+  return {
+    unpaidInvoiceCount,
+    partiallyPaidInvoiceCount,
+    totalOutstandingBhdCents,
+    netProfitThisMonthBhdCents,
+  };
 }
 
 // --- Quotation → Invoice conversion (PRD 5.4) ---
 
-export async function convertQuotationToInvoice(quotationId: string, convertedBy: string): Promise<DocumentRecord> {
+export async function convertQuotationToInvoice(
+  quotationId: string,
+  convertedBy: string,
+): Promise<DocumentRecord> {
   const quote = store.documents.find((d) => d.id === quotationId);
   if (!quote) throw new Error("Quotation not found");
-  if (quote.type !== "quote") throw new Error("Only quotations can be converted to invoices");
+  if (quote.type !== "quote")
+    throw new Error("Only quotations can be converted to invoices");
 
-  const lineItems = store.documentLineItems.filter((li) => li.documentId === quotationId);
-  const project = quote.projectId ? store.projects.find((p) => p.id === quote.projectId) : undefined;
+  const lineItems = store.documentLineItems.filter(
+    (li) => li.documentId === quotationId,
+  );
+  const project = quote.projectId
+    ? store.projects.find((p) => p.id === quote.projectId)
+    : undefined;
   const now = new Date().toISOString();
 
   const invoice: DocumentRecord = {
@@ -420,4 +527,127 @@ export async function convertQuotationToInvoice(quotationId: string, convertedBy
   });
 
   return invoice;
+}
+
+// --- Update / delete for the settings-managed entities ---
+
+export async function updateParty(
+  id: string,
+  patch: { name?: string },
+): Promise<Party> {
+  const party = store.parties.find((p) => p.id === id);
+  if (!party)
+    throw new AppError("not_found", "That payout party no longer exists.");
+  Object.assign(party, patch);
+  return party;
+}
+
+export async function deleteParty(id: string): Promise<void> {
+  const index = store.parties.findIndex((p) => p.id === id);
+  if (index === -1)
+    throw new AppError("not_found", "That payout party no longer exists.");
+  store.parties.splice(index, 1);
+}
+
+export async function updateDeductionType(
+  id: string,
+  patch: { name?: string; kind?: DeductionKind },
+): Promise<DeductionType> {
+  const type = store.deductionTypes.find((d) => d.id === id);
+  if (!type)
+    throw new AppError("not_found", "That deduction type no longer exists.");
+  Object.assign(type, patch);
+  return type;
+}
+
+export async function deleteDeductionType(id: string): Promise<void> {
+  const index = store.deductionTypes.findIndex((d) => d.id === id);
+  if (index === -1)
+    throw new AppError("not_found", "That deduction type no longer exists.");
+  store.deductionTypes.splice(index, 1);
+}
+
+export async function updateRecurringExpense(
+  id: string,
+  changedBy: string,
+  patch: {
+    name?: string;
+    category?: string;
+    amountCents?: number;
+    currency?: string;
+    cycle?: RecurringExpenseCycle;
+    nextDueDate?: string | null;
+    lastPaymentDate?: string | null;
+    linkedClientId?: string | null;
+    linkedProjectId?: string | null;
+  },
+): Promise<RecurringExpense> {
+  const expense = store.recurringExpenses.find((e) => e.id === id);
+  if (!expense)
+    throw new AppError("not_found", "That expense no longer exists.");
+  Object.assign(expense, patch);
+  logAudit({
+    entityType: "recurring_expense",
+    entityId: id,
+    action: "update",
+    summary: `Updated recurring expense "${expense.name}".`,
+    changedBy,
+  });
+  return expense;
+}
+
+export async function deleteRecurringExpense(
+  id: string,
+  changedBy: string,
+): Promise<void> {
+  const index = store.recurringExpenses.findIndex((e) => e.id === id);
+  if (index === -1)
+    throw new AppError("not_found", "That expense no longer exists.");
+  const [removed] = store.recurringExpenses.splice(index, 1);
+  logAudit({
+    entityType: "recurring_expense",
+    entityId: id,
+    action: "delete",
+    summary: `Deleted recurring expense "${removed!.name}".`,
+    changedBy,
+  });
+}
+
+export async function updateVenture(
+  id: string,
+  patch: {
+    name?: string;
+    brandDescription?: string | null;
+    websiteUrl?: string | null;
+    launchStatus?: Venture["launchStatus"];
+  },
+): Promise<Venture> {
+  const venture = store.ventures.find((v) => v.id === id);
+  if (!venture)
+    throw new AppError("not_found", "That venture no longer exists.");
+  Object.assign(venture, patch);
+  return venture;
+}
+
+export async function deleteVenture(id: string): Promise<void> {
+  const index = store.ventures.findIndex((v) => v.id === id);
+  if (index === -1)
+    throw new AppError("not_found", "That venture no longer exists.");
+  store.ventures.splice(index, 1);
+}
+
+export async function getRecurringExpenseById(
+  id: string,
+): Promise<RecurringExpense | undefined> {
+  return store.recurringExpenses.find((e) => e.id === id);
+}
+
+export async function getPartyById(id: string): Promise<Party | undefined> {
+  return store.parties.find((p) => p.id === id);
+}
+
+export async function getDeductionTypeById(
+  id: string,
+): Promise<DeductionType | undefined> {
+  return store.deductionTypes.find((d) => d.id === id);
 }
