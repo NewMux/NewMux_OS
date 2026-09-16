@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
+import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { centsToDisplay } from "@/lib/money";
@@ -40,9 +41,12 @@ function alertLevel(sub: HostingSubscription): HostingAlertLevel {
 export function HostingList({
   subscriptions,
   clients,
+  narrowed = false,
 }: {
   subscriptions: HostingSubscription[];
   clients: Client[];
+  /** True when search or a filter is active, so "none" means "no matches". */
+  narrowed?: boolean;
 }) {
   const router = useRouter();
   const [collecting, setCollecting] = useState<string | null>(null);
@@ -57,7 +61,9 @@ export function HostingList({
   if (subscriptions.length === 0) {
     return (
       <Card className="text-center text-sm text-muted-foreground">
-        No hosting subscriptions yet.
+        {narrowed
+          ? "No subscriptions match these filters."
+          : "No hosting subscriptions yet."}
       </Card>
     );
   }
@@ -82,7 +88,18 @@ export function HostingList({
                   {sub.nextDueDate
                     ? ` · Next due: ${new Date(sub.nextDueDate).toLocaleDateString()}`
                     : ""}
+                  {sub.lastCollectedDate
+                    ? ` · Last collected: ${new Date(sub.lastCollectedDate).toLocaleDateString()}`
+                    : ""}
                 </p>
+                {sub.linkedInvoiceId && (
+                  <Link
+                    href={`/documents/${sub.linkedInvoiceId}`}
+                    className="text-xs text-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    View the invoice from the last collection
+                  </Link>
+                )}
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <Badge className={cn(ALERT_STYLES[level])}>

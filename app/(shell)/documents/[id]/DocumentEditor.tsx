@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -29,6 +30,7 @@ export function DocumentEditor({
   history,
   payments,
   profitBreakdown,
+  backlinks,
 }: {
   document: DocumentRecord;
   lineItems: EditableLineItem[];
@@ -36,6 +38,12 @@ export function DocumentEditor({
   history: DocumentStatusHistoryEntry[];
   payments: Payment[];
   profitBreakdown: ProfitBreakdown | null;
+  /** Where this document came from and what it belongs to. */
+  backlinks: {
+    project: { id: string; name: string } | null;
+    convertedFrom: { id: string; documentNumber: string } | null;
+    convertedTo: { id: string; documentNumber: string } | null;
+  };
 }) {
   const router = useRouter();
   const [lineItems, setLineItems] =
@@ -94,7 +102,52 @@ export function DocumentEditor({
           <h1 className="text-xl font-semibold text-foreground">
             {document.documentNumber}
           </h1>
-          <p className="text-sm text-muted-foreground">{client.name}</p>
+          <p className="text-sm text-muted-foreground">
+            <Link
+              href={`/clients/${client.id}`}
+              className="hover:text-foreground hover:underline"
+            >
+              {client.name}
+            </Link>
+            {backlinks.project && (
+              <>
+                {" · "}
+                <Link
+                  href={`/projects/${backlinks.project.id}`}
+                  className="hover:text-foreground hover:underline"
+                >
+                  {backlinks.project.name}
+                </Link>
+              </>
+            )}
+          </p>
+          {(backlinks.convertedFrom || backlinks.convertedTo) && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {backlinks.convertedFrom && (
+                <>
+                  Converted from{" "}
+                  <Link
+                    href={`/documents/${backlinks.convertedFrom.id}`}
+                    className="text-brand hover:underline"
+                  >
+                    {backlinks.convertedFrom.documentNumber}
+                  </Link>
+                </>
+              )}
+              {backlinks.convertedFrom && backlinks.convertedTo ? " · " : ""}
+              {backlinks.convertedTo && (
+                <>
+                  Converted into{" "}
+                  <Link
+                    href={`/documents/${backlinks.convertedTo.id}`}
+                    className="text-brand hover:underline"
+                  >
+                    {backlinks.convertedTo.documentNumber}
+                  </Link>
+                </>
+              )}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge status={document.status} />

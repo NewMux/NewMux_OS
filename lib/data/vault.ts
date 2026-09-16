@@ -81,14 +81,22 @@ export async function createSecret(input: {
   return secret;
 }
 
+/**
+ * Every caller logs while the secret still exists — deletion logs first, then
+ * removes — so the label is resolved here rather than threaded through each
+ * call site. It is copied into the entry, not looked up on read, because the
+ * deletion case is precisely the one where the lookup would come back empty.
+ */
 export async function logVaultAccess(entry: {
   secretId: string;
   accessedBy: string;
   action: "reveal" | "unlock_attempt" | "create" | "update" | "delete";
 }) {
+  const secret = store.secrets.find((s) => s.id === entry.secretId);
   store.vaultAccessLog.push({
     id: randomUUID(),
     secretId: entry.secretId,
+    secretLabel: secret?.label ?? "(unknown credential)",
     accessedBy: entry.accessedBy,
     action: entry.action,
     accessedAt: new Date().toISOString(),
@@ -103,12 +111,13 @@ export async function updateSecretLabel(
   const secret = store.secrets.find((s) => s.id === id);
   if (!secret)
     throw new AppError("not_found", "That credential no longer exists.");
-  secret.label = label;
+  // Log before renaming, so the entry names the credential as it was known.
   await logVaultAccess({
     secretId: id,
     accessedBy: changedBy,
     action: "update",
   });
+  secret.label = label;
   return secret;
 }
 

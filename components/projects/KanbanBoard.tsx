@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { PriorityBadge } from "./PriorityBadge";
+import { Avatar } from "@/components/ui/Avatar";
 import { DragBoard, type BoardItem } from "@/components/kanban/DragBoard";
 import type { Task, TaskStatus } from "@/lib/data/types";
 import { apiMutate } from "@/lib/api/client";
@@ -17,7 +18,14 @@ const COLUMNS: { status: TaskStatus; label: string }[] = [
 
 type TaskBoardItem = BoardItem & { task: Task };
 
-export function KanbanBoard({ tasks }: { tasks: Task[] }) {
+export function KanbanBoard({
+  tasks,
+  assignees = {},
+}: {
+  tasks: Task[];
+  /** User id → display name, for the assignee avatar on each card. */
+  assignees?: Record<string, string>;
+}) {
   const router = useRouter();
   const [tasksById, setTasksById] = useState<Record<string, Task>>(() =>
     Object.fromEntries(tasks.map((t) => [t.id, t])),
@@ -85,11 +93,16 @@ export function KanbanBoard({ tasks }: { tasks: Task[] }) {
               {item.task.description}
             </p>
           )}
-          {item.task.dueAt && (
-            <p className="mt-2 text-xs text-muted-foreground">
-              Due {new Date(item.task.dueAt).toLocaleDateString()}
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <p className="text-xs text-muted-foreground">
+              {item.task.dueAt
+                ? `Due ${new Date(item.task.dueAt).toLocaleDateString()}`
+                : ""}
             </p>
-          )}
+            {item.task.assigneeId && assignees[item.task.assigneeId] && (
+              <Avatar name={assignees[item.task.assigneeId]!} />
+            )}
+          </div>
         </Card>
       )}
     />

@@ -15,10 +15,13 @@ export function RecurringExpenseList({
   expenses,
   clients,
   projects,
+  narrowed = false,
 }: {
   expenses: RecurringExpense[];
   clients: Client[];
   projects: Project[];
+  /** True when search or a filter is active, so "none" means "no matches". */
+  narrowed?: boolean;
 }) {
   const router = useRouter();
   const [updating, setUpdating] = useState<string | null>(null);
@@ -35,7 +38,9 @@ export function RecurringExpenseList({
   if (expenses.length === 0) {
     return (
       <Card className="text-center text-sm text-muted-foreground">
-        No recurring expenses yet.
+        {narrowed
+          ? "No expenses match these filters."
+          : "No recurring expenses yet."}
       </Card>
     );
   }
@@ -62,11 +67,14 @@ export function RecurringExpenseList({
                   {project ? ` · ${project.name}` : ""}
                   {!client && !project ? " · Company-wide" : ""}
                 </p>
-                {e.nextDueDate && (
-                  <p className="text-xs text-muted-foreground">
-                    Next due: {new Date(e.nextDueDate).toLocaleDateString()}
-                  </p>
-                )}
+                <p className="text-xs text-muted-foreground">
+                  {e.nextDueDate
+                    ? `Next due: ${new Date(e.nextDueDate).toLocaleDateString()}`
+                    : ""}
+                  {e.lastPaymentDate
+                    ? `${e.nextDueDate ? " · " : ""}Last paid: ${new Date(e.lastPaymentDate).toLocaleDateString()}`
+                    : ""}
+                </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <span className="text-sm font-medium text-foreground">

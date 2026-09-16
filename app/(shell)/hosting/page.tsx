@@ -5,18 +5,49 @@ import { listHostingSubscriptions } from "@/lib/data/hosting";
 import { listClients } from "@/lib/data/documents";
 import { HostingList } from "@/components/hosting/HostingList";
 import { AddHostingModal } from "@/components/hosting/AddHostingModal";
+import { ListToolbar } from "@/components/list/ListToolbar";
+import {
+  applyListQuery,
+  byDate,
+  byNumber,
+  isFiltered,
+  parseListParams,
+  type SearchParamRecord,
+} from "@/lib/list/query";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { centsToDisplay } from "@/lib/money";
 
-export default async function HostingPage() {
+export default async function HostingPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParamRecord>;
+}) {
   const session = await auth();
   if (!canAccessFinance(session)) redirect("/dashboard");
 
+  const params = parseListParams(await searchParams, {
+    filterKeys: ["status", "item"],
+  });
   const [subscriptions, clients] = await Promise.all([
     listHostingSubscriptions(),
-    listClients(),
+    listClients({ includeArchived: true }),
   ]);
+  const clientName = (id: string) =>
+    clients.find((c) => c.id === id)?.name ?? "Unknown client";
 
+  const visible = applyListQuery(subscriptions, params, {
+    searchFields: (s) => [clientName(s.clientId), s.item],
+    sorters: {
+      due: byDate((s) => s.nextDueDate),
+      amount: byNumber((s) => s.amountCents),
+    },
+    filters: {
+      status: (s, value) => s.status === value,
+      item: (s, value) => s.item === value,
+    },
+  });
+
+  // The month total is always the whole book, never the filtered view.
   const now = new Date();
   const dueThisMonth = subscriptions.filter((s) => {
     if (!s.nextDueDate) return false;
@@ -70,7 +101,40 @@ export default async function HostingPage() {
         )}
       </Card>
 
-      <HostingList subscriptions={subscriptions} clients={clients} />
+      <ListToolbar
+        searchPlaceholder="Search client or item…"
+        filters={[
+          {
+            key: "status",
+            label: "Status",
+            options: [
+              { value: "active", label: "Active" },
+              { value: "overdue", label: "Overdue" },
+              { value: "paused", label: "Paused" },
+            ],
+          },
+          {
+            key: "item",
+            label: "Item",
+            options: [
+              { value: "server", label: "Server / hosting" },
+              { value: "domain", label: "Domain" },
+              { value: "other", label: "Other" },
+            ],
+          },
+        ]}
+        sorts={[
+          { value: "due", label: "Next due" },
+          { value: "amount", label: "Amount" },
+        ]}
+        exportType="hosting"
+      />
+
+      <HostingList
+        subscriptions={visible}
+        clients={clients}
+        narrowed={isFiltered(params)}
+      />
     </div>
   );
 }

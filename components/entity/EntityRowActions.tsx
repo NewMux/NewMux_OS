@@ -85,11 +85,13 @@ export function EntityRowActions({
     Object.fromEntries(fields.map((f) => [f.name, f.value])),
   );
 
+  const Label = `${label[0]!.toUpperCase()}${label.slice(1)}`;
+
   const edit = useApiMutation(
     (body: Record<string, string>) =>
       apiFetch(endpoint, { method: "PATCH", body: JSON.stringify(body) }),
     {
-      successMessage: `${label[0]!.toUpperCase()}${label.slice(1)} updated.`,
+      successMessage: `${Label} updated.`,
       onSuccess: () => {
         setEditOpen(false);
         onEdited?.();
@@ -104,7 +106,7 @@ export function EntityRowActions({
         body: JSON.stringify({ archived }),
       }),
     {
-      successMessage: archivedAt ? `${label} restored.` : `${label} archived.`,
+      successMessage: archivedAt ? `${Label} restored.` : `${Label} archived.`,
     },
   );
 

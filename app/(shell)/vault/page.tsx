@@ -1,7 +1,12 @@
 import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 import { isPartnerAdmin } from "@/lib/rbac";
-import { getVaultMasterConfig, listSecrets } from "@/lib/data/vault";
+import {
+  getVaultMasterConfig,
+  listSecrets,
+  listVaultAccessLog,
+} from "@/lib/data/vault";
+import { listUsers } from "@/lib/data/users";
 import {
   unpackVaultSessionCookie,
   VAULT_SESSION_COOKIE,
@@ -11,6 +16,7 @@ import { UnlockModal } from "@/components/vault/UnlockModal";
 import { AddSecretModal } from "@/components/vault/AddSecretModal";
 import { SecretRow } from "@/components/vault/SecretRow";
 import { LockButton } from "@/components/vault/LockButton";
+import { VaultAccessLog } from "@/components/vault/VaultAccessLog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { KeyRound } from "lucide-react";
 import { Card } from "@/components/ui/Card";
@@ -34,7 +40,11 @@ export default async function VaultPage() {
     return <SetupVaultForm />;
   }
 
-  const secrets = await listSecrets();
+  const [secrets, accessLog, users] = await Promise.all([
+    listSecrets(),
+    listVaultAccessLog(),
+    listUsers(),
+  ]);
   const cookieStore = await cookies();
   const cookieValue = cookieStore.get(VAULT_SESSION_COOKIE)?.value;
   const unlocked =
@@ -81,6 +91,14 @@ export default async function VaultPage() {
           />
         ))}
       </div>
+
+      {admin && (
+        <VaultAccessLog
+          entries={accessLog}
+          liveSecretIds={new Set(secrets.map((s) => s.id))}
+          userFor={(id) => users.find((u) => u.id === id)?.fullName ?? null}
+        />
+      )}
     </div>
   );
 }

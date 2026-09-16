@@ -33,7 +33,8 @@ export type Product = {
 };
 
 export type DocumentType = "quote" | "contract" | "invoice";
-export type DocumentStatus = "draft" | "sent" | "accepted" | "signed" | "paid" | "archived";
+export type DocumentStatus =
+  "draft" | "sent" | "accepted" | "signed" | "paid" | "archived";
 
 export type DocumentLineItem = {
   id: string;
@@ -84,7 +85,8 @@ export type DocumentStatusHistoryEntry = {
   changedAt: string;
 };
 
-export type ProjectStatus = "planning" | "active_sprint" | "paused" | "completed" | "archived";
+export type ProjectStatus =
+  "planning" | "active_sprint" | "paused" | "completed" | "archived";
 
 export type Project = {
   id: string;
@@ -124,7 +126,8 @@ export type Task = {
   createdBy: string;
 };
 
-export type SecretType = "api_token" | "db_connection" | "deploy_key" | "ssh_login" | "other";
+export type SecretType =
+  "api_token" | "db_connection" | "deploy_key" | "ssh_login" | "other";
 
 export type SecretRecord = {
   id: string;
@@ -143,12 +146,17 @@ export type SecretRecord = {
 export type VaultAccessLogEntry = {
   id: string;
   secretId: string;
+  /** The label as it stood when the entry was written. Copied rather than
+   * looked up, because a deleted credential is exactly the case the log
+   * exists for and its record is gone by the time anyone reads this. */
+  secretLabel: string;
   accessedBy: string;
   action: "reveal" | "unlock_attempt" | "create" | "update" | "delete";
   accessedAt: string;
 };
 
-export type SaasSubscriptionStatus = "trialing" | "active" | "past_due" | "canceled" | "paused";
+export type SaasSubscriptionStatus =
+  "trialing" | "active" | "past_due" | "canceled" | "paused";
 
 export type SaasCustomer = {
   id: string;
@@ -183,7 +191,8 @@ export type SaasTransaction = {
   billedAt: string | null;
 };
 
-export type CampaignChannel = "meta_ads" | "linkedin" | "google_search" | "outbound_email";
+export type CampaignChannel =
+  "meta_ads" | "linkedin" | "google_search" | "outbound_email";
 
 export type Campaign = {
   id: string;
@@ -294,7 +303,8 @@ export type HostingSubscription = {
   linkedInvoiceId: string | null;
 };
 
-export type VentureLaunchStatus = "planning" | "in_development" | "launched" | "paused";
+export type VentureLaunchStatus =
+  "planning" | "in_development" | "launched" | "paused";
 
 /** Ventures personally held by the founders, not company assets (PRD 14).
  * Ownership/split is intentionally empty until configured in Settings. */
@@ -326,7 +336,13 @@ export type AuditLogAction = "create" | "update" | "delete";
 /** Every change to an invoice, payment, or profit-split rule (PRD 15.1). */
 export type AuditLogEntry = {
   id: string;
-  entityType: "document" | "payment" | "profit_split_rule" | "deduction_type" | "recurring_expense" | "deal";
+  entityType:
+    | "document"
+    | "payment"
+    | "profit_split_rule"
+    | "deduction_type"
+    | "recurring_expense"
+    | "deal";
   entityId: string;
   action: AuditLogAction;
   summary: string;
@@ -374,7 +390,8 @@ export type PipelineItem = {
 // --- Outbound Outreach & CRM Pipeline (PRD Module 1) ---
 
 /** Kanban stages of a deal: Lead Discovery → Proposal/Quotation Sent → Negotiation → Won/Lost. */
-export type DealStage = "lead_discovery" | "proposal_sent" | "negotiation" | "won" | "lost";
+export type DealStage =
+  "lead_discovery" | "proposal_sent" | "negotiation" | "won" | "lost";
 
 export type DealCurrency = string;
 
@@ -420,7 +437,12 @@ export type DealStageHistoryEntry = {
 export type OutreachChannel = "call" | "email" | "whatsapp";
 
 /** PRD: log a call/email/WhatsApp result in under 10 seconds. */
-export type OutreachOutcome = "no_answer" | "gatekeeper_blocked" | "not_interested" | "info_requested" | "meeting_booked";
+export type OutreachOutcome =
+  | "no_answer"
+  | "gatekeeper_blocked"
+  | "not_interested"
+  | "info_requested"
+  | "meeting_booked";
 
 export type OutreachActivity = {
   id: string;

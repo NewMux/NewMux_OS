@@ -6,6 +6,7 @@ import { getProjectById, listTasksByProject } from "@/lib/data/projects";
 import { getClientById, listDocuments } from "@/lib/data/documents";
 import { listSecrets } from "@/lib/data/vault";
 import { KanbanBoard } from "@/components/projects/KanbanBoard";
+import { listUsers } from "@/lib/data/users";
 import { NewTaskButton } from "./NewTaskButton";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/documents/StatusBadge";
@@ -23,14 +24,16 @@ export default async function ProjectDetailPage({
   if (!project) notFound();
 
   const canSeeFinancials = canAccessFinance(session);
-  const [tasks, client, allDocuments, allSecrets] = await Promise.all([
+  const [tasks, client, allDocuments, allSecrets, users] = await Promise.all([
     listTasksByProject(id),
     project.clientId
       ? getClientById(project.clientId)
       : Promise.resolve(undefined),
     canSeeFinancials ? listDocuments() : Promise.resolve([]),
     canSeeFinancials ? listSecrets() : Promise.resolve([]),
+    listUsers(),
   ]);
+  const assignees = Object.fromEntries(users.map((u) => [u.id, u.fullName]));
   const documents = allDocuments.filter((d) => d.projectId === id);
   const secretCount = allSecrets.filter((s) => s.projectId === id).length;
 
@@ -115,7 +118,7 @@ export default async function ProjectDetailPage({
         <h2 className="mb-2 text-sm font-semibold text-secondary-foreground">
           Tasks
         </h2>
-        <KanbanBoard tasks={tasks} />
+        <KanbanBoard tasks={tasks} assignees={assignees} />
       </div>
 
       {canSeeFinancials && (

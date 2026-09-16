@@ -6,19 +6,38 @@ import { listClients } from "@/lib/data/documents";
 import { listProjects } from "@/lib/data/projects";
 import { RecurringExpenseList } from "@/components/finance/RecurringExpenseList";
 import { AddExpenseModal } from "@/components/finance/AddExpenseModal";
+import { ListToolbar } from "@/components/list/ListToolbar";
+import {
+  applyListQuery,
+  byDate,
+  byNumber,
+  byText,
+  isFiltered,
+  parseListParams,
+  type SearchParamRecord,
+} from "@/lib/list/query";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { centsToDisplay, convertMinorUnits } from "@/lib/money";
 
-export default async function FinancePage() {
+export default async function FinancePage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParamRecord>;
+}) {
   const session = await auth();
   if (!canAccessFinance(session)) redirect("/dashboard");
 
+  const params = parseListParams(await searchParams, {
+    filterKeys: ["status", "cycle"],
+  });
   const [expenses, clients, projects] = await Promise.all([
     listRecurringExpenses(),
     listClients(),
     listProjects(),
   ]);
 
+  // The run-rate is always the whole book, never the filtered view: a search
+  // box must not look like it changed what the company spends.
   const activeExpenses = expenses.filter((e) => e.status === "active");
   const monthlyBhdEquivalent = activeExpenses.reduce((sum, e) => {
     const monthly =
@@ -29,6 +48,20 @@ export default async function FinancePage() {
           : e.amountCents;
     return sum + convertMinorUnits(Math.round(monthly), e.currency, "BHD");
   }, 0);
+
+  const visibleExpenses = applyListQuery(expenses, params, {
+    searchFields: (e) => [e.name, e.category],
+    sorters: {
+      name: byText((e) => e.name),
+      amount: byNumber((e) => e.amountCents),
+      due: byDate((e) => e.nextDueDate),
+    },
+    filters: {
+      status: (e, value) => e.status === value,
+      cycle: (e, value) => e.cycle === value,
+    },
+  });
+  const narrowed = isFiltered(params);
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -59,10 +92,39 @@ export default async function FinancePage() {
         </h2>
         <AddExpenseModal clients={clients} projects={projects} />
       </div>
+      <ListToolbar
+        searchPlaceholder="Search expense or category…"
+        filters={[
+          {
+            key: "status",
+            label: "Status",
+            options: [
+              { value: "active", label: "Active" },
+              { value: "paused", label: "Paused" },
+            ],
+          },
+          {
+            key: "cycle",
+            label: "Cycle",
+            options: [
+              { value: "monthly", label: "Monthly" },
+              { value: "quarterly", label: "Quarterly" },
+              { value: "annual", label: "Annual" },
+            ],
+          },
+        ]}
+        sorts={[
+          { value: "name", label: "Name" },
+          { value: "amount", label: "Amount" },
+          { value: "due", label: "Next due" },
+        ]}
+        exportType="expenses"
+      />
       <RecurringExpenseList
-        expenses={expenses}
+        expenses={visibleExpenses}
         clients={clients}
         projects={projects}
+        narrowed={narrowed}
       />
     </div>
   );

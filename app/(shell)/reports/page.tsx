@@ -14,6 +14,7 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { PipelineTracker } from "@/components/reports/PipelineTracker";
 import { NotionMigrationChecklist } from "@/components/reports/NotionMigrationChecklist";
 import { centsToDisplay } from "@/lib/money";
+import Link from "next/link";
 import { Download } from "lucide-react";
 
 function ExportLink({ type }: { type: string }) {
@@ -78,16 +79,17 @@ export default async function ReportsPage() {
         )}
         <div className="flex flex-col gap-1">
           {projectProfit.map((r) => (
-            <div
+            <Link
               key={r.projectId}
-              className="flex items-center justify-between text-sm"
+              href={`/projects/${r.projectId}`}
+              className="flex items-center justify-between rounded px-1 py-0.5 text-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <span className="text-foreground">{r.projectName}</span>
               <span className="text-muted-foreground">
                 {centsToDisplay(r.revenueBhdCents, "BHD")} rev ·{" "}
                 {centsToDisplay(r.netProfitBhdCents, "BHD")} net
               </span>
-            </div>
+            </Link>
           ))}
         </div>
       </Card>
