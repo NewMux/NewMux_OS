@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const parsed = setupVaultSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
 
   const salt = generateSalt();
   const key = deriveKey(parsed.data.passphrase, salt);

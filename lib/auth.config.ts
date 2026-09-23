@@ -21,7 +21,7 @@ export const authConfig: NextAuthConfig = {
       const isOnLogin = request.nextUrl.pathname.startsWith("/login");
       if (isOnLogin) {
         if (isLoggedIn) {
-          return Response.redirect(new URL("/dashboard", request.nextUrl));
+          return Response.redirect(new URL("/home", request.nextUrl));
         }
         return true;
       }

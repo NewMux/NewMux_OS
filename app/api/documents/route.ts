@@ -1,30 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { route, body } from "@/lib/api";
 import { canAccessDocuments } from "@/lib/rbac";
 import { createDocumentSchema } from "@/lib/validators/document";
 import { createDocument, listDocuments } from "@/lib/data/documents";
+import type { DocumentType } from "@/lib/data/types";
 
-export async function GET(req: NextRequest) {
-  const session = await auth();
-  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!canAccessDocuments(session)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+export const GET = route({ allow: canAccessDocuments }, async ({ req }) => ({
+  documents: await listDocuments({ type: (req.nextUrl.searchParams.get("type") as DocumentType | null) ?? undefined }),
+}));
 
-  const type = req.nextUrl.searchParams.get("type");
-  const docs = await listDocuments(type ? { type: type as "quote" | "contract" | "invoice" } : undefined);
-  return NextResponse.json({ documents: docs });
-}
-
-export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!canAccessDocuments(session)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
-
-  const body = await req.json();
-  const parsed = createDocumentSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  }
-
-  const doc = await createDocument({ ...parsed.data, createdBy: session.user.id });
-  return NextResponse.json({ document: doc }, { status: 201 });
-}
+export const POST = route({ allow: canAccessDocuments, status: 201 }, async ({ req, session }) => ({
+  document: await createDocument({ ...(await body(req, createDocumentSchema)), createdBy: session.user.id }),
+}));

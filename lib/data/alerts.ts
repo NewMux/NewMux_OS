@@ -1,79 +1,76 @@
-import { store } from "./store";
-import { hostingAlertLevel } from "./hosting";
-import type { Meeting, Task, HostingSubscription, Project } from "./types";
-
-function isSameDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-}
+import { many, one } from "./sql";
+import { hostingAlertLevel, listHostingSubscriptions, type HostingListItem } from "./hosting";
+import { listTasks } from "./projects";
+import type { TaskWithMeta } from "./types";
+import type { MeetingListItem } from "./meetings";
+import { addDaysYmd, daysUntil, todayYmd } from "@/lib/time";
 
 export type DashboardAlerts = {
-  todaysMeetings: Meeting[];
-  tasksDueTodayOrOverdue: (Task & { overdue: boolean })[];
+  todaysMeetings: MeetingListItem[];
+  tasksDueTodayOrOverdue: (TaskWithMeta & { overdue: boolean })[];
   renewalsWithin30Days: { label: string; dueDate: string; overdue: boolean }[];
-  hostingAlerts: { subscription: HostingSubscription; overdue: boolean }[];
+  hostingAlerts: { subscription: HostingListItem; overdue: boolean }[];
   activeProjectCount: number;
   completedProjectCount: number;
 };
 
-export async function getDashboardAlerts(): Promise<DashboardAlerts> {
-  const now = new Date();
+/** Everything that needs attention today, in Bahrain time. */
+export async function getDashboardAlerts(opts: { includeFinance?: boolean } = {}): Promise<DashboardAlerts> {
+  const today = todayYmd();
+  const tomorrow = addDaysYmd(today, 1);
 
-  const todaysMeetings = store.meetings.filter((m) => isSameDay(new Date(m.startsAt), now));
+  const [todaysMeetings, openTasks, projectRenewals, company, certs, counts, hosting] = await Promise.all([
+    many<MeetingListItem>(
+      `select m.*, p.name as project_name, c.name as client_name, k.title as kb_page_title from meetings m
+       left join projects p on p.id = m.linked_project_id left join clients c on c.id = m.linked_client_id
+       left join kb_pages k on k.id = m.kb_page_id
+       where (m.starts_at at time zone 'Asia/Bahrain')::date = $1::date order by m.starts_at`,
+      [today],
+    ),
+    listTasks({ openOnly: true }),
+    many<{ name: string; domainRenewalDate: string }>(
+      "select name, domain_renewal_date from projects where domain_renewal_date is not null and domain_renewal_date <= $1::date + 30",
+      [today],
+    ),
+    one<{ crRenewalDate: string | null; mainDomain: string; mainDomainRenewalDate: string | null }>(
+      "select cr_renewal_date, main_domain, main_domain_renewal_date from company_profile where id = 1",
+    ),
+    many<{ name: string; expiryDate: string }>(
+      "select name, expiry_date from certifications where expiry_date is not null and expiry_date <= $1::date + 30",
+      [today],
+    ),
+    one<{ active: number; completed: number }>(
+      `select count(*) filter (where status = 'active_sprint')::int as active,
+              count(*) filter (where status = 'completed')::int as completed from projects`,
+    ),
+    opts.includeFinance === false ? Promise.resolve([] as HostingListItem[]) : listHostingSubscriptions(),
+  ]);
 
-  const tasksDueTodayOrOverdue = store.tasks
-    .filter((t) => t.status !== "done" && t.dueAt)
-    .filter((t) => new Date(t.dueAt!).getTime() <= now.getTime() || isSameDay(new Date(t.dueAt!), now))
-    .map((t) => ({ ...t, overdue: new Date(t.dueAt!).getTime() < now.getTime() && !isSameDay(new Date(t.dueAt!), now) }));
+  const tasksDueTodayOrOverdue = openTasks
+    .filter((t) => t.dueAt && t.dueAt < tomorrow)
+    .map((t) => ({ ...t, overdue: t.dueAt! < today }));
 
-  const cutoff30 = now.getTime() + 30 * 24 * 60 * 60 * 1000;
   const renewalsWithin30Days: DashboardAlerts["renewalsWithin30Days"] = [];
-  for (const project of store.projects as Project[]) {
-    if (project.domainRenewalDate && new Date(project.domainRenewalDate).getTime() <= cutoff30) {
-      renewalsWithin30Days.push({
-        label: `${project.name} — domain renewal`,
-        dueDate: project.domainRenewalDate,
-        overdue: new Date(project.domainRenewalDate).getTime() < now.getTime(),
-      });
-    }
-  }
-  if (store.companyProfile?.crRenewalDate && new Date(store.companyProfile.crRenewalDate).getTime() <= cutoff30) {
-    renewalsWithin30Days.push({
-      label: "Commercial Registration renewal",
-      dueDate: store.companyProfile.crRenewalDate,
-      overdue: new Date(store.companyProfile.crRenewalDate).getTime() < now.getTime(),
-    });
-  }
-  if (store.companyProfile?.mainDomainRenewalDate && new Date(store.companyProfile.mainDomainRenewalDate).getTime() <= cutoff30) {
-    renewalsWithin30Days.push({
-      label: `${store.companyProfile.mainDomain} renewal`,
-      dueDate: store.companyProfile.mainDomainRenewalDate,
-      overdue: new Date(store.companyProfile.mainDomainRenewalDate).getTime() < now.getTime(),
-    });
-  }
-  for (const cert of store.companyProfile?.certifications ?? []) {
-    if (cert.expiryDate && new Date(cert.expiryDate).getTime() <= cutoff30) {
-      renewalsWithin30Days.push({
-        label: `${cert.name} expiry`,
-        dueDate: cert.expiryDate,
-        overdue: new Date(cert.expiryDate).getTime() < now.getTime(),
-      });
-    }
-  }
+  const pushRenewal = (label: string, date: string | null | undefined) => {
+    if (date && daysUntil(date) <= 30) renewalsWithin30Days.push({ label, dueDate: date, overdue: daysUntil(date) < 0 });
+  };
+  for (const p of projectRenewals) pushRenewal(`${p.name} — domain renewal`, p.domainRenewalDate);
+  pushRenewal("Commercial Registration renewal", company?.crRenewalDate);
+  pushRenewal(`${company?.mainDomain ?? "Main domain"} renewal`, company?.mainDomainRenewalDate);
+  for (const c of certs) pushRenewal(`${c.name} expiry`, c.expiryDate);
+  renewalsWithin30Days.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 
-  const hostingAlerts = store.hostingSubscriptions
+  const hostingAlerts = hosting
     .map((subscription) => ({ subscription, level: hostingAlertLevel(subscription) }))
     .filter((x) => x.level !== "ok")
     .map((x) => ({ subscription: x.subscription, overdue: x.level === "overdue" }));
-
-  const activeProjectCount = store.projects.filter((p) => p.status === "active_sprint").length;
-  const completedProjectCount = store.projects.filter((p) => p.status === "completed").length;
 
   return {
     todaysMeetings,
     tasksDueTodayOrOverdue,
     renewalsWithin30Days,
     hostingAlerts,
-    activeProjectCount,
-    completedProjectCount,
+    activeProjectCount: counts?.active ?? 0,
+    completedProjectCount: counts?.completed ?? 0,
   };
 }

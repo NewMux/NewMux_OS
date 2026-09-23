@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ref } from "./common";
 
 export const setupVaultSchema = z
   .object({
@@ -18,6 +19,6 @@ export const createSecretSchema = z.object({
   label: z.string().min(1),
   secretType: z.enum(["api_token", "db_connection", "deploy_key", "ssh_login", "other"]),
   value: z.string().min(1),
-  clientId: z.string().uuid().nullable().optional(),
-  projectId: z.string().uuid().nullable().optional(),
+  clientId: ref,
+  projectId: ref,
 });

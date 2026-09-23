@@ -1,9 +1,15 @@
 import { z } from "zod";
+import { amount, currency, cycle, ref, text, ymd } from "./common";
 
-export const createHostingSubscriptionSchema = z.object({
+export const hostingSubscriptionSchema = z.object({
   clientId: z.string().uuid(),
+  projectId: ref,
   item: z.enum(["server", "domain", "other"]),
-  amount: z.number().positive(),
-  currency: z.string().length(3).default("BHD"),
-  cycle: z.enum(["monthly", "quarterly", "annual"]),
+  label: text,
+  amount,
+  currency: currency.default("BHD"),
+  cycle,
+  nextDueDate: ymd,
+  status: z.enum(["active", "overdue", "paused"]).optional(),
 });
+export const createHostingSubscriptionSchema = hostingSubscriptionSchema;

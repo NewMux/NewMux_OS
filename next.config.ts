@@ -9,7 +9,9 @@ const withPWA = withPWAInit({
     skipWaiting: true,
     runtimeCaching: [
       {
-        urlPattern: /^\/dashboard/,
+        // App screens: fresh when online, last-seen copy when offline.
+        urlPattern: ({ request, sameOrigin }: { request: Request; sameOrigin: boolean }) =>
+          sameOrigin && request.mode === "navigate",
         handler: "NetworkFirst",
         options: {
           cacheName: "app-shell",
@@ -33,6 +35,11 @@ const withPWA = withPWAInit({
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // PGlite ships WASM + data files that must be loaded from node_modules at
+  // runtime rather than bundled; postgres.js likewise stays external.
+  serverExternalPackages: ["@electric-sql/pglite", "postgres"],
+  // db/migrations + db/seed.sql are read with fs at runtime.
+  outputFileTracingIncludes: { "/**": ["./db/**/*.sql"] },
 };
 
 export default withPWA(nextConfig);

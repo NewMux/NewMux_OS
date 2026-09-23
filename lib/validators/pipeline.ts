@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { requiredText, text } from "./common";
 
 export const createPipelineItemSchema = z.object({
-  name: z.string().min(1),
-  notes: z.string().optional(),
+  name: requiredText,
+  notes: text,
 });

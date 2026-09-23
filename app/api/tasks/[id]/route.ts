@@ -1,21 +1,24 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { route, body } from "@/lib/api";
+import { canAccessWork } from "@/lib/rbac";
 import { updateTaskSchema } from "@/lib/validators/task";
-import { updateTaskStatus, updateTaskPriority } from "@/lib/data/projects";
+import { deleteTask, getTaskById, listSubtasks, listTaskComments, updateTask } from "@/lib/data/projects";
+import { NotFoundError } from "@/lib/data/sql";
 
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth();
-  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+type P = { id: string };
 
-  const { id } = await params;
-  const body = await req.json();
-  const parsed = updateTaskSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+/** Full task detail for the task sheet: task + subtasks + comments. */
+export const GET = route<P>({ allow: canAccessWork }, async ({ params }) => {
+  const task = await getTaskById(params.id);
+  if (!task) throw new NotFoundError("Task");
+  const [subtasks, comments] = await Promise.all([listSubtasks(params.id), listTaskComments(params.id)]);
+  return { task, subtasks, comments };
+});
 
-  let task;
-  if (parsed.data.status) task = await updateTaskStatus(id, parsed.data.status);
-  if (parsed.data.priority) task = await updateTaskPriority(id, parsed.data.priority);
-  if (!task) return NextResponse.json({ error: "no fields to update" }, { status: 400 });
+export const PATCH = route<P>({ allow: canAccessWork }, async ({ req, params }) => ({
+  task: await updateTask(params.id, await body(req, updateTaskSchema)),
+}));
 
-  return NextResponse.json({ task });
-}
+export const DELETE = route<P>({ allow: canAccessWork }, async ({ params }) => {
+  await deleteTask(params.id);
+  return { ok: true };
+});

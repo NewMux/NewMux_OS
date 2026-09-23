@@ -1,51 +1,82 @@
-import { randomUUID } from "crypto";
-import { store } from "./store";
-import type { DocumentRecord, DocumentLineItem, DocumentStatus, DocumentType } from "./types";
+import { query, tx } from "@/lib/db";
+import { many, one, must, NotFoundError, ValidationError } from "./sql";
+import { logAudit } from "./audit";
+import type { Currency, DocumentLineItem, DocumentRecord, DocumentStatus, DocumentStatusHistoryEntry, DocumentType } from "./types";
 import { subtotalCents as calcSubtotal, taxCents as calcTax, totalCents as calcTotal } from "@/lib/money";
+import { canTransition } from "@/lib/validators/document";
+import { todayYmd } from "@/lib/time";
 
-const SEQUENCES: Record<DocumentType, { prefix: string; counter: number }> = {
-  quote: { prefix: "QUO", counter: 100 },
-  contract: { prefix: "CON", counter: 100 },
-  invoice: { prefix: "INV", counter: 100 },
-};
+export { listClients, getClientById, createClient, listProducts } from "./clients";
 
-// Seed data already used QUO-2026-2606 / INV-2026-0265 (matching Newmux's
-// existing real numbering) — bump counters so new documents don't collide.
-SEQUENCES.quote.counter = 2606;
-SEQUENCES.contract.counter = 12;
-SEQUENCES.invoice.counter = 265;
+const PREFIX: Record<DocumentType, string> = { quote: "QUO", contract: "CON", invoice: "INV" };
 
-function nextDocumentNumber(type: DocumentType): string {
-  const seq = SEQUENCES[type];
-  seq.counter += 1;
-  const year = new Date().getFullYear();
-  return `${seq.prefix}-${year}-${String(seq.counter).padStart(4, "0")}`;
+/** Atomic, per-type, per-year numbering — safe across processes and restarts. */
+async function nextDocumentNumber(type: DocumentType): Promise<string> {
+  const year = Number(todayYmd().slice(0, 4));
+  const [row] = await query<{ last_value: number }>(
+    `insert into doc_sequences (doc_type, year, last_value) values ($1, $2, 1)
+     on conflict (doc_type, year) do update set last_value = doc_sequences.last_value + 1
+     returning last_value`,
+    [type, year],
+  );
+  return `${PREFIX[type]}-${year}-${String(row!.last_value).padStart(4, "0")}`;
 }
 
-/** Exposed for lib/data/finance.ts's quotation→invoice conversion, which
- * needs a fresh number from the invoice sequence, separate from quotes'. */
-export function assignInvoiceNumber(): string {
-  return nextDocumentNumber("invoice");
-}
+export type DocumentListItem = DocumentRecord & { clientName: string; paidCents: number };
 
-export async function listDocuments(filter?: { type?: DocumentType }): Promise<DocumentRecord[]> {
-  return store.documents
-    .filter((d) => !filter?.type || d.type === filter.type)
-    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+export async function listDocuments(filter: {
+  type?: DocumentType;
+  clientId?: string;
+  projectId?: string;
+  dealId?: string;
+  status?: DocumentStatus;
+} = {}): Promise<DocumentListItem[]> {
+  const where: string[] = [];
+  const params: unknown[] = [];
+  const add = (sql: string, v: unknown) => {
+    params.push(v);
+    where.push(sql.replace("?", `$${params.length}`));
+  };
+  if (filter.type) add("d.type = ?", filter.type);
+  if (filter.clientId) add("d.client_id = ?", filter.clientId);
+  if (filter.projectId) add("d.project_id = ?", filter.projectId);
+  if (filter.dealId) add("d.deal_id = ?", filter.dealId);
+  if (filter.status) add("d.status = ?", filter.status);
+  return many<DocumentListItem>(
+    `select d.*, c.name as client_name,
+       coalesce((select sum(p.amount_cents) from payments p where p.document_id = d.id), 0)::int8 as paid_cents
+     from documents d join clients c on c.id = d.client_id
+     ${where.length ? `where ${where.join(" and ")}` : ""}
+     order by d.created_at desc`,
+    params,
+  );
 }
 
 export async function getDocumentById(id: string): Promise<DocumentRecord | undefined> {
-  return store.documents.find((d) => d.id === id);
+  return one<DocumentRecord>("select * from documents where id = $1", [id]);
 }
 
 export async function getLineItems(documentId: string): Promise<DocumentLineItem[]> {
-  return store.documentLineItems
-    .filter((li) => li.documentId === documentId)
-    .sort((a, b) => a.sortOrder - b.sortOrder);
+  return many<DocumentLineItem>("select * from document_line_items where document_id = $1 order by sort_order", [documentId]);
 }
 
-export async function getClientById(clientId: string) {
-  return store.clients.find((c) => c.id === clientId);
+type LineItemInput = { description: string; quantity: number; unitPriceCents: number };
+
+async function replaceLineItems(documentId: string, lineItems: LineItemInput[]) {
+  await query("delete from document_line_items where document_id = $1", [documentId]);
+  for (const [i, li] of lineItems.entries()) {
+    await query(
+      "insert into document_line_items (document_id, description, quantity, unit_price_cents, sort_order) values ($1, $2, $3, $4, $5)",
+      [documentId, li.description, li.quantity, li.unitPriceCents, i],
+    );
+  }
+}
+
+async function recordStatus(documentId: string, from: DocumentStatus | null, to: DocumentStatus, by: string | null) {
+  await query(
+    "insert into document_status_history (document_id, from_status, to_status, changed_by) values ($1, $2, $3, $4)",
+    [documentId, from, to, by],
+  );
 }
 
 export async function createDocument(input: {
@@ -53,182 +84,207 @@ export async function createDocument(input: {
   clientId: string;
   productId?: string | null;
   projectId?: string | null;
-  currency?: string;
+  dealId?: string | null;
+  currency?: Currency;
   taxRateBps: number;
-  paymentTerms?: string;
-  notes?: string;
-  lineItems: { description: string; quantity: number; unitPriceCents: number }[];
+  paymentTerms?: string | null;
+  notes?: string | null;
+  dueAt?: string | null;
+  lineItems: LineItemInput[];
   createdBy: string;
 }): Promise<DocumentRecord> {
-  const subtotal = calcSubtotal(input.lineItems);
-  const tax = calcTax(subtotal, input.taxRateBps);
-  const now = new Date().toISOString();
-
-  // Invoices inherit the project's default profit-split rule (PRD 5.3.1).
-  // Quotations never carry one — they create no financial entry (PRD 5.4).
-  const project = input.projectId ? store.projects.find((p) => p.id === input.projectId) : undefined;
-  const profitSplitRuleId = input.type === "invoice" ? (project?.profitSplitRuleId ?? null) : null;
-
-  const doc: DocumentRecord = {
-    id: randomUUID(),
-    type: input.type,
-    status: "draft",
-    clientId: input.clientId,
-    productId: input.productId ?? null,
-    projectId: input.projectId ?? null,
-    convertedFromQuotationId: null,
-    profitSplitRuleId,
-    documentNumber: nextDocumentNumber(input.type),
-    currency: input.currency ?? "USD",
-    subtotalCents: subtotal,
-    taxRateBps: input.taxRateBps,
-    taxCents: tax,
-    totalCents: calcTotal(subtotal, tax),
-    paymentTerms: input.paymentTerms ?? null,
-    notes: input.notes ?? null,
-    issuedAt: null,
-    dueAt: null,
-    acceptedAt: null,
-    paidAt: null,
-    archivedAt: null,
-    createdBy: input.createdBy,
-    createdAt: now,
-    updatedAt: now,
-  };
-  store.documents.push(doc);
-
-  input.lineItems.forEach((li, i) => {
-    store.documentLineItems.push({
-      id: randomUUID(),
-      documentId: doc.id,
-      description: li.description,
-      quantity: li.quantity,
-      unitPriceCents: li.unitPriceCents,
-      sortOrder: i,
-    });
+  return tx(async () => {
+    const subtotal = calcSubtotal(input.lineItems);
+    const tax = calcTax(subtotal, input.taxRateBps);
+    // Invoices inherit the project's default profit-split rule (PRD 5.3.1).
+    // Quotations never carry one — they create no financial entry (PRD 5.4).
+    let profitSplitRuleId: string | null = null;
+    if (input.type === "invoice" && input.projectId) {
+      const project = await one<{ profitSplitRuleId: string | null }>(
+        "select profit_split_rule_id from projects where id = $1",
+        [input.projectId],
+      );
+      profitSplitRuleId = project?.profitSplitRuleId ?? null;
+    }
+    const documentNumber = await nextDocumentNumber(input.type);
+    const doc = await must<DocumentRecord>(
+      "Document",
+      `insert into documents (type, client_id, product_id, project_id, deal_id, profit_split_rule_id, document_number,
+         currency, subtotal_cents, tax_rate_bps, tax_cents, total_cents, payment_terms, notes, due_at, created_by)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) returning *`,
+      [
+        input.type,
+        input.clientId,
+        input.productId ?? null,
+        input.projectId ?? null,
+        input.dealId ?? null,
+        profitSplitRuleId,
+        documentNumber,
+        input.currency ?? "BHD",
+        subtotal,
+        input.taxRateBps,
+        tax,
+        calcTotal(subtotal, tax),
+        input.paymentTerms ?? null,
+        input.notes ?? null,
+        input.dueAt ?? null,
+        input.createdBy,
+      ],
+    );
+    await replaceLineItems(doc.id, input.lineItems);
+    await recordStatus(doc.id, null, "draft", input.createdBy);
+    return doc;
   });
-
-  store.documentStatusHistory.push({
-    id: randomUUID(),
-    documentId: doc.id,
-    fromStatus: null,
-    toStatus: "draft",
-    changedBy: input.createdBy,
-    changedAt: now,
-  });
-
-  return doc;
-}
-
-export async function updateDocumentLineItems(
-  documentId: string,
-  lineItems: { description: string; quantity: number; unitPriceCents: number }[],
-): Promise<DocumentRecord> {
-  const doc = store.documents.find((d) => d.id === documentId);
-  if (!doc) throw new Error("Document not found");
-
-  store.documentLineItems = store.documentLineItems.filter((li) => li.documentId !== documentId);
-  lineItems.forEach((li, i) => {
-    store.documentLineItems.push({
-      id: randomUUID(),
-      documentId,
-      description: li.description,
-      quantity: li.quantity,
-      unitPriceCents: li.unitPriceCents,
-      sortOrder: i,
-    });
-  });
-
-  const subtotal = calcSubtotal(lineItems);
-  const tax = calcTax(subtotal, doc.taxRateBps);
-  doc.subtotalCents = subtotal;
-  doc.taxCents = tax;
-  doc.totalCents = calcTotal(subtotal, tax);
-  doc.updatedAt = new Date().toISOString();
-  return doc;
-}
-
-export async function transitionDocumentStatus(
-  documentId: string,
-  to: DocumentStatus,
-  changedBy: string,
-): Promise<DocumentRecord> {
-  const doc = store.documents.find((d) => d.id === documentId);
-  if (!doc) throw new Error("Document not found");
-
-  const now = new Date().toISOString();
-  const from = doc.status;
-  doc.status = to;
-  doc.updatedAt = now;
-  if (to === "sent" && !doc.issuedAt) doc.issuedAt = now;
-  if (to === "accepted") doc.acceptedAt = now;
-  if (to === "paid") doc.paidAt = now;
-  if (to === "archived") doc.archivedAt = now;
-
-  store.documentStatusHistory.push({
-    id: randomUUID(),
-    documentId,
-    fromStatus: from,
-    toStatus: to,
-    changedBy,
-    changedAt: now,
-  });
-
-  return doc;
-}
-
-export async function getStatusHistory(documentId: string) {
-  return store.documentStatusHistory
-    .filter((h) => h.documentId === documentId)
-    .sort((a, b) => (a.changedAt < b.changedAt ? -1 : 1));
-}
-
-export async function listClients() {
-  return store.clients;
-}
-
-function nextClientCode(): string {
-  const n = store.clients.length + 1;
-  return `CL-${String(n).padStart(3, "0")}`;
-}
-
-export async function createClient(input: {
-  name: string;
-  contactPerson?: string | null;
-  contactEmail?: string | null;
-  contactPhone?: string | null;
-  billingAddress?: string | null;
-  notes?: string | null;
-}) {
-  const client = {
-    id: randomUUID(),
-    clientCode: nextClientCode(),
-    name: input.name,
-    contactPerson: input.contactPerson ?? null,
-    contactEmail: input.contactEmail ?? null,
-    contactPhone: input.contactPhone ?? null,
-    billingAddress: input.billingAddress ?? null,
-    notes: input.notes ?? null,
-  };
-  store.clients.push(client);
-  return client;
-}
-
-export async function listProducts() {
-  return store.products;
 }
 
 /**
- * NFR: RESTRICT deleting a client linked to active (non-archived) invoices.
- * DB layer will additionally enforce this via FK `on delete restrict`.
+ * Header fields and line items. Money-shaping fields (line items, tax,
+ * currency, client) are locked once a document leaves draft; notes, terms
+ * and the due date stay editable until it is archived.
  */
-export async function assertClientDeletable(clientId: string) {
-  const activeDocs = store.documents.filter((d) => d.clientId === clientId && d.status !== "archived");
-  if (activeDocs.length > 0) {
-    throw new Error(
-      `Cannot delete client: ${activeDocs.length} non-archived document(s) reference it (${activeDocs
-        .map((d) => d.documentNumber)
-        .join(", ")}).`,
+export async function updateDocument(
+  documentId: string,
+  patch: {
+    lineItems?: LineItemInput[];
+    taxRateBps?: number;
+    currency?: Currency;
+    clientId?: string;
+    projectId?: string | null;
+    paymentTerms?: string | null;
+    notes?: string | null;
+    dueAt?: string | null;
+  },
+  changedBy: string,
+): Promise<DocumentRecord> {
+  return tx(async () => {
+    const doc = await must<DocumentRecord>("Document", "select * from documents where id = $1 for update", [documentId]);
+    if (doc.status === "archived") throw new ValidationError("Archived documents can't be edited.");
+    const locked = patch.lineItems !== undefined || patch.taxRateBps !== undefined || patch.currency !== undefined || patch.clientId !== undefined;
+    if (locked && doc.status !== "draft") {
+      throw new ValidationError("Line items, tax, currency and client can only be changed while the document is a draft.");
+    }
+
+    if (patch.lineItems) await replaceLineItems(documentId, patch.lineItems);
+    const items = patch.lineItems ?? (await getLineItems(documentId));
+    const taxRateBps = patch.taxRateBps ?? doc.taxRateBps;
+    const subtotal = calcSubtotal(items);
+    const tax = calcTax(subtotal, taxRateBps);
+
+    const updated = await must<DocumentRecord>(
+      "Document",
+      `update documents set
+         tax_rate_bps = $2, subtotal_cents = $3, tax_cents = $4, total_cents = $5,
+         currency = coalesce($6, currency), client_id = coalesce($7, client_id),
+         project_id = case when $8::boolean then $9::uuid else project_id end,
+         payment_terms = case when $10::boolean then $11 else payment_terms end,
+         notes = case when $12::boolean then $13 else notes end,
+         due_at = case when $14::boolean then $15::date else due_at end,
+         updated_at = now()
+       where id = $1 returning *`,
+      [
+        documentId,
+        taxRateBps,
+        subtotal,
+        tax,
+        calcTotal(subtotal, tax),
+        patch.currency ?? null,
+        patch.clientId ?? null,
+        patch.projectId !== undefined,
+        patch.projectId ?? null,
+        patch.paymentTerms !== undefined,
+        patch.paymentTerms ?? null,
+        patch.notes !== undefined,
+        patch.notes ?? null,
+        patch.dueAt !== undefined,
+        patch.dueAt ?? null,
+      ],
     );
-  }
+    await logAudit({
+      entityType: "document",
+      entityId: documentId,
+      action: "update",
+      summary: `Edited ${doc.documentNumber}`,
+      changedBy,
+    });
+    return updated;
+  });
+}
+
+export async function transitionDocumentStatus(documentId: string, to: DocumentStatus, changedBy: string | null): Promise<DocumentRecord> {
+  return tx(async () => {
+    const doc = await must<DocumentRecord>("Document", "select * from documents where id = $1 for update", [documentId]);
+    if (doc.status === to) return doc;
+    if (!canTransition(doc.status, to)) {
+      throw new ValidationError(`Can't move ${doc.documentNumber} from ${doc.status} to ${to}.`);
+    }
+    const updated = await must<DocumentRecord>(
+      "Document",
+      `update documents set status = $2::document_status, updated_at = now(),
+         issued_at = case when $2::document_status = 'sent' and issued_at is null then now() else issued_at end,
+         accepted_at = case when $2::document_status = 'accepted' then now() else accepted_at end,
+         paid_at = case when $2::document_status = 'paid' then now() else paid_at end,
+         archived_at = case when $2::document_status = 'archived' then now() else archived_at end
+       where id = $1 returning *`,
+      [documentId, to],
+    );
+    await recordStatus(documentId, doc.status, to, changedBy);
+    return updated;
+  });
+}
+
+/** Only drafts can be deleted; anything that has been sent is archived instead. */
+export async function deleteDocument(documentId: string, deletedBy: string): Promise<void> {
+  const doc = await getDocumentById(documentId);
+  if (!doc) throw new NotFoundError("Document");
+  if (doc.status !== "draft") throw new ValidationError("Only drafts can be deleted — archive sent documents instead.");
+  await query("delete from documents where id = $1", [documentId]);
+  await logAudit({ entityType: "document", entityId: documentId, action: "delete", summary: `Deleted draft ${doc.documentNumber}`, changedBy: deletedBy });
+}
+
+export async function getStatusHistory(documentId: string): Promise<(DocumentStatusHistoryEntry & { changedByName: string | null })[]> {
+  return many(
+    `select h.*, u.full_name as changed_by_name from document_status_history h
+     left join users u on u.id = h.changed_by
+     where h.document_id = $1 order by h.changed_at, h.id`,
+    [documentId],
+  );
+}
+
+// --- Quotation → Invoice conversion (PRD 5.4) ---
+
+export async function convertQuotationToInvoice(quotationId: string, convertedBy: string): Promise<DocumentRecord> {
+  const quote = await getDocumentById(quotationId);
+  if (!quote) throw new NotFoundError("Quotation");
+  if (quote.type !== "quote") throw new ValidationError("Only quotations can be converted to invoices.");
+  const existing = await one<{ documentNumber: string }>(
+    "select document_number from documents where converted_from_quotation_id = $1 and status <> 'archived'",
+    [quotationId],
+  );
+  if (existing) throw new ValidationError(`Already converted to ${existing.documentNumber}.`);
+
+  return tx(async () => {
+    const lineItems = await getLineItems(quotationId);
+    const invoice = await createDocument({
+      type: "invoice",
+      clientId: quote.clientId,
+      productId: quote.productId,
+      projectId: quote.projectId,
+      dealId: quote.dealId,
+      currency: quote.currency,
+      taxRateBps: quote.taxRateBps,
+      paymentTerms: quote.paymentTerms,
+      notes: quote.notes,
+      lineItems: lineItems.map((li) => ({ description: li.description, quantity: li.quantity, unitPriceCents: li.unitPriceCents })),
+      createdBy: convertedBy,
+    });
+    await query("update documents set converted_from_quotation_id = $2 where id = $1", [invoice.id, quote.id]);
+    await logAudit({
+      entityType: "document",
+      entityId: invoice.id,
+      action: "create",
+      summary: `Converted quotation ${quote.documentNumber} to invoice ${invoice.documentNumber}`,
+      changedBy: convertedBy,
+    });
+    return { ...invoice, convertedFromQuotationId: quote.id };
+  });
 }

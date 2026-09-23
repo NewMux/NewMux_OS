@@ -9,15 +9,79 @@ export type User = {
   isActive: boolean;
 };
 
+export type Currency = "BHD" | "USD";
+export const CURRENCIES: Currency[] = ["BHD", "USD"];
+
+/** A company the business works with (CRM "company"). People live in Contact. */
 export type Client = {
   id: string;
   clientCode: string;
   name: string;
-  contactPerson: string | null;
-  contactEmail: string | null;
-  contactPhone: string | null;
+  industry: string | null;
+  website: string | null;
+  email: string | null;
+  phone: string | null;
   billingAddress: string | null;
   notes: string | null;
+  createdAt: string;
+};
+
+export type Contact = {
+  id: string;
+  clientId: string | null;
+  fullName: string;
+  title: string | null;
+  email: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+  isPrimary: boolean;
+  notes: string | null;
+  createdAt: string;
+};
+
+// --- CRM ---
+
+export type DealStage = "lead" | "qualified" | "proposal" | "negotiation" | "won" | "lost";
+export const DEAL_STAGES: DealStage[] = ["lead", "qualified", "proposal", "negotiation", "won", "lost"];
+export const OPEN_DEAL_STAGES: DealStage[] = ["lead", "qualified", "proposal", "negotiation"];
+
+export type Deal = {
+  id: string;
+  title: string;
+  clientId: string | null;
+  contactId: string | null;
+  stage: DealStage;
+  valueCents: number;
+  currency: Currency;
+  probability: number;
+  expectedClose: string | null;
+  ownerId: string | null;
+  source: string | null;
+  notes: string | null;
+  lostReason: string | null;
+  sortOrder: number;
+  projectId: string | null;
+  wonAt: string | null;
+  closedAt: string | null;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ActivityKind = "call" | "email" | "meeting" | "note" | "whatsapp" | "follow_up";
+
+export type Activity = {
+  id: string;
+  kind: ActivityKind;
+  subject: string;
+  body: string | null;
+  clientId: string | null;
+  contactId: string | null;
+  dealId: string | null;
+  dueAt: string | null;
+  completedAt: string | null;
+  createdBy: string | null;
+  createdAt: string;
 };
 
 export type Product = {
@@ -53,8 +117,9 @@ export type DocumentRecord = {
    * project/venture default at creation, editable per invoice. Quotes never
    * carry one: they create no financial entry (PRD 5.4). */
   profitSplitRuleId: string | null;
+  dealId: string | null;
   documentNumber: string;
-  currency: string;
+  currency: Currency;
   subtotalCents: number;
   taxRateBps: number;
   taxCents: number;
@@ -66,7 +131,7 @@ export type DocumentRecord = {
   acceptedAt: string | null;
   paidAt: string | null;
   archivedAt: string | null;
-  createdBy: string;
+  createdBy: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -87,10 +152,12 @@ export type Project = {
   clientId: string | null;
   productId: string | null;
   name: string;
+  description: string | null;
+  color: string;
   status: ProjectStatus;
   startedAt: string | null;
   targetEndAt: string | null;
-  createdBy: string;
+  createdBy: string | null;
   // Technical detail (PRD section 10.2) — access credentials live in the
   // Secrets Vault (lib/data/vault.ts), never stored here as plaintext.
   techStack: string | null;
@@ -115,7 +182,36 @@ export type Task = {
   assigneeId: string | null;
   dueAt: string | null;
   sortOrder: number;
-  createdBy: string;
+  completedAt: string | null;
+  createdBy: string | null;
+  createdAt: string;
+};
+
+/** Task with roll-up counts, as returned by list queries. */
+export type TaskWithMeta = Task & {
+  projectName: string;
+  projectColor: string;
+  assigneeName: string | null;
+  subtaskCount: number;
+  subtaskDoneCount: number;
+  commentCount: number;
+};
+
+export type Subtask = {
+  id: string;
+  taskId: string;
+  title: string;
+  done: boolean;
+  sortOrder: number;
+};
+
+export type TaskComment = {
+  id: string;
+  taskId: string;
+  authorId: string | null;
+  authorName: string | null;
+  body: string;
+  createdAt: string;
 };
 
 export type SecretType = "api_token" | "db_connection" | "deploy_key" | "ssh_login" | "other";
@@ -130,7 +226,7 @@ export type SecretRecord = {
   iv: Buffer;
   authTag: Buffer;
   maskedPreview: string;
-  createdBy: string;
+  createdBy: string | null;
   createdAt: string;
 };
 
@@ -187,7 +283,7 @@ export type Campaign = {
   startDate: string | null;
   endDate: string | null;
   isActive: boolean;
-  createdBy: string;
+  createdBy: string | null;
 };
 
 export type CampaignMetric = {
@@ -238,7 +334,7 @@ export type ProfitSplitRule = {
   splits: ProfitSplitSplit[];
   deductions: ProfitSplitDeduction[];
   isDefault: boolean;
-  updatedBy: string;
+  updatedBy: string | null;
   updatedAt: string;
 };
 
@@ -250,7 +346,7 @@ export type RecurringExpense = {
   name: string;
   category: string;
   amountCents: number;
-  currency: string;
+  currency: Currency;
   cycle: RecurringExpenseCycle;
   lastPaymentDate: string | null;
   nextDueDate: string | null;
@@ -259,7 +355,36 @@ export type RecurringExpense = {
   status: RecurringExpenseStatus;
 };
 
-export type PaymentMethod = "cash" | "transfer";
+/** Money actually spent — one-off, or a logged payment of a recurring expense. */
+export type Expense = {
+  id: string;
+  description: string;
+  category: string;
+  vendor: string | null;
+  amountCents: number;
+  currency: Currency;
+  spentOn: string;
+  linkedClientId: string | null;
+  linkedProjectId: string | null;
+  recurringExpenseId: string | null;
+  notes: string | null;
+  createdBy: string | null;
+  createdAt: string;
+};
+
+export const EXPENSE_CATEGORIES = [
+  "hosting",
+  "software subscription",
+  "contractor",
+  "marketing",
+  "admin",
+  "travel",
+  "equipment",
+  "government fees",
+  "other",
+] as const;
+
+export type PaymentMethod = "cash" | "transfer" | "card" | "cheque";
 
 /** A partial or full payment against an invoice. Never changes the invoice's
  * original value (PRD 5.5) — only the payment log grows. */
@@ -267,9 +392,10 @@ export type Payment = {
   id: string;
   documentId: string;
   amountCents: number;
-  date: string;
+  paidOn: string;
   method: PaymentMethod;
-  recordedBy: string;
+  reference: string | null;
+  recordedBy: string | null;
 };
 
 export type HostingItemType = "server" | "domain" | "other";
@@ -278,9 +404,11 @@ export type HostingSubscriptionStatus = "active" | "overdue" | "paused";
 export type HostingSubscription = {
   id: string;
   clientId: string;
+  projectId: string | null;
   item: HostingItemType;
+  label: string | null;
   amountCents: number;
-  currency: string;
+  currency: Currency;
   cycle: RecurringExpenseCycle;
   lastCollectedDate: string | null;
   nextDueDate: string | null;
@@ -308,23 +436,38 @@ export type Meeting = {
   id: string;
   title: string;
   startsAt: string;
+  durationMinutes: number;
+  location: string | null;
   linkedProjectId: string | null;
   linkedClientId: string | null;
+  linkedDealId: string | null;
+  kbPageId: string | null;
   notes: string | null;
   recurring: "none" | "weekly" | "monthly";
-  createdBy: string;
+  createdBy: string | null;
 };
 
 export type AuditLogAction = "create" | "update" | "delete";
 
 /** Every change to an invoice, payment, or profit-split rule (PRD 15.1). */
+export type AuditEntityType =
+  | "document"
+  | "payment"
+  | "profit_split_rule"
+  | "deduction_type"
+  | "recurring_expense"
+  | "expense"
+  | "hosting_subscription"
+  | "deal";
+
 export type AuditLogEntry = {
   id: string;
-  entityType: "document" | "payment" | "profit_split_rule" | "deduction_type" | "recurring_expense";
+  entityType: AuditEntityType;
   entityId: string;
   action: AuditLogAction;
   summary: string;
-  changedBy: string;
+  changedBy: string | null;
+  changedByName?: string | null;
   changedAt: string;
 };
 
@@ -346,6 +489,11 @@ export type Partnership = {
 };
 
 export type CompanyProfile = {
+  legalName: string;
+  vatNumber: string | null;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
   crNumber: string;
   crRenewalDate: string | null;
   mainDomain: string;
@@ -364,3 +512,44 @@ export type PipelineItem = {
   stage: PipelineStage;
   notes: string | null;
 };
+
+// --- Knowledge base ---
+
+export type KbSpace = {
+  id: string;
+  name: string;
+  description: string | null;
+  icon: string;
+  color: string;
+  sortOrder: number;
+  pageCount?: number;
+};
+
+/** TipTap/ProseMirror JSON document. */
+export type KbContent = { type: "doc"; content?: unknown[] };
+
+export type KbPage = {
+  id: string;
+  spaceId: string;
+  parentId: string | null;
+  title: string;
+  emoji: string | null;
+  content: KbContent;
+  contentText: string;
+  clientId: string | null;
+  projectId: string | null;
+  dealId: string | null;
+  isTemplate: boolean;
+  sortOrder: number;
+  createdBy: string | null;
+  updatedBy: string | null;
+  updatedByName?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/** Lightweight page row for lists/trees (no content). */
+export type KbPageSummary = Pick<
+  KbPage,
+  "id" | "spaceId" | "parentId" | "title" | "emoji" | "isTemplate" | "sortOrder" | "updatedAt"
+> & { spaceName?: string; snippet?: string };

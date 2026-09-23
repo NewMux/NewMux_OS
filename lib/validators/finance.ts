@@ -1,17 +1,33 @@
 import { z } from "zod";
+import { amount, currency, cycle, ref, requiredText, requiredYmd, text, ymd } from "./common";
 
-export const createRecurringExpenseSchema = z.object({
-  name: z.string().min(1),
-  category: z.string().min(1),
-  amount: z.number().positive(),
-  currency: z.string().length(3).default("USD"),
-  cycle: z.enum(["monthly", "quarterly", "annual"]),
-  linkedClientId: z.string().uuid().nullable().optional(),
-  linkedProjectId: z.string().uuid().nullable().optional(),
+export const recurringExpenseSchema = z.object({
+  name: requiredText,
+  category: requiredText,
+  amount,
+  currency: currency.default("BHD"),
+  cycle,
+  nextDueDate: ymd,
+  linkedClientId: ref,
+  linkedProjectId: ref,
+});
+/** Kept for existing callers. */
+export const createRecurringExpenseSchema = recurringExpenseSchema;
+
+export const expenseSchema = z.object({
+  description: requiredText,
+  category: requiredText,
+  vendor: text,
+  amount,
+  currency: currency.default("BHD"),
+  spentOn: requiredYmd,
+  linkedClientId: ref,
+  linkedProjectId: ref,
+  notes: text,
 });
 
 export const createDeductionTypeSchema = z.object({
-  name: z.string().min(1),
+  name: requiredText,
   kind: z.enum(["fixed", "percentage"]),
 });
 
@@ -34,10 +50,19 @@ export const upsertProfitSplitRuleSchema = z.object({
 });
 
 export const addPaymentSchema = z.object({
-  amount: z.number().positive(),
-  method: z.enum(["cash", "transfer"]),
+  amount,
+  method: z.enum(["cash", "transfer", "card", "cheque"]),
+  paidOn: ymd,
+  reference: text,
 });
 
 export const createPartySchema = z.object({
-  name: z.string().min(1),
+  name: requiredText,
+});
+
+export const ventureSchema = z.object({
+  name: requiredText,
+  brandDescription: text,
+  websiteUrl: text,
+  launchStatus: z.enum(["planning", "in_development", "launched", "paused"]),
 });

@@ -8,8 +8,11 @@ export class ForbiddenError extends Error {
   }
 }
 
+const isAdmin = (session: Session | null) => session?.user?.role === "partner_admin";
+const isSignedIn = (session: Session | null) => !!session?.user;
+
 export function isPartnerAdmin(session: Session | null): boolean {
-  return session?.user?.role === "partner_admin";
+  return isAdmin(session);
 }
 
 export function requireRole(session: Session | null, allowed: UserRole[]): asserts session is Session {
@@ -19,28 +22,18 @@ export function requireRole(session: Session | null, allowed: UserRole[]): asser
 }
 
 /**
- * Lead Developer/Designer gets no access to Documents (financial) or Growth
- * (marketing spend) modules — confirmed product decision, enforced here at
- * the API/query layer, not just hidden in the UI.
+ * Access matrix (PRD 2.1/2.2). Partner admins see everything. The limited
+ * lead-dev role gets delivery tools only: Home, Work (projects, tasks,
+ * calendar), the Wiki, and the Vault with masked values — never CRM,
+ * Finance, Documents, Growth, Company or Settings. Enforced in API routes
+ * and pages, not just hidden in navigation.
  */
-export function canAccessDocuments(session: Session | null): boolean {
-  return session?.user?.role === "partner_admin";
-}
-
-export function canAccessGrowth(session: Session | null): boolean {
-  return session?.user?.role === "partner_admin";
-}
-
-export function canRevealVaultSecrets(session: Session | null): boolean {
-  return session?.user?.role === "partner_admin";
-}
-
-/** Finance (recurring expenses, profit distribution) is admin-only per PRD 2.1. */
-export function canAccessFinance(session: Session | null): boolean {
-  return session?.user?.role === "partner_admin";
-}
-
-/** Settings (profit-split rules, deduction types) is admin-only per PRD 5.3.1. */
-export function canAccessSettings(session: Session | null): boolean {
-  return session?.user?.role === "partner_admin";
-}
+export const canAccessCrm = isAdmin;
+export const canAccessDocuments = isAdmin;
+export const canAccessFinance = isAdmin;
+export const canAccessGrowth = isAdmin;
+export const canAccessSettings = isAdmin;
+export const canAccessCompany = isAdmin;
+export const canRevealVaultSecrets = isAdmin;
+export const canAccessWork = isSignedIn;
+export const canAccessKb = isSignedIn;

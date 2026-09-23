@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { canAccessFinance } from "@/lib/rbac";
-import { getProfitByProjectReport, getProfitByPartnerReport, getInvoiceStatusReport } from "@/lib/data/reports";
+import { getProfitByProjectReport, getProfitByPartnerReport, getInvoiceStatusReport, getMonthlyCashFlow } from "@/lib/data/reports";
+import { listExpenses } from "@/lib/data/expenses";
 import { toCsv } from "@/lib/csv";
 import { centsToDisplay } from "@/lib/money";
 
@@ -40,6 +41,20 @@ export async function GET(req: NextRequest) {
       ],
     );
     filename = "invoice-status.csv";
+  } else if (type === "cash-flow") {
+    const months = await getMonthlyCashFlow(12);
+    csv = toCsv(
+      ["Month", "In (BHD)", "Out (BHD)", "Net (BHD)"],
+      months.map((m) => [m.month, centsToDisplay(m.inBhdCents, "BHD"), centsToDisplay(m.outBhdCents, "BHD"), centsToDisplay(m.inBhdCents - m.outBhdCents, "BHD")]),
+    );
+    filename = "cash-flow-12-months.csv";
+  } else if (type === "expenses") {
+    const rows = await listExpenses();
+    csv = toCsv(
+      ["Date", "Description", "Category", "Vendor", "Amount", "Currency", "Client", "Project"],
+      rows.map((e) => [e.spentOn, e.description, e.category, e.vendor ?? "", centsToDisplay(e.amountCents, e.currency), e.currency, e.clientName ?? "", e.projectName ?? ""]),
+    );
+    filename = "expenses.csv";
   } else {
     return NextResponse.json({ error: "unknown report type" }, { status: 400 });
   }

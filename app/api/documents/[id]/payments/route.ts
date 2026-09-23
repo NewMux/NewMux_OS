@@ -1,40 +1,26 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { canAccessDocuments } from "@/lib/rbac";
+import { route, body } from "@/lib/api";
+import { canAccessFinance } from "@/lib/rbac";
 import { addPaymentSchema } from "@/lib/validators/finance";
 import { addPayment, listPaymentsForDocument } from "@/lib/data/finance";
 import { getDocumentById } from "@/lib/data/documents";
+import { NotFoundError } from "@/lib/data/sql";
 import { majorToMinorUnits } from "@/lib/money";
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth();
-  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!canAccessDocuments(session)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+type P = { id: string };
 
-  const { id } = await params;
-  const payments = await listPaymentsForDocument(id);
-  return NextResponse.json({ payments });
-}
+export const GET = route<P>({ allow: canAccessFinance }, async ({ params }) => ({ payments: await listPaymentsForDocument(params.id) }));
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth();
-  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!canAccessDocuments(session)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
-
-  const { id } = await params;
-  const doc = await getDocumentById(id);
-  if (!doc) return NextResponse.json({ error: "not found" }, { status: 404 });
-  if (doc.type !== "invoice") return NextResponse.json({ error: "Only invoices accept payments" }, { status: 400 });
-
-  const body = await req.json();
-  const parsed = addPaymentSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-
+export const POST = route<P>({ allow: canAccessFinance, status: 201 }, async ({ req, params, session }) => {
+  const input = await body(req, addPaymentSchema);
+  const doc = await getDocumentById(params.id);
+  if (!doc) throw new NotFoundError("Invoice");
   const payment = await addPayment({
-    documentId: id,
-    amountCents: majorToMinorUnits(parsed.data.amount, doc.currency),
-    method: parsed.data.method,
+    documentId: params.id,
+    amountCents: majorToMinorUnits(input.amount, doc.currency),
+    method: input.method,
+    paidOn: input.paidOn ?? undefined,
+    reference: input.reference,
     recordedBy: session.user.id,
   });
-  return NextResponse.json({ payment }, { status: 201 });
-}
+  return { payment };
+});

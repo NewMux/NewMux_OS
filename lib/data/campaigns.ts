@@ -1,6 +1,6 @@
-import { randomUUID } from "crypto";
-import { store } from "./store";
-import type { Campaign, CampaignChannel } from "./types";
+import { many, must } from "./sql";
+import type { Campaign, CampaignChannel, CampaignMetric } from "./types";
+import { todayYmd } from "@/lib/time";
 
 export type CampaignAttribution = {
   campaignId: string;
@@ -17,27 +17,15 @@ export type CampaignAttribution = {
 };
 
 export async function listCampaigns(): Promise<Campaign[]> {
-  return store.campaigns;
+  return many<Campaign>("select * from campaigns order by is_active desc, name");
 }
 
-export async function createCampaign(input: {
-  name: string;
-  channel: CampaignChannel;
-  productId?: string | null;
-  createdBy: string;
-}): Promise<Campaign> {
-  const campaign: Campaign = {
-    id: randomUUID(),
-    name: input.name,
-    channel: input.channel,
-    productId: input.productId ?? null,
-    startDate: new Date().toISOString().slice(0, 10),
-    endDate: null,
-    isActive: true,
-    createdBy: input.createdBy,
-  };
-  store.campaigns.push(campaign);
-  return campaign;
+export async function createCampaign(input: { name: string; channel: CampaignChannel; productId?: string | null; createdBy: string }): Promise<Campaign> {
+  return must<Campaign>(
+    "Campaign",
+    "insert into campaigns (name, channel, product_id, start_date, created_by) values ($1,$2,$3,$4,$5) returning *",
+    [input.name, input.channel, input.productId ?? null, todayYmd(), input.createdBy],
+  );
 }
 
 export async function addCampaignMetric(input: {
@@ -47,43 +35,32 @@ export async function addCampaignMetric(input: {
   leadsCaptured: number;
   conversions: number;
   revenueCents: number;
-}) {
-  const existing = store.campaignMetrics.find(
-    (m) => m.campaignId === input.campaignId && m.metricDate === input.metricDate,
+}): Promise<CampaignMetric> {
+  return must<CampaignMetric>(
+    "Metric",
+    `insert into campaign_metrics (campaign_id, metric_date, spend_cents, leads_captured, conversions, revenue_cents)
+     values ($1,$2,$3,$4,$5,$6)
+     on conflict (campaign_id, metric_date) do update set spend_cents = excluded.spend_cents,
+       leads_captured = excluded.leads_captured, conversions = excluded.conversions, revenue_cents = excluded.revenue_cents
+     returning *`,
+    [input.campaignId, input.metricDate, input.spendCents, input.leadsCaptured, input.conversions, input.revenueCents],
   );
-  if (existing) {
-    existing.spendCents = input.spendCents;
-    existing.leadsCaptured = input.leadsCaptured;
-    existing.conversions = input.conversions;
-    existing.revenueCents = input.revenueCents;
-    return existing;
-  }
-  const metric = { id: randomUUID(), ...input };
-  store.campaignMetrics.push(metric);
-  return metric;
 }
 
-/** Mirrors campaign_attribution_view from db/migrations/0007_growth.sql. */
 export async function getAttributionMatrix(): Promise<CampaignAttribution[]> {
-  return store.campaigns.map((c) => {
-    const metrics = store.campaignMetrics.filter((m) => m.campaignId === c.id);
-    const spendCents = metrics.reduce((s, m) => s + m.spendCents, 0);
-    const leadsCaptured = metrics.reduce((s, m) => s + m.leadsCaptured, 0);
-    const conversions = metrics.reduce((s, m) => s + m.conversions, 0);
-    const revenueCents = metrics.reduce((s, m) => s + m.revenueCents, 0);
-
-    return {
-      campaignId: c.id,
-      name: c.name,
-      channel: c.channel,
-      isActive: c.isActive,
-      spendCents,
-      leadsCaptured,
-      conversions,
-      revenueCents,
-      conversionRate: leadsCaptured === 0 ? 0 : conversions / leadsCaptured,
-      blendedCacCents: conversions === 0 ? null : Math.round(spendCents / conversions),
-      roas: spendCents === 0 ? null : revenueCents / spendCents,
-    };
-  });
+  const rows = await many<Omit<CampaignAttribution, "conversionRate" | "blendedCacCents" | "roas">>(
+    `select c.id as campaign_id, c.name, c.channel, c.is_active,
+       coalesce(sum(m.spend_cents), 0)::int8 as spend_cents,
+       coalesce(sum(m.leads_captured), 0)::int8 as leads_captured,
+       coalesce(sum(m.conversions), 0)::int8 as conversions,
+       coalesce(sum(m.revenue_cents), 0)::int8 as revenue_cents
+     from campaigns c left join campaign_metrics m on m.campaign_id = c.id
+     group by c.id order by c.is_active desc, c.name`,
+  );
+  return rows.map((r) => ({
+    ...r,
+    conversionRate: r.leadsCaptured === 0 ? 0 : r.conversions / r.leadsCaptured,
+    blendedCacCents: r.conversions === 0 ? null : Math.round(r.spendCents / r.conversions),
+    roas: r.spendCents === 0 ? null : r.revenueCents / r.spendCents,
+  }));
 }

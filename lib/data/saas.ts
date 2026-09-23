@@ -1,27 +1,28 @@
-import { randomUUID } from "crypto";
-import { store } from "./store";
+import { query } from "@/lib/db";
+import { must } from "./sql";
 import type { SaasCustomer, SaasSubscription, SaasSubscriptionStatus } from "./types";
 
-export function hasProcessedEvent(paddleEventId: string): boolean {
-  return store.paddleWebhookEventIds.has(paddleEventId);
+/** Returns true if this Paddle event id was newly recorded (i.e. not a redelivery). */
+export async function claimEvent(paddleEventId: string): Promise<boolean> {
+  const rows = await query("insert into paddle_webhook_events (event_id) values ($1) on conflict do nothing returning event_id", [paddleEventId]);
+  return rows.length > 0;
 }
 
-export function markEventProcessed(paddleEventId: string): void {
-  store.paddleWebhookEventIds.add(paddleEventId);
+export async function hasProcessedEvent(paddleEventId: string): Promise<boolean> {
+  return (await query("select 1 from paddle_webhook_events where event_id = $1", [paddleEventId])).length > 0;
 }
 
-export function upsertSaasCustomer(input: { paddleCustomerId: string; email?: string | null }): SaasCustomer {
-  let customer = store.saasCustomers.find((c) => c.paddleCustomerId === input.paddleCustomerId);
-  if (!customer) {
-    customer = { id: randomUUID(), paddleCustomerId: input.paddleCustomerId, clientId: null, email: input.email ?? null };
-    store.saasCustomers.push(customer);
-  } else if (input.email) {
-    customer.email = input.email;
-  }
-  return customer;
+export async function upsertSaasCustomer(input: { paddleCustomerId: string; email?: string | null }): Promise<SaasCustomer> {
+  return must<SaasCustomer>(
+    "Customer",
+    `insert into saas_customers (paddle_customer_id, email) values ($1, $2)
+     on conflict (paddle_customer_id) do update set email = coalesce(excluded.email, saas_customers.email)
+     returning *`,
+    [input.paddleCustomerId, input.email ?? null],
+  );
 }
 
-export function upsertSaasSubscription(input: {
+export async function upsertSaasSubscription(input: {
   paddleSubscriptionId: string;
   saasCustomerId: string;
   status: SaasSubscriptionStatus;
@@ -31,50 +32,41 @@ export function upsertSaasSubscription(input: {
   currentPeriodStart?: string | null;
   currentPeriodEnd?: string | null;
   trialEndsAt?: string | null;
-}): SaasSubscription {
-  let sub = store.saasSubscriptions.find((s) => s.paddleSubscriptionId === input.paddleSubscriptionId);
-  if (!sub) {
-    sub = {
-      id: randomUUID(),
-      paddleSubscriptionId: input.paddleSubscriptionId,
-      saasCustomerId: input.saasCustomerId,
-      productId: null,
-      status: input.status,
-      currency: input.currency,
-      recurringAmountCents: input.recurringAmountCents,
-      billingInterval: input.billingInterval,
-      currentPeriodStart: input.currentPeriodStart ?? null,
-      currentPeriodEnd: input.currentPeriodEnd ?? null,
-      trialEndsAt: input.trialEndsAt ?? null,
-      canceledAt: null,
-    };
-    store.saasSubscriptions.push(sub);
-  } else {
-    sub.status = input.status;
-    sub.currency = input.currency;
-    sub.recurringAmountCents = input.recurringAmountCents;
-    sub.billingInterval = input.billingInterval;
-    sub.currentPeriodStart = input.currentPeriodStart ?? sub.currentPeriodStart;
-    sub.currentPeriodEnd = input.currentPeriodEnd ?? sub.currentPeriodEnd;
-    sub.trialEndsAt = input.trialEndsAt ?? sub.trialEndsAt;
-  }
-  return sub;
+}): Promise<SaasSubscription> {
+  return must<SaasSubscription>(
+    "Subscription",
+    `insert into saas_subscriptions (paddle_subscription_id, saas_customer_id, status, currency, recurring_amount_cents,
+       billing_interval, current_period_start, current_period_end, trial_ends_at)
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+     on conflict (paddle_subscription_id) do update set status = excluded.status, currency = excluded.currency,
+       recurring_amount_cents = excluded.recurring_amount_cents, billing_interval = excluded.billing_interval,
+       current_period_start = coalesce(excluded.current_period_start, saas_subscriptions.current_period_start),
+       current_period_end = coalesce(excluded.current_period_end, saas_subscriptions.current_period_end),
+       trial_ends_at = coalesce(excluded.trial_ends_at, saas_subscriptions.trial_ends_at)
+     returning *`,
+    [
+      input.paddleSubscriptionId,
+      input.saasCustomerId,
+      input.status,
+      input.currency,
+      input.recurringAmountCents,
+      input.billingInterval,
+      input.currentPeriodStart ?? null,
+      input.currentPeriodEnd ?? null,
+      input.trialEndsAt ?? null,
+    ],
+  );
 }
 
-export function markSubscriptionPastDue(paddleSubscriptionId: string): void {
-  const sub = store.saasSubscriptions.find((s) => s.paddleSubscriptionId === paddleSubscriptionId);
-  if (sub) sub.status = "past_due";
+export async function markSubscriptionPastDue(paddleSubscriptionId: string): Promise<void> {
+  await query("update saas_subscriptions set status = 'past_due' where paddle_subscription_id = $1", [paddleSubscriptionId]);
 }
 
-export function markSubscriptionCanceled(paddleSubscriptionId: string): void {
-  const sub = store.saasSubscriptions.find((s) => s.paddleSubscriptionId === paddleSubscriptionId);
-  if (sub) {
-    sub.status = "canceled";
-    sub.canceledAt = new Date().toISOString();
-  }
+export async function markSubscriptionCanceled(paddleSubscriptionId: string): Promise<void> {
+  await query("update saas_subscriptions set status = 'canceled', canceled_at = now() where paddle_subscription_id = $1", [paddleSubscriptionId]);
 }
 
-export function recordTransaction(input: {
+export async function recordTransaction(input: {
   paddleTransactionId: string;
   paddleSubscriptionId?: string | null;
   saasCustomerId?: string | null;
@@ -82,22 +74,19 @@ export function recordTransaction(input: {
   currency: string;
   status: string;
   billedAt?: string | null;
-}): void {
-  const exists = store.saasTransactions.some((t) => t.paddleTransactionId === input.paddleTransactionId);
-  if (exists) return;
-
-  const sub = input.paddleSubscriptionId
-    ? store.saasSubscriptions.find((s) => s.paddleSubscriptionId === input.paddleSubscriptionId)
-    : undefined;
-
-  store.saasTransactions.push({
-    id: randomUUID(),
-    paddleTransactionId: input.paddleTransactionId,
-    saasSubscriptionId: sub?.id ?? null,
-    saasCustomerId: input.saasCustomerId ?? null,
-    amountCents: input.amountCents,
-    currency: input.currency,
-    status: input.status,
-    billedAt: input.billedAt ?? null,
-  });
+}): Promise<void> {
+  await query(
+    `insert into saas_transactions (paddle_transaction_id, saas_subscription_id, saas_customer_id, amount_cents, currency, status, billed_at)
+     values ($1, (select id from saas_subscriptions where paddle_subscription_id = $2), $3, $4, $5, $6, $7)
+     on conflict (paddle_transaction_id) do nothing`,
+    [
+      input.paddleTransactionId,
+      input.paddleSubscriptionId ?? null,
+      input.saasCustomerId ?? null,
+      input.amountCents,
+      input.currency,
+      input.status,
+      input.billedAt ?? null,
+    ],
+  );
 }
