@@ -2,7 +2,7 @@ import Link from "next/link";
 import { CalendarDays } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { Page } from "@/components/ui/Page";
-import { ListRow, ListSection } from "@/components/ui/List";
+import { ListRow, ListSection, SectionLink } from "@/components/ui/List";
 import { SummaryCard } from "@/components/ui/Widget";
 import { Avatar } from "@/components/ui/Avatar";
 import { TaskRow } from "@/components/work/TaskRow";
@@ -15,23 +15,15 @@ import { listTasks } from "@/lib/data/projects";
 import { listUpcomingMeetings } from "@/lib/data/meetings";
 import { isPartnerAdmin } from "@/lib/rbac";
 import { centsToDisplay, compactMoney } from "@/lib/money";
-import { addDaysYmd, formatDate, formatTime, relativeDay, todayYmd, toYmd, APP_TZ } from "@/lib/time";
+import { addDaysYmd, formatDate, formatTime, relativeDay, todayYmd, toYmd } from "@/lib/time";
 import { plural } from "@/lib/utils";
 
-export const metadata = { title: "Home" };
+export const metadata = { title: "Today" };
 
-function greeting() {
-  const hour = Number(new Intl.DateTimeFormat("en-GB", { timeZone: APP_TZ, hour: "numeric", hour12: false }).format(new Date()));
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Good afternoon";
-  return "Good evening";
-}
-
-/** Home answers one question: what needs me today? */
+/** Today answers one question: what needs me today? */
 export default async function HomePage() {
   const session = (await auth())!;
   const admin = isPartnerAdmin(session);
-  const firstName = (session.user.name ?? "").split(" ")[0] || "there";
   const today = todayYmd();
   const tomorrow = addDaysYmd(today, 1);
 
@@ -54,15 +46,13 @@ export default async function HomePage() {
 
   return (
     <Page
-      title={`${greeting()}, ${firstName}`}
-      subtitle={formatDate(today, { weekday: "long", day: "numeric", month: "long" })}
-      actions={
-        <>
-          <NewMenu kinds={createKinds} />
-          <Link href="/settings" aria-label="Settings" className="press md:hidden">
-            <Avatar name={session.user.name ?? "?"} size={34} />
-          </Link>
-        </>
+      title="Today"
+      eyebrow={formatDate(today, { weekday: "long", day: "numeric", month: "long" })}
+      actions={<NewMenu kinds={createKinds} />}
+      titleTrailing={
+        <Link href="/settings" aria-label="Account and settings" className="press block md:hidden">
+          <Avatar name={session.user.name ?? "?"} size={38} />
+        </Link>
       }
     >
       {finance && pipe && (
@@ -76,7 +66,7 @@ export default async function HomePage() {
       )}
 
       <div className="grid gap-x-6 lg:grid-cols-2 [&>*]:min-w-0">
-        <ListSection header="Today" action={<Link href="/tasks" className="text-subhead text-accent">All Tasks</Link>}>
+        <ListSection variant="prominent" header="Up Next" action={<SectionLink href="/tasks" />}>
           {soonMeetings.map((m) => (
             <ListRow
               key={m.id}
@@ -95,7 +85,7 @@ export default async function HomePage() {
         </ListSection>
 
         {attentionCount > 0 && (
-          <ListSection header="Needs Attention">
+          <ListSection variant="prominent" header="Needs Attention">
             {alerts.hostingAlerts.map(({ subscription: h, overdue }) => (
               <ListRow
                 key={h.id}

@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { canAccessFinance } from "@/lib/rbac";
 import { Page } from "@/components/ui/Page";
 import { Card } from "@/components/ui/Card";
-import { ListRow, ListSection } from "@/components/ui/List";
+import { ListRow, ListSection, SectionLink } from "@/components/ui/List";
 import { Badge } from "@/components/ui/Badge";
 import { CashFlowChart } from "@/components/finance/CashFlowChart";
 import { getErpDashboardSummary } from "@/lib/data/finance";
@@ -38,8 +38,9 @@ export default async function FinancePage() {
       <div className="grid gap-x-6 lg:grid-cols-2 [&>*]:min-w-0">
         <div>
           <ListSection
+            variant="prominent"
             header="Receivables"
-            action={<Link href="/documents?type=invoice" className="text-subhead text-accent">Invoices</Link>}
+            action={<SectionLink href="/documents?type=invoice">Invoices</SectionLink>}
             footer={`${centsToDisplay(totalAr, "BHD")} outstanding in total`}
           >
             {aging.map((b, i) => (b.count === 0 && i > 0 ? null : (
@@ -53,7 +54,7 @@ export default async function FinancePage() {
             )))}
           </ListSection>
 
-          <ListSection header="Manage">
+          <ListSection variant="prominent" header="Manage">
             <ListRow href="/documents" title="Invoices & Quotes" />
             <ListRow href="/finance/expenses" title="Expenses" />
             <ListRow
@@ -67,7 +68,7 @@ export default async function FinancePage() {
         </div>
 
         <div>
-          <ListSection header="Profit" footer="Net profit on invoices issued this month, and each partner's share across all invoices with a split rule.">
+          <ListSection variant="prominent" header="Profit" footer="Net profit on invoices issued this month, and each partner's share across all invoices with a split rule.">
             <ListRow
               title="This month"
               detail={<span className={summary.netProfitThisMonthBhdCents < 0 ? "text-ios-red" : undefined}>{centsToDisplay(summary.netProfitThisMonthBhdCents, "BHD")}</span>}
@@ -77,7 +78,7 @@ export default async function FinancePage() {
             ))}
           </ListSection>
 
-          <ListSection header="Forecast" footer="Open invoice balances and scheduled hosting fees in; recurring expenses out.">
+          <ListSection variant="prominent" header="Forecast" footer="Open invoice balances and scheduled hosting fees in; recurring expenses out.">
             {forecast.map((f) => (
               <ListRow
                 key={f.label}

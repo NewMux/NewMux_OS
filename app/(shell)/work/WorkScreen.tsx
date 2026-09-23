@@ -39,7 +39,7 @@ export function WorkScreen({ projects, counts, clients, canDelete }: { projects:
       }
     >
       <div className="grid gap-x-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] [&>*]:min-w-0">
-        <ListSection header="My Tasks">
+        <ListSection variant="prominent" header="My Tasks">
           {SMART.map((s) => (
             <ListRow
               key={s.list}
@@ -53,8 +53,8 @@ export function WorkScreen({ projects, counts, clients, canDelete }: { projects:
         </ListSection>
 
         <section className="mb-7">
-          <div className="mb-1.5 flex items-center justify-between gap-3 px-4">
-            <h2 className="text-footnote font-medium text-label-2">Projects</h2>
+          <div className="mb-2.5 flex items-center justify-between gap-3 px-1">
+            <h2 className="text-title3 font-bold">Projects</h2>
             <SegmentedControl
               size="sm"
               className="w-40"

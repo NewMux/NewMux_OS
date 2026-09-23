@@ -17,6 +17,7 @@ import {
   Server,
   Settings,
   SquareKanban,
+  Sun,
   Users,
   Wallet,
   type LucideProps,
@@ -25,6 +26,7 @@ import type { NavIconName } from "@/lib/nav";
 
 const ICONS: Record<NavIconName, React.ComponentType<LucideProps>> = {
   home: House,
+  today: Sun,
   search: Search,
   crm: Handshake,
   pipeline: SquareKanban,

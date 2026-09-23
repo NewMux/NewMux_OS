@@ -5,7 +5,7 @@ import { canAccessCrm } from "@/lib/rbac";
 import { getPipelineSummary, listDeals, listOpenFollowUps, openPipelineTotals } from "@/lib/data/crm";
 import { one } from "@/lib/data/sql";
 import { Page, NavButton } from "@/components/ui/Page";
-import { ListRow, ListSection } from "@/components/ui/List";
+import { ListRow, ListSection, SectionLink } from "@/components/ui/List";
 import { SummaryCard } from "@/components/ui/Widget";
 import { FollowUpRow } from "@/components/crm/FollowUpRow";
 import { DEAL_STAGE } from "@/lib/labels";
@@ -55,7 +55,7 @@ export default async function CrmPage() {
             <ListRow href="/contacts" title="Contacts" detail={counts?.contacts} />
           </ListSection>
 
-          <ListSection header="By Stage" action={<Link href="/crm/pipeline" className="text-subhead text-accent">Board</Link>}>
+          <ListSection variant="prominent" header="By Stage" action={<SectionLink href="/crm/pipeline">Board</SectionLink>}>
             {summary
               .filter((s) => OPEN_DEAL_STAGES.includes(s.stage))
               .map((s) => (
@@ -78,7 +78,7 @@ export default async function CrmPage() {
               ))}
           </ListSection>
 
-          <ListSection header="Closing Soon">
+          <ListSection variant="prominent" header="Closing Soon">
             {closingSoon.map((d) => (
               <ListRow
                 key={d.id}
@@ -92,7 +92,7 @@ export default async function CrmPage() {
           </ListSection>
         </div>
         <div>
-          <ListSection header="Follow-ups" action={<Link href="/crm/activities" className="text-subhead text-accent">All Activity</Link>}>
+          <ListSection variant="prominent" header="Follow-ups" action={<SectionLink href="/crm/activities" />}>
             {followUps.slice(0, 8).map((a) => (
               <FollowUpRow key={a.id} activity={a} />
             ))}

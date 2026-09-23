@@ -3,6 +3,7 @@ import type { SysColor } from "./colors";
 
 export type NavIconName =
   | "home"
+  | "today"
   | "search"
   | "crm"
   | "pipeline"
@@ -39,7 +40,7 @@ const ADMIN: UserRole[] = ["partner_admin"];
 
 /** Phone tab bar (iOS keeps it to five). */
 export const TABS: NavLink[] = [
-  { href: "/home", label: "Home", icon: "home", color: "blue", roles: ALL },
+  { href: "/home", label: "Today", icon: "today", color: "blue", roles: ALL },
   { href: "/crm", label: "CRM", icon: "crm", color: "indigo", roles: ADMIN, match: ["/clients", "/contacts"] },
   { href: "/work", label: "Work", icon: "work", color: "orange", roles: ALL, match: ["/projects", "/tasks", "/meetings"] },
   { href: "/finance", label: "Finance", icon: "finance", color: "green", roles: ADMIN, match: ["/documents", "/hosting", "/reports"] },
@@ -53,7 +54,7 @@ export type NavSection = NavLink & { children?: NavLink[] };
  * section you're in expands to show its pages; the rest stay collapsed.
  */
 export const SIDEBAR: NavSection[] = [
-  { href: "/home", label: "Home", icon: "home", color: "blue", roles: ALL },
+  { href: "/home", label: "Today", icon: "today", color: "blue", roles: ALL },
   {
     href: "/crm",
     label: "CRM",

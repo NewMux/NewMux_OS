@@ -93,15 +93,15 @@ export function WikiHome({
           {results.length === 0 && <ListRow title="No pages match" />}
         </ListSection>
       ) : (
-        <div className="grid gap-x-6 lg:grid-cols-2 [&>*]:min-w-0">
+        <div className="[&>*]:min-w-0">
           <div>
-            <ListSection header="Spaces">
+            <ListSection variant="prominent" header="Spaces">
               {spaces.map((s) => (
                 <ListRow key={s.id} href={`/wiki/s/${s.id}`} leading={<SpaceIcon icon={s.icon} color={s.color} />} title={s.name} detail={s.pageCount} />
               ))}
             </ListSection>
             {favorites.length > 0 && (
-              <ListSection header="Favorites">
+              <ListSection variant="prominent" header="Favorites">
                 {favorites.map((p) => (
                   <PageRow key={p.id} p={p} />
                 ))}
@@ -110,13 +110,13 @@ export function WikiHome({
           </div>
           <div>
             {recent.length > 0 && (
-              <ListSection header="Recent">
+              <ListSection variant="prominent" header="Recent">
                 {recent.map((p) => (
                   <PageRow key={p.id} p={p} subtitle={`${p.spaceName} · ${timeAgo(p.updatedAt)}`} />
                 ))}
               </ListSection>
             )}
-            <ListSection header="Templates" footer="Start new pages from a template with the + button.">
+            <ListSection variant="prominent" header="Templates" footer="Start new pages from a template with the + button.">
               {templates.map((p) => (
                 <PageRow key={p.id} p={p} subtitle="Template" />
               ))}

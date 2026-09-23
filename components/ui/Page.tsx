@@ -9,6 +9,8 @@ import { markBack, takeDirection } from "@/lib/navMotion";
 
 /** True inside the detail pane of an iPad/Mac split view (the list is beside it, so no back control). */
 export const SplitPaneContext = createContext(false);
+/** True inside the list column of a split view (narrow column: tighter padding, selected rows). */
+export const SplitListContext = createContext(false);
 
 const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
@@ -50,6 +52,7 @@ export function Page({
 }) {
   const pathname = usePathname();
   const inSplit = useContext(SplitPaneContext);
+  const inList = useContext(SplitListContext);
   const root = useRef<HTMLDivElement>(null);
   const sentinel = useRef<HTMLDivElement>(null);
   const [collapsed, setCollapsed] = useState(false);
@@ -70,10 +73,10 @@ export function Page({
   }, []);
 
   return (
-    <div ref={root} className={cn("mx-auto w-full", wide ? "max-w-[1400px]" : "max-w-5xl")}>
+    <div ref={root} className={cn("mx-auto w-full", wide ? "max-w-[1400px]" : "max-w-5xl", inSplit && "lg:max-w-3xl")}>
       <header className={cn("sticky top-0 z-30 safe-top", collapsed && "scroll-edge-top")}>
-        <div className="grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 md:px-6">
-          <div className={cn("flex min-w-0 justify-start", inSplit && "md:invisible")}>
+        <div className={cn("grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 md:px-6", inList && "lg:px-3")}>
+          <div className={cn("flex min-w-0 justify-start", inSplit && "lg:invisible")}>
             {back && (
               <Link
                 href={back.href}
@@ -100,7 +103,7 @@ export function Page({
         </div>
       </header>
 
-      <div className={cn("px-4 pb-tabbar md:px-8 md:pb-12", className)}>
+      <div className={cn("px-4 pb-tabbar md:px-8 md:pb-12", inList && "lg:px-4", className)}>
         <div className="mb-5 mt-1">
           {eyebrow && <div className="mb-0.5 text-footnote font-semibold uppercase tracking-[0.04em] text-label-2">{eyebrow}</div>}
           {!hideLargeTitle && (
