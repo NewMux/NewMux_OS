@@ -1,36 +1,29 @@
-import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { canAccessSettings } from "@/lib/rbac";
-import { listParties, listDeductionTypes, listProfitSplitRules, listVentures } from "@/lib/data/finance";
+import { isPartnerAdmin } from "@/lib/rbac";
+import { listDeductionTypes, listParties, listProfitSplitRules, listVentures } from "@/lib/data/finance";
 import { listProjects } from "@/lib/data/projects";
-import { PartiesPanel } from "@/components/settings/PartiesPanel";
-import { DeductionTypesPanel } from "@/components/settings/DeductionTypesPanel";
-import { ProfitSplitRuleEditor } from "@/components/settings/ProfitSplitRuleEditor";
+import { SettingsScreen } from "@/components/settings/SettingsScreen";
+
+export const metadata = { title: "Settings" };
 
 export default async function SettingsPage() {
-  const session = await auth();
-  if (!canAccessSettings(session)) redirect("/dashboard");
-
-  const [parties, deductionTypes, rules, projects, ventures] = await Promise.all([
-    listParties(),
-    listDeductionTypes(),
-    listProfitSplitRules(),
-    listProjects(),
-    listVentures(),
-  ]);
-
+  const session = (await auth())!;
+  const admin = isPartnerAdmin(session);
+  const [parties, deductionTypes, rules, projects, ventures] = admin
+    ? await Promise.all([listParties(), listDeductionTypes(), listProfitSplitRules(), listProjects(), listVentures()])
+    : [[], [], [], [], []];
   return (
-    <div className="mx-auto max-w-2xl">
-      <h1 className="mb-1 text-xl font-semibold text-white">Settings</h1>
-      <p className="mb-4 text-xs text-slate-500">
-        Admin-only. Every change here is timestamped and attributed in the audit log.
-      </p>
-
-      <div className="flex flex-col gap-4">
-        <PartiesPanel parties={parties} />
-        <DeductionTypesPanel deductionTypes={deductionTypes} />
-        <ProfitSplitRuleEditor parties={parties} deductionTypes={deductionTypes} rules={rules} projects={projects} ventures={ventures} />
-      </div>
-    </div>
+    <SettingsScreen
+      user={{ name: session.user.name ?? "", email: session.user.email ?? "", role: session.user.role }}
+      admin={admin}
+      parties={parties}
+      deductionTypes={deductionTypes}
+      rules={rules}
+      scopes={[
+        ...projects.map((p) => ({ scopeType: "project" as const, scopeId: p.id, name: p.name })),
+        ...ventures.map((v) => ({ scopeType: "venture" as const, scopeId: v.id, name: v.name })),
+      ]}
+      dbMode={process.env.DATABASE_URL ? "Supabase Postgres" : "Local database (PGlite)"}
+    />
   );
 }
