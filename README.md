@@ -96,8 +96,10 @@ The repo includes a one-command Docker setup (`docker-compose.yml`), with three 
 **[docs/DEPLOY_ORACLE.md](docs/DEPLOY_ORACLE.md)** walks through running it for free on an Oracle Cloud Always Free server:
 
 - it starts on a `<ip>.sslip.io` address;
-- your own domain is a one-line change later;
+- moving it to `os.newmux.com` is a one-line change later;
 - nightly backups are included.
+
+The app is internal and unlisted. Every response sends `noindex`, so search engines leave it out, and it lives on a subdomain that nothing links to. See [Keeping it private](docs/DEPLOY_ORACLE.md#keeping-it-private).
 
 ## Roles
 

@@ -46,6 +46,17 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/**": ["./db/**/*.sql", "./node_modules/pdfkit/js/standard-fonts/**"],
   },
+  // Internal app on an unlisted subdomain: keep every response (pages, the
+  // login screen, PDF/CSV exports) out of search engines. No robots.txt
+  // Disallow on purpose — crawlers must be able to fetch a URL to see this.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],
+      },
+    ];
+  },
 };
 
 export default withPWA(nextConfig);

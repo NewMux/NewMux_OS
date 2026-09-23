@@ -21,6 +21,8 @@ export const metadata: Metadata = {
     title: "NEWMUX",
   },
   formatDetection: { telephone: false },
+  // Internal app — never indexed (see also the X-Robots-Tag header in next.config.ts).
+  robots: { index: false, follow: false },
 };
 
 export const viewport: Viewport = {
