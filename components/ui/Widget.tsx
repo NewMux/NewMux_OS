@@ -23,7 +23,7 @@ export function Widget({
       {href && <ChevronRight className="ml-auto h-4 w-4 text-label-3" />}
     </div>
   );
-  const cls = cn("block rounded-[18px] bg-bg-elevated p-4", href && "press", className);
+  const cls = cn("block rounded-card bg-bg-elevated p-4", href && "press", className);
   return href ? (
     <Link href={href} className={cls}>
       {head}
@@ -67,7 +67,7 @@ export type SummaryItem = {
 export function SummaryCard({ items, className }: { items: SummaryItem[]; className?: string }) {
   return (
     <div
-      className={cn("mb-7 grid overflow-hidden rounded-[18px] bg-bg-elevated", className)}
+      className={cn("mb-7 grid overflow-hidden rounded-card bg-bg-elevated", className)}
       style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
     >
       {items.map((item, i) => {

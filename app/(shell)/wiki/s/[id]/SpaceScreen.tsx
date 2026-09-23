@@ -78,7 +78,7 @@ export function SpaceScreen({ space, pages, spaces, templates, canDelete }: { sp
         {tree.length === 0 ? (
           <EmptyState icon={FileText} title="No pages yet" message="Create the first page in this space." />
         ) : (
-          <div className="overflow-hidden rounded-[12px] bg-bg-elevated">
+          <div className="overflow-hidden rounded-card bg-bg-elevated">
             {tree.map((n) => (
               <TreeRow key={n.id} node={n} depth={0} />
             ))}

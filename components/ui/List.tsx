@@ -4,8 +4,9 @@ import { cn } from "@/lib/utils";
 import { solidBg, type SysColor } from "@/lib/colors";
 
 /**
- * Inset grouped list, as in the iOS Settings app: an optional small header,
- * a rounded card of rows with inset hairline separators, an optional footer.
+ * Inset grouped list (iOS 26): a sentence-case header, a rounded card of rows
+ * with inset hairline separators, an optional footer. `prominent` gives the
+ * bold Health/Fitness-style section title used on dashboards.
  */
 export function ListSection({
   header,
@@ -14,6 +15,7 @@ export function ListSection({
   children,
   className,
   inset = true,
+  variant = "default",
 }: {
   header?: React.ReactNode;
   footer?: React.ReactNode;
@@ -21,16 +23,18 @@ export function ListSection({
   children: React.ReactNode;
   className?: string;
   inset?: boolean;
+  variant?: "default" | "prominent";
 }) {
+  const prominent = variant === "prominent";
   return (
-    <section className={cn("mb-7", className)}>
+    <section className={cn(prominent ? "mb-8" : "mb-7", className)}>
       {(header || action) && (
-        <div className="mb-1.5 flex items-end justify-between px-4">
-          {header ? <h2 className="text-footnote uppercase text-label-2">{header}</h2> : <span />}
+        <div className={cn("flex items-end justify-between", prominent ? "mb-2.5 px-1" : "mb-1.5 px-4")}>
+          {header ? <h2 className={prominent ? "text-title3 font-bold text-label" : "text-footnote font-medium text-label-2"}>{header}</h2> : <span />}
           {action}
         </div>
       )}
-      <div className={cn("overflow-hidden bg-bg-elevated", inset && "rounded-[12px]")}>{children}</div>
+      <div className={cn("overflow-hidden bg-bg-elevated", inset && "rounded-card")}>{children}</div>
       {footer && <p className="mt-1.5 px-4 text-footnote text-label-2">{footer}</p>}
     </section>
   );

@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Sheet, SheetButton } from "./Sheet";
+import { Sheet, SheetIconButton } from "./Sheet";
 
 /**
- * A sheet containing a form, with the iOS Cancel · Title · Save header.
+ * A sheet containing a form, with the iOS 26 header: ✕ · Title · ✓.
  * `onSubmit` returns true when saved (the sheet then closes).
  */
 export function FormSheet({
@@ -46,12 +46,8 @@ export function FormSheet({
       onOpenChange={onOpenChange}
       title={title}
       size={size}
-      left={<SheetButton onClick={() => onOpenChange(false)}>Cancel</SheetButton>}
-      right={
-        <SheetButton bold type="submit" form={formId} disabled={!canSubmit || saving}>
-          {saving ? "Saving…" : submitLabel}
-        </SheetButton>
-      }
+      left={<SheetIconButton label="Cancel" onClick={() => onOpenChange(false)} />}
+      right={<SheetIconButton kind="confirm" label={submitLabel} type="submit" form={formId} disabled={!canSubmit} busy={saving} />}
     >
       <form id={formId} onSubmit={handle} className="pt-2">
         {children}

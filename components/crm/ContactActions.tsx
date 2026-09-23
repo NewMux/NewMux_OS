@@ -22,7 +22,7 @@ export function ContactActions({ phone, whatsapp, email, website }: { phone?: st
           href={i.href}
           target={i.label === "website" || i.label === "whatsapp" ? "_blank" : undefined}
           rel="noreferrer"
-          className="press flex h-[56px] flex-col items-center justify-center gap-1 rounded-[12px] bg-bg-elevated text-accent"
+          className="press flex h-[56px] flex-col items-center justify-center gap-1 rounded-[16px] bg-bg-elevated text-accent"
         >
           <i.icon className="h-5 w-5" />
           <span className="text-caption2 font-medium">{i.label}</span>

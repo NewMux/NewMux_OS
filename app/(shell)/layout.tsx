@@ -21,7 +21,7 @@ export default async function ShellLayout({ children }: { children: React.ReactN
         userName={session.user.name ?? session.user.email ?? "You"}
         userRole={role}
       />
-      <main className="min-h-dvh md:pl-64">{children}</main>
+      <main className="min-h-dvh md:pl-[272px]">{children}</main>
       <TabBar tabs={forRole(TABS, role)} />
       <CommandPalette links={allLinksFor(role)} />
       <Suspense>

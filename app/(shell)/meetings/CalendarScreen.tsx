@@ -97,7 +97,7 @@ export function CalendarScreen({ meetings, projects, clients }: { meetings: Meet
         </NavButton>
       }
       accessory={
-        <div className="grid grid-cols-7 gap-1 rounded-[14px] bg-bg-elevated p-2">
+        <div className="grid grid-cols-7 gap-1 rounded-card bg-bg-elevated p-2">
           {week.map((d) => {
             const isSel = d === selected;
             const isToday = d === today;

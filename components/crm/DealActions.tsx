@@ -57,7 +57,7 @@ export function DealHeaderActions({ deal }: { deal: DealListItem }) {
       <div className="mt-4 flex gap-3">
         {open && (
           <>
-            <Button className="flex-1 bg-ios-green/15 text-ios-green hover:bg-ios-green/20" disabled={pending} onClick={() => move("won")}>
+            <Button variant="tinted" className="flex-1 bg-ios-green/15 text-ios-green hover:bg-ios-green/20" disabled={pending} onClick={() => move("won")}>
               <Trophy className="h-4 w-4" /> Won
             </Button>
             <Button variant="destructive-tinted" className="flex-1" disabled={pending} onClick={() => setLosing(true)}>

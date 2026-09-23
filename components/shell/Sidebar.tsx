@@ -11,8 +11,8 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Menu } from "@/components/ui/Menu";
 
 /**
- * Mail/Notes-style source list for iPad and desktop: five sections, and only
- * the one you're in shows its pages.
+ * Mail/Notes-style source list for iPad and desktop, as a floating Liquid
+ * Glass pane (iPadOS 26): five sections, and only the one you're in shows its pages.
  */
 export function Sidebar({
   sections,
@@ -29,7 +29,7 @@ export function Sidebar({
   const router = useRouter();
 
   return (
-    <aside className="material fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r-[0.5px] border-separator md:flex">
+    <aside className="glass fixed bottom-2 left-2 top-2 z-40 hidden w-64 flex-col rounded-card md:flex">
       <div className="flex items-center gap-2.5 px-5 pb-4 pt-5">
         <span className="flex h-8 w-8 items-center justify-center rounded-[9px] bg-label font-rounded text-[13px] font-bold text-bg">N</span>
         <span className="text-headline">NEWMUX</span>
@@ -88,7 +88,7 @@ export function Sidebar({
         })}
       </nav>
 
-      <div className="hairline-t px-3 py-3">
+      <div className="mx-3 border-t-[0.5px] border-separator py-3">
         <Menu
           align="start"
           items={[

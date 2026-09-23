@@ -47,6 +47,14 @@
     --fs-caption2: 11px;
 
     --tabbar-height: 64px;
+
+    /* Liquid Glass: fill, specular top edge, hairline rim, drop shadow. */
+    --glass-fill: 255 255 255;
+    --glass-alpha: 0.64;
+    --glass-highlight: 0.95;
+    --glass-rim: 0 0 0;
+    --glass-rim-alpha: 0.07;
+    --glass-shadow: 0 8px 28px rgb(0 0 0 / 0.1), 0 1px 3px rgb(0 0 0 / 0.06);
   }
 
   @media (min-width: 768px) {
@@ -88,6 +96,12 @@
       --pink: 255 55 95;
       --gray: 142 142 147;
       --brown: 172 142 104;
+      --glass-fill: 38 38 40;
+      --glass-alpha: 0.62;
+      --glass-highlight: 0.16;
+      --glass-rim: 255 255 255;
+      --glass-rim-alpha: 0.1;
+      --glass-shadow: 0 8px 28px rgb(0 0 0 / 0.45), 0 1px 3px rgb(0 0 0 / 0.3);
     }
   }
 
@@ -114,6 +128,12 @@
     --pink: 255 55 95;
     --gray: 142 142 147;
     --brown: 172 142 104;
+    --glass-fill: 38 38 40;
+    --glass-alpha: 0.62;
+    --glass-highlight: 0.16;
+    --glass-rim: 255 255 255;
+    --glass-rim-alpha: 0.1;
+    --glass-shadow: 0 8px 28px rgb(0 0 0 / 0.45), 0 1px 3px rgb(0 0 0 / 0.3);
   }
   :root[data-theme="light"] {
     color-scheme: light;
@@ -132,6 +152,8 @@
     @apply bg-bg font-sans text-body text-label antialiased;
     overscroll-behavior-y: none;
     font-feature-settings: "kern";
+    /* Inter's display cut at large sizes, text cut at small — like SF Display/Text. */
+    font-optical-sizing: auto;
   }
 
   /* No 300ms delay / double-tap zoom on buttons. */
@@ -193,12 +215,68 @@
     -webkit-backdrop-filter: saturate(180%) blur(20px);
     backdrop-filter: saturate(180%) blur(20px);
   }
-  /* Liquid-glass surface for the floating tab bar and glass buttons. */
+  /* Liquid Glass (iOS 26): translucent, blurred, with a specular top edge and a hairline rim. */
   .glass {
-    background-color: rgb(var(--bg-elevated) / 0.86);
-    -webkit-backdrop-filter: saturate(200%) blur(24px);
-    backdrop-filter: saturate(200%) blur(24px);
-    border: 0.5px solid rgb(var(--label) / 0.08);
+    background-color: rgb(var(--glass-fill) / var(--glass-alpha));
+    -webkit-backdrop-filter: blur(22px) saturate(190%);
+    backdrop-filter: blur(22px) saturate(190%);
+    box-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / var(--glass-highlight)),
+      inset 0 0 0 0.5px rgb(var(--glass-rim) / var(--glass-rim-alpha)),
+      var(--glass-shadow);
+  }
+  /* Glass without the drop shadow, for surfaces that sit inside other glass. */
+  .glass-flat {
+    background-color: rgb(var(--glass-fill) / var(--glass-alpha));
+    -webkit-backdrop-filter: blur(22px) saturate(190%);
+    backdrop-filter: blur(22px) saturate(190%);
+    box-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / var(--glass-highlight)),
+      inset 0 0 0 0.5px rgb(var(--glass-rim) / var(--glass-rim-alpha));
+  }
+  /* Tinted glass for the one prominent action on a screen. */
+  .glass-prominent {
+    background-color: rgb(var(--blue));
+    color: #fff;
+    box-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / 0.32),
+      inset 0 0 0 0.5px rgb(0 0 0 / 0.06),
+      0 6px 18px rgb(var(--blue) / 0.3);
+  }
+  /* Thicker glass for menus and alerts, where text sits over busy content. */
+  .glass-thick {
+    background-color: rgb(var(--glass-fill) / 0.94);
+    -webkit-backdrop-filter: blur(32px) saturate(190%);
+    backdrop-filter: blur(32px) saturate(190%);
+    box-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / var(--glass-highlight)),
+      inset 0 0 0 0.5px rgb(var(--glass-rim) / var(--glass-rim-alpha)),
+      0 16px 48px rgb(0 0 0 / 0.16),
+      0 2px 6px rgb(0 0 0 / 0.08);
+  }
+  /* Scroll-edge effect: content softly blurs and fades under a floating bar.
+     The element must already be positioned (sticky/fixed). */
+  .scroll-edge-top::before,
+  .scroll-edge-bottom::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+  .scroll-edge-top::before {
+    bottom: -18px;
+    background: linear-gradient(to bottom, rgb(var(--bg) / 0.92) 40%, rgb(var(--bg) / 0));
+    -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+    mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  }
+  .scroll-edge-bottom::before {
+    top: -18px;
+    background: linear-gradient(to top, rgb(var(--bg) / 0.92) 35%, rgb(var(--bg) / 0));
+    -webkit-mask-image: linear-gradient(to top, #000 50%, transparent);
+    mask-image: linear-gradient(to top, #000 50%, transparent);
   }
   .hairline-b {
     box-shadow: inset 0 -0.5px 0 rgb(var(--separator));
@@ -207,11 +285,12 @@
     box-shadow: inset 0 0.5px 0 rgb(var(--separator));
   }
   .press {
-    transition: transform 160ms cubic-bezier(0.32, 0.72, 0, 1), opacity 160ms;
+    transition: transform 380ms cubic-bezier(0.34, 1.4, 0.64, 1), opacity 160ms;
   }
   .press:active {
-    transform: scale(0.97);
-    opacity: 0.85;
+    transform: scale(0.96);
+    transition-duration: 90ms;
+    opacity: 0.88;
   }
   .no-scrollbar {
     scrollbar-width: none;
@@ -367,4 +446,16 @@
 :root[data-theme="dark"] {
   --chart-in: #0a84ff;
   --chart-out: #cc7400;
+}
+
+/* Motion is decoration: honour Reduce Motion everywhere. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
 }

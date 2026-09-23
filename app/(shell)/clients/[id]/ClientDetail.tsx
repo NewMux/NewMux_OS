@@ -160,7 +160,7 @@ export function ClientDetail(props: {
                 { label: "Collected", value: collected },
                 { label: "Costs", value: spent },
               ].map((m) => (
-                <div key={m.label} className="rounded-[14px] bg-bg-elevated px-2 py-3">
+                <div key={m.label} className="rounded-[18px] bg-bg-elevated px-3 py-3">
                   <div className="text-caption1 text-label-2">{m.label}</div>
                   <div className="font-rounded text-headline tabular">{centsToDisplay(m.value, "BHD")}</div>
                 </div>

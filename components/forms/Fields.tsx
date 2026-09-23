@@ -99,7 +99,7 @@ export function ClientProjectRows({
 /** Destructive full-width button row at the bottom of an edit sheet. */
 export function DeleteRow({ label, onClick }: { label: string; onClick: () => void }) {
   return (
-    <div className="mb-6 overflow-hidden rounded-[12px] bg-bg-elevated">
+    <div className="mb-6 overflow-hidden rounded-card bg-bg-elevated">
       <button type="button" onClick={onClick} className="flex min-h-[44px] w-full items-center justify-center text-body text-ios-red active:bg-fill/20">
         {label}
       </button>

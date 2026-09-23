@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, MinusCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Page } from "@/components/ui/Page";
+import { SheetIconButton } from "@/components/ui/Sheet";
 import { FieldRow, ListSection, RowInput } from "@/components/ui/List";
 import { Select, Textarea } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -104,9 +105,7 @@ export function DocumentForm({ initial, clients, projects }: { initial: Document
       title={editing ? "Edit Draft" : `New ${type === "quote" ? "Quote" : type === "invoice" ? "Invoice" : "Contract"}`}
       back={editing ? { href: `/documents/${initial.id}`, label: "Cancel" } : { href: "/documents", label: "Documents" }}
       actions={
-        <Button size="sm" onClick={save} disabled={!canSave || saving}>
-          {saving ? "Saving…" : editing ? "Save" : "Create"}
-        </Button>
+        <SheetIconButton kind="confirm" label={editing ? "Save" : "Create"} onClick={save} disabled={!canSave} busy={saving} />
       }
     >
       <div className="mx-auto max-w-2xl">

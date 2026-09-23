@@ -54,7 +54,7 @@ export function WorkScreen({ projects, counts, clients, canDelete }: { projects:
 
         <section className="mb-7">
           <div className="mb-1.5 flex items-center justify-between gap-3 px-4">
-            <h2 className="text-footnote uppercase text-label-2">Projects</h2>
+            <h2 className="text-footnote font-medium text-label-2">Projects</h2>
             <SegmentedControl
               size="sm"
               className="w-40"
@@ -69,7 +69,7 @@ export function WorkScreen({ projects, counts, clients, canDelete }: { projects:
           {visible.length === 0 ? (
             <EmptyState icon={FolderKanban} title={filter === "active" ? "No active projects" : "Nothing finished yet"} />
           ) : (
-            <div className="overflow-hidden rounded-[12px] bg-bg-elevated">
+            <div className="overflow-hidden rounded-card bg-bg-elevated">
               {visible.map((p) => {
                 const progress = p.taskCount ? p.doneCount / p.taskCount : 0;
                 const status = PROJECT_STATUS[p.status];

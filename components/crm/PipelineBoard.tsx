@@ -92,7 +92,7 @@ function Column({ stage, deals, onMove }: { stage: DealStage; deals: DealListIte
     <section
       ref={setNodeRef}
       className={cn(
-        "flex w-[82vw] max-w-[300px] shrink-0 snap-center flex-col rounded-[18px] p-2 transition-colors md:w-[272px]",
+        "flex w-[82vw] max-w-[300px] shrink-0 snap-center flex-col rounded-card p-2 transition-colors md:w-[272px]",
         isOver ? "bg-accent/10 ring-2 ring-accent/40" : "bg-fill/[0.08]",
       )}
     >
@@ -125,7 +125,7 @@ function DealCard({ deal, lifted, onMove }: { deal: DealListItem; lifted?: boole
   const closeIn = deal.expectedClose ? daysUntil(deal.expectedClose) : null;
   const open = deal.stage !== "won" && deal.stage !== "lost";
   return (
-    <div className={cn("group relative rounded-[14px] bg-bg-elevated p-3 transition-transform", lifted && "rotate-[1.5deg] scale-[1.03] shadow-float")}>
+    <div className={cn("group relative rounded-[16px] bg-bg-elevated p-3 transition-transform", lifted && "rotate-[1.5deg] scale-[1.03] shadow-float")}>
       <Link href={`/crm/deals/${deal.id}`} className="block md:pr-7" draggable={false}>
         <div className="text-body font-medium leading-snug">{deal.title}</div>
         <div className="mt-0.5 truncate text-subhead text-label-2">{deal.clientName ?? deal.contactName ?? "New prospect"}</div>

@@ -65,7 +65,7 @@ function Column({ status, tasks, onAdd }: { status: TaskStatus; tasks: TaskWithM
   return (
     <section
       ref={setNodeRef}
-      className={cn("flex w-[82vw] max-w-[320px] shrink-0 snap-center flex-col rounded-[18px] p-2 transition-colors xl:w-auto xl:max-w-none", isOver ? "bg-accent/10 ring-2 ring-accent/40" : "bg-fill/[0.08]")}
+      className={cn("flex w-[82vw] max-w-[320px] shrink-0 snap-center flex-col rounded-card p-2 transition-colors xl:w-auto xl:max-w-none", isOver ? "bg-accent/10 ring-2 ring-accent/40" : "bg-fill/[0.08]")}
     >
       <header className="flex items-center gap-2 px-2 pb-2 pt-1">
         <span className={cn("h-2.5 w-2.5 rounded-full", solidBg[meta.color])} />
@@ -101,7 +101,7 @@ function Card({ task, lifted }: { task: TaskWithMeta; lifted?: boolean }) {
     <button
       type="button"
       onClick={() => openTask(task.id)}
-      className={cn("w-full rounded-[14px] bg-bg-elevated p-3 text-left", lifted && "rotate-[1.5deg] scale-[1.03] shadow-float")}
+      className={cn("w-full rounded-[16px] bg-bg-elevated p-3 text-left", lifted && "rotate-[1.5deg] scale-[1.03] shadow-float")}
     >
       <div className={cn("text-body leading-snug", task.status === "done" && "text-label-2 line-through")}>
         {p.marks && <span className={cn("mr-1 font-semibold", textColor[p.color])}>{p.marks}</span>}

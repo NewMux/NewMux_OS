@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Trash2, Plus, ArrowUp } from "lucide-react";
-import { Sheet, SheetButton } from "@/components/ui/Sheet";
+import { Sheet, SheetIconButton } from "@/components/ui/Sheet";
 import { FieldRow, ListSection, RowInput } from "@/components/ui/List";
 import { Select, Textarea } from "@/components/ui/Input";
 import { CheckCircle } from "@/components/ui/Toggle";
@@ -75,16 +75,12 @@ export function TaskSheetHost() {
       open={!!taskId}
       onOpenChange={(o) => !o && close()}
       title={detail?.task.projectName ?? "Task"}
-      right={
-        <SheetButton bold onClick={close}>
-          Done
-        </SheetButton>
-      }
+      right={<SheetIconButton kind="confirm" label="Done" onClick={close} />}
     >
       {!detail ? (
         <div className="space-y-3 pt-2">
-          <Skeleton className="h-24 rounded-[12px]" />
-          <Skeleton className="h-44 rounded-[12px]" />
+          <Skeleton className="h-24 rounded-card" />
+          <Skeleton className="h-44 rounded-card" />
         </div>
       ) : (
         <TaskEditor key={detail.task.id} detail={detail} users={users} onPatch={patch} onReload={() => load(detail.task.id)} onDelete={remove} />

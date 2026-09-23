@@ -35,7 +35,7 @@ import { toast } from "sonner";
 import { Page, NavButton } from "@/components/ui/Page";
 import { Menu } from "@/components/ui/Menu";
 import { FormSheet } from "@/components/ui/FormSheet";
-import { Sheet, SheetButton } from "@/components/ui/Sheet";
+import { Sheet, SheetButton, SheetIconButton } from "@/components/ui/Sheet";
 import { FieldRow, ListRow, ListSection } from "@/components/ui/List";
 import { Select } from "@/components/ui/Input";
 import { useConfirm } from "@/components/ui/Confirm";
@@ -291,6 +291,7 @@ export function WikiEditor({
         onOpenChange={setEmojiOpen}
         title="Page Icon"
         size="auto"
+        left={<SheetIconButton label="Close" onClick={() => setEmojiOpen(false)} />}
         right={
           <SheetButton
             onClick={() => {

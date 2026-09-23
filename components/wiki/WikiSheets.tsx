@@ -124,7 +124,7 @@ export function SpaceSheet({ space, open, onOpenChange, canDelete }: { space?: K
   return (
     <FormSheet open={open} onOpenChange={onOpenChange} title={space ? "Edit Space" : "New Space"} submitLabel={space ? "Done" : "Create"} canSubmit={!!name.trim()} onSubmit={submit}>
       <div className="mb-6 flex justify-center">
-        <span className={cn("flex h-20 w-20 items-center justify-center rounded-[20px] text-white", solidBg[color as keyof typeof solidBg] ?? solidBg.blue)}>
+        <span className={cn("flex h-20 w-20 items-center justify-center rounded-card text-white", solidBg[color as keyof typeof solidBg] ?? solidBg.blue)}>
           <Icon className="h-10 w-10" />
         </span>
       </div>

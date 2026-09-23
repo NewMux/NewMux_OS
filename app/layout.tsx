@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
+import "@fontsource-variable/inter/opsz.css";
 import "./globals.css";
 import { Providers } from "./providers";
 

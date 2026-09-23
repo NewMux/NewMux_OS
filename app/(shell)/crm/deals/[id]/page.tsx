@@ -44,7 +44,7 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
       }
     >
       <div className="mx-auto max-w-2xl">
-        <div className="mb-7 rounded-[18px] bg-bg-elevated p-4">
+        <div className="mb-7 rounded-card bg-bg-elevated p-4">
           <div className="truncate text-subhead text-label-2">{deal.clientName ?? deal.contactName ?? "New prospect"}</div>
           <div className="font-rounded text-title1 font-semibold leading-tight tabular">{centsToDisplay(deal.valueCents, deal.currency)}</div>
           <DealHeaderActions deal={deal} />
