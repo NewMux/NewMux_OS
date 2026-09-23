@@ -35,11 +35,17 @@ const withPWA = withPWAInit({
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Self-contained server bundle for the Docker image (see Dockerfile).
+  output: "standalone",
   // PGlite ships WASM + data files that must be loaded from node_modules at
   // runtime rather than bundled; postgres.js likewise stays external.
   serverExternalPackages: ["@electric-sql/pglite", "postgres"],
-  // db/migrations + db/seed.sql are read with fs at runtime.
-  outputFileTracingIncludes: { "/**": ["./db/**/*.sql"] },
+  // Files read at runtime that the standalone tracer can't see: db/migrations +
+  // db/seed.sql (read with fs) and pdfkit's fonts (loaded via "#standard-fonts/*"
+  // package imports, used by the PDF exports).
+  outputFileTracingIncludes: {
+    "/**": ["./db/**/*.sql", "./node_modules/pdfkit/js/standard-fonts/**"],
+  },
 };
 
 export default withPWA(nextConfig);

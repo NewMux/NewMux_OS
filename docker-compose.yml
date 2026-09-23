@@ -1,0 +1,59 @@
+# One-command self-hosting: Postgres + the app + Caddy (automatic HTTPS).
+# Setup guide: docs/DEPLOY_ORACLE.md. Settings live in deploy/.env.
+#
+#   docker compose --env-file deploy/.env up -d --build
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: newmux
+      POSTGRES_USER: newmux
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/.env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U newmux -d newmux"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://newmux:${POSTGRES_PASSWORD}@db:5432/newmux
+      DB_AUTO_MIGRATE: "1"
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET in deploy/.env}
+      NEXTAUTH_SECRET: ${AUTH_SECRET}
+      AUTH_URL: https://${DOMAIN}
+      NEXTAUTH_URL: https://${DOMAIN}
+      VAULT_SESSION_SECRET: ${VAULT_SESSION_SECRET:?set VAULT_SESSION_SECRET in deploy/.env}
+      PADDLE_WEBHOOK_SECRET: ${PADDLE_WEBHOOK_SECRET:-}
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in deploy/.env}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

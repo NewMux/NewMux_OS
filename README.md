@@ -85,6 +85,20 @@ The seed contains the real business data from the ERP PRD:
 
 It also contains sample deals, activities, tasks, expense history and wiki pages, so every screen has something to show. Delete the sample records whenever you like.
 
+## Deploying
+
+The repo includes a one-command Docker setup (`docker-compose.yml`), with three containers:
+
+- Postgres 16;
+- the app, which migrates the database on start;
+- Caddy, which provides automatic HTTPS.
+
+**[docs/DEPLOY_ORACLE.md](docs/DEPLOY_ORACLE.md)** walks through running it for free on an Oracle Cloud Always Free server:
+
+- it starts on a `<ip>.sslip.io` address;
+- your own domain is a one-line change later;
+- nightly backups are included.
+
 ## Roles
 
 - **Partner** (`partner_admin`): everything.

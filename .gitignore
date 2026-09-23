@@ -16,3 +16,7 @@ public/workbox-*.js.map
 npm-debug.log*
 .data/
 public/swe-worker-*.js
+
+# Self-hosting (deploy/setup.sh)
+deploy/.env
+deploy/backups/
