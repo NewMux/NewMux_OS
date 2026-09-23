@@ -213,7 +213,8 @@ export function WikiEditor({
         </>
       }
     >
-      <article className="mx-auto max-w-[720px]">
+      {/* Notes-style: on iPad/Mac the page is a sheet of paper on the grey canvas. */}
+      <article className="mx-auto max-w-[760px] md:rounded-card md:bg-bg-elevated md:px-12 md:pb-12 md:pt-10">
         {ancestors.length > 0 && (
           <nav aria-label="Breadcrumbs" className="mb-3 flex flex-wrap items-center gap-1 text-footnote text-label-2">
             <Link href={`/wiki/s/${space.id}`} className="hover:text-accent">
@@ -271,7 +272,7 @@ export function WikiEditor({
           ))}
         </div>
 
-        {desktop && editor && <Toolbar editor={editor} className="sticky top-[52px] z-20 mb-4 rounded-xl" />}
+        {desktop && editor && <Toolbar editor={editor} className="glass sticky top-[64px] z-20 mb-6 w-fit max-w-full rounded-full px-1.5" />}
         <EditorContent editor={editor} />
 
         {children.length > 0 && (
@@ -337,7 +338,7 @@ function ToolButton({ label, active, onClick, children }: { label: string; activ
       aria-pressed={active}
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
-      className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors", active ? "bg-accent/15 text-accent" : "text-label hover:bg-fill/10")}
+      className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors", active ? "bg-accent/15 text-accent" : "text-label hover:bg-fill/10")}
     >
       {children}
     </button>
@@ -366,7 +367,7 @@ function Toolbar({ editor, className }: { editor: Editor; className?: string }) 
   const headingLevel = [1, 2, 3].find((l) => editor.isActive("heading", { level: l }));
 
   return (
-    <div className={cn("material no-scrollbar flex items-center gap-0.5 overflow-x-auto p-1 hairline-b", className)}>
+    <div className={cn("no-scrollbar flex items-center gap-0.5 overflow-x-auto p-1", className)}>
       <ToolButton
         label="Heading"
         active={!!headingLevel}
@@ -439,11 +440,9 @@ function KeyboardToolbar({ editor }: { editor: Editor }) {
     };
   }, []);
   return (
-    <div className="fixed inset-x-0 z-[55] flex items-center" style={{ bottom: offset }}>
-      <Toolbar editor={editor} className="flex-1 shadow-[0_-0.5px_0_rgb(var(--separator))]" />
-      <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => editor.commands.blur()} className="material h-[44px] shrink-0 px-4 text-body font-semibold text-accent">
-        Done
-      </button>
+    <div className="fixed inset-x-2 z-[55] flex items-center gap-2" style={{ bottom: offset + 8 }}>
+      <Toolbar editor={editor} className="glass min-w-0 flex-1 rounded-full px-1.5" />
+      <SheetIconButton kind="confirm" label="Done editing" onMouseDown={(e) => e.preventDefault()} onClick={() => editor.commands.blur()} className="h-11 w-11 shrink-0" />
     </div>
   );
 }

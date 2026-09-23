@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 
 export default function LoginPage() {
@@ -27,17 +28,15 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="w-full max-w-[380px] animate-slide-up">
+    <div className="animate-slide-up">
       <div className="mb-8 flex flex-col items-center text-center">
-        <span className="mb-5 flex h-[76px] w-[76px] items-center justify-center rounded-[22px] bg-gradient-to-br from-[#1c1c1e] to-[#3a3a3c] font-rounded text-[34px] font-bold text-white shadow-float dark:from-white dark:to-[#d1d1d6] dark:text-black">
-          N
-        </span>
+        <Image src="/icons/icon.svg" alt="" width={88} height={88} unoptimized priority className="mb-5 rounded-[22.5%] shadow-[0_12px_32px_rgb(22_54_168/0.35)]" />
         <h1 className="text-title1">Sign in to NEWMUX</h1>
         <p className="mt-1.5 text-subhead text-label-2">CRM, projects, finance and wiki — in one place.</p>
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div className="overflow-hidden rounded-[12px] bg-bg-elevated">
+        <div className="glass overflow-hidden rounded-card">
           <label className="sr-only" htmlFor="email">
             Email
           </label>
@@ -51,7 +50,7 @@ export default function LoginPage() {
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="h-[52px] w-full bg-transparent px-4 text-label shadow-[inset_0_-0.5px_0_rgb(var(--separator))] placeholder:text-label-3 focus:outline-none"
+            className="h-[54px] w-full bg-transparent px-5 text-label shadow-[inset_0_-0.5px_0_rgb(var(--separator))] placeholder:text-label-2 focus:outline-none"
           />
           <label className="sr-only" htmlFor="password">
             Password
@@ -64,10 +63,10 @@ export default function LoginPage() {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="h-[52px] w-full bg-transparent px-4 text-label placeholder:text-label-3 focus:outline-none"
+            className="h-[54px] w-full bg-transparent px-5 text-label placeholder:text-label-2 focus:outline-none"
           />
         </div>
-        <p role="alert" className="mt-2 min-h-[20px] px-4 text-footnote text-ios-red">
+        <p role="alert" className="mt-2 min-h-[20px] px-5 text-footnote text-ios-red">
           {error}
         </p>
         <Button type="submit" size="lg" disabled={loading || !email || !password} className="mt-2">

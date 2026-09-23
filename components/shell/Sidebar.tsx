@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -31,7 +32,7 @@ export function Sidebar({
   return (
     <aside className="glass fixed bottom-2 left-2 top-2 z-40 hidden w-64 flex-col rounded-card md:flex">
       <div className="flex items-center gap-2.5 px-5 pb-4 pt-5">
-        <span className="flex h-8 w-8 items-center justify-center rounded-[9px] bg-label font-rounded text-[13px] font-bold text-bg">N</span>
+        <Image src="/icons/icon.svg" alt="" width={32} height={32} unoptimized className="rounded-[22.5%]" />
         <span className="text-headline">NEWMUX</span>
         <button
           type="button"

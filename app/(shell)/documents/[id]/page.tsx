@@ -9,13 +9,19 @@ import { getInvoiceProfitBreakdown, listPaymentsForDocument, remainingBalanceCen
 import { one } from "@/lib/data/sql";
 import { Page } from "@/components/ui/Page";
 import { ListRow, ListSection } from "@/components/ui/List";
-import { Badge } from "@/components/ui/Badge";
 import { DocumentActions, PaymentRows } from "@/components/documents/DocumentActions";
 import { DOC_STATUS, DOC_TYPE } from "@/lib/labels";
 import { centsToDisplay } from "@/lib/money";
 import { formatDate, daysUntil } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { solidBg } from "@/lib/colors";
+
+const PASS = {
+  invoice: "linear-gradient(140deg, #4a97ff 0%, #1f5fe0 55%, #1636a8 100%)",
+  quote: "linear-gradient(140deg, #a07cff 0%, #6a45e6 55%, #4527b8 100%)",
+  contract: "linear-gradient(140deg, #6e7482 0%, #454a55 55%, #2a2d34 100%)",
+  paid: "linear-gradient(140deg, #3fd08a 0%, #1fa463 55%, #117a47 100%)",
+};
 
 export default async function DocumentPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -49,27 +55,38 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
       actions={<DocumentActions doc={doc} remainingCents={remaining} hasConversion={!!convertedTo} menuOnly />}
     >
       <div className="mx-auto max-w-2xl">
-        {/* Summary card */}
-        <div className="mb-6 rounded-card bg-bg-elevated p-5 text-center">
-          <div className="text-footnote text-label-2">
-            {DOC_TYPE[doc.type]} for {client?.name}
+        {/* Wallet-style pass: the one colourful surface on the screen. */}
+        <div
+          className="relative mb-2 overflow-hidden rounded-card p-5 text-white shadow-[0_18px_40px_-12px_rgb(0_0_0/0.35)]"
+          style={{ background: PASS[doc.status === "paid" ? "paid" : doc.type] }}
+        >
+          <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgb(255_255_255/0.32),transparent_55%)]" />
+          <div className="relative flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-caption1 font-semibold uppercase tracking-[0.06em] text-white/75">{DOC_TYPE[doc.type]}</div>
+              <div className="truncate text-headline">{client?.name}</div>
+            </div>
+            <span className="shrink-0 rounded-full bg-white/20 px-2.5 py-1 text-caption1 font-semibold shadow-[inset_0_1px_0_rgb(255_255_255/0.3)]">
+              {status.label}
+              {overdue && " · Overdue"}
+            </span>
           </div>
-          <div className="my-1 font-rounded text-[40px] font-semibold leading-tight tabular">{centsToDisplay(doc.totalCents, doc.currency)}</div>
-          <div className="flex items-center justify-center gap-2">
-            <Badge color={status.color}>{status.label}</Badge>
-            {overdue && <Badge color="red">Overdue</Badge>}
-          </div>
-          {doc.type === "invoice" && doc.status !== "draft" && (
-            <div className="mx-auto mt-4 max-w-xs">
-              <div className="h-1.5 overflow-hidden rounded-full bg-fill/20">
-                <div className="h-full rounded-full bg-ios-green transition-all" style={{ width: `${doc.totalCents ? (paid / doc.totalCents) * 100 : 0}%` }} />
+          <div className="relative mt-9 font-rounded text-[40px] font-semibold leading-none tabular">{centsToDisplay(doc.totalCents, doc.currency)}</div>
+          {doc.type === "invoice" && doc.status !== "draft" ? (
+            <div className="relative mt-5">
+              <div className="h-1.5 overflow-hidden rounded-full bg-white/25">
+                <div className="h-full rounded-full bg-white transition-all" style={{ width: `${doc.totalCents ? (paid / doc.totalCents) * 100 : 0}%` }} />
               </div>
-              <div className="mt-1.5 flex justify-between text-caption1 text-label-2 tabular">
+              <div className="mt-1.5 flex justify-between text-caption1 text-white/80 tabular">
                 <span>{centsToDisplay(paid, doc.currency)} paid</span>
                 <span>{centsToDisplay(remaining, doc.currency)} left</span>
               </div>
             </div>
+          ) : (
+            <div className="relative mt-5 text-caption1 text-white/80">{doc.type === "quote" ? `Valid from ${formatDate(doc.issuedAt)}` : `Issued ${formatDate(doc.issuedAt)}`}</div>
           )}
+        </div>
+        <div className="mb-7">
           <DocumentActions doc={doc} remainingCents={remaining} hasConversion={!!convertedTo} />
         </div>
 
