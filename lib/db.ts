@@ -5,9 +5,10 @@ import path from "node:path";
 /**
  * One tiny query interface over two Postgres backends:
  *
- * - `DATABASE_URL` set → postgres.js against Supabase (use the pooled,
- *   transaction-mode connection string; prepared statements are disabled
- *   for that reason).
+ * - `DATABASE_URL` set → postgres.js (Supabase pooled connection string, or
+ *   the Postgres container in docker-compose.yml; prepared statements are
+ *   disabled so transaction-mode poolers work). With DB_AUTO_MIGRATE=1 it
+ *   migrates and seeds itself on first connection.
  * - otherwise → PGlite, an embedded WASM Postgres persisted to `.data/pglite`,
  *   which auto-applies `db/migrations/*.sql` and `db/seed.sql` on first use.
  *   Same SQL, same schema — local dev needs no credentials.
@@ -42,10 +43,20 @@ async function createPostgresBackend(url: string): Promise<Backend> {
   const sql = postgres(url, {
     prepare: false,
     max: 5,
+    // Skip "already exists, skipping" notices from idempotent migrations.
+    onnotice: () => {},
     types: {
       int8: { to: 20, from: [20], serialize: (x: number) => String(x), parse: (x: string) => Number(x) },
       numeric: { to: 1700, from: [1700], serialize: (x: number) => String(x), parse: (x: string) => Number(x) },
       date: { to: 1082, from: [1082], serialize: passthrough, parse: passthrough },
+      // Callers pass json/jsonb params as JSON text (as PGlite expects); the
+      // default serializer would JSON.stringify that string a second time.
+      json: {
+        to: 114,
+        from: [114, 3802],
+        serialize: (x: unknown) => (typeof x === "string" ? x : JSON.stringify(x)),
+        parse: (x: string) => JSON.parse(x),
+      },
       timestamptz: {
         to: 1184,
         from: [1184, 1114],
@@ -58,13 +69,17 @@ async function createPostgresBackend(url: string): Promise<Backend> {
     (runner: typeof sql): Executor =>
     async (text, params = []) =>
       (await runner.unsafe(text, params as never[])) as unknown as Row[];
-  return {
+  const backend: Backend = {
     query: exec(sql),
     exec: async (script) => {
       await sql.unsafe(script).simple();
     },
     transaction: (fn) => sql.begin((tx) => fn(exec(tx as unknown as typeof sql))) as never,
   };
+  // Self-hosted (Docker) deployments migrate and seed on first connection,
+  // exactly like the embedded database; hosted setups run `npm run seed`.
+  if (process.env.DB_AUTO_MIGRATE === "1") await migrate(backend, { seed: true });
+  return backend;
 }
 
 async function createPgliteBackend(): Promise<Backend> {
