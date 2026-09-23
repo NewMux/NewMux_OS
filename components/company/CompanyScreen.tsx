@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Award, Building2, Globe, Handshake, Trash2 } from "lucide-react";
-import { Page } from "@/components/ui/Page";
+import { Page, NavButton } from "@/components/ui/Page";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { FieldRow, ListRow, ListSection, IconTile, PlainRowInput, RowInput } from "@/components/ui/List";
@@ -39,22 +39,34 @@ export function CompanyScreen({ profile }: { profile: CompanyProfile }) {
       title="Company"
       subtitle={profile.legalName}
       actions={
-        <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
+        <NavButton label="Edit company details" onClick={() => setEditing(true)} className="px-4 text-subhead font-medium">
           Edit
-        </Button>
+        </NavButton>
       }
     >
       <div className="mx-auto max-w-2xl">
         <ListSection header="Registration">
-          <ListRow leading={<IconTile icon={Building2} color="blue" />} title="Commercial Registration" subtitle={`CR ${profile.crNumber || "—"}`} detail={cr.text} trailing={cr.badge} />
-          <ListRow leading={<IconTile icon={Globe} color="teal" />} title={profile.mainDomain || "Main domain"} subtitle="Domain renewal" detail={domain.text} trailing={domain.badge} />
+          <ListRow
+            leading={<IconTile icon={Building2} color="blue" />}
+            title="Commercial Registration"
+            subtitle={cr.badge ? `CR ${profile.crNumber || "—"} · renews ${cr.text}` : `CR ${profile.crNumber || "—"}`}
+            detail={cr.badge ? undefined : cr.text}
+            trailing={cr.badge}
+          />
+          <ListRow
+            leading={<IconTile icon={Globe} color="teal" />}
+            title={profile.mainDomain || "Main domain"}
+            subtitle={domain.badge ? `Renews ${domain.text}` : "Domain renewal"}
+            detail={domain.badge ? undefined : domain.text}
+            trailing={domain.badge}
+          />
           {profile.vatNumber && <ListRow title="VAT number" detail={profile.vatNumber} />}
           {profile.email && <ListRow title="Email" detail={profile.email} />}
           {profile.phone && <ListRow title="Phone" detail={profile.phone} />}
           {profile.address && <ListRow title="Address" subtitle={profile.address} multiline />}
         </ListSection>
 
-        <ListSection header="Certifications" action={<button className="text-subhead text-accent" onClick={() => setCert("new")}>Add</button>} footer="Expiry dates within 30 days show up on Home.">
+        <ListSection header="Certifications" action={<button className="text-subhead text-accent" onClick={() => setCert("new")}>Add</button>} footer="Expiry dates within 30 days show up on Today.">
           {profile.certifications.map((c) => (
             <ListRow
               key={c.id}

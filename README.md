@@ -2,7 +2,7 @@
 
 One app for running NEWMUX: **CRM, project management, finance and a knowledge base**, designed to feel like a native Apple app on iPhone, iPad and Mac.
 
-- **Home** answers "what needs me today?":
+- **Today** (the first tab) answers "what needs me today?":
   - one summary card (cash this month, receivables, pipeline);
   - **Today**: meetings and tasks due;
   - **Needs attention**: overdue hosting fees, renewals and follow-ups;
@@ -34,22 +34,35 @@ One app for running NEWMUX: **CRM, project management, finance and a knowledge b
 
 ## Design system
 
-- **Tokens:** Apple's semantic colors (system grouped backgrounds, labels, separators, system blue/green/red/…) in light and dark. They are defined in `app/globals.css` and exposed to Tailwind as `bg-bg`, `text-label-2`, `bg-ios-green` and so on.
-- **Type:** the SF Pro system font stack with the Dynamic Type scale (`text-large-title`, `text-headline`, `text-footnote` …). It steps down one size on iPad/Mac.
-- **Inputs:** all form fields are at least 16px, so iOS never zooms in on focus.
-- **Components** (`components/ui/`):
-  - `Page`: a large title that collapses into a frosted nav bar;
-  - `ListSection`/`ListRow`: inset grouped lists;
-  - `Sheet`/`FormSheet`: bottom sheets with a grabber and drag-to-dismiss, which become centered dialogs on desktop;
-  - `useConfirm`: iOS action sheets;
-  - `SegmentedControl`, `Toggle`, `CheckCircle`, `Badge`, `Avatar`, `SummaryCard`/`Widget`, `ProgressRing`, `Menu` (context menu) and `SearchField`.
-- **Restraint:**
+NEWMUX OS follows **iOS 26 Liquid Glass**.
+
+- **Type:** San Francisco on Apple devices. Everywhere else it uses self-hosted Inter with optical sizes, the closest match (no CDN). The type scale is Apple's Dynamic Type (`text-large-title`, `text-headline`, `text-footnote` …) and steps down one size on iPad/Mac.
+- **Color:**
+  - Apple's semantic colors in light and dark, defined in `app/globals.css` and exposed to Tailwind (`bg-bg`, `text-label-2`, `bg-ios-green` …);
   - blue is the only accent, for things you can tap; red, orange and green appear only when they mean something (overdue, due soon, paid);
-  - each number appears once per screen, empty sections and unavailable actions are hidden, and secondary actions live in the ••• or + menu.
+  - the one exception is the Wallet-style pass on invoices, quotes and contracts.
+- **Materials:**
+  - `glass` for floating controls, `glass-thick` for menus and alerts, `glass-prominent` for the one primary action per screen: all translucent and blurred, with a specular top edge;
+  - `scroll-edge-top`/`-bottom` softly blur content under floating bars.
+- **Shape:** 22px cards and lists, 32px sheets, capsules for every button, segmented control and search field.
+- **Motion:**
+  - screens push in from the right when you go deeper, pop in from the left when you go back, and crossfade between tabs (`lib/navMotion.ts`);
+  - the tab bar minimizes as you scroll;
+  - thumbs, knobs and presses spring;
+  - Reduce Motion is honored everywhere.
+- **Components** (`components/ui/`):
+  - `Page`: a large title under a bar that floats over the content, with an eyebrow and a glass back button;
+  - `ListSection`/`ListRow`: inset grouped lists; `variant="prominent"` gives bold dashboard section titles with `SectionLink` ("Show All ›");
+  - `Sheet`/`FormSheet`: glass ✕ and ✓ header buttons; short sheets float inset;
+  - `useConfirm`: glass alerts and action sheets;
+  - also `SegmentedControl`, `Toggle`, `CheckCircle`, `Badge`, `Avatar`, `SummaryCard`/`Widget`, `ProgressRing`, `Menu` and `SearchField`.
 - **Navigation:**
-  - iPhone: a floating 5-tab bar (Home, CRM, Work, Finance, Wiki) plus a search button;
-  - iPad/Mac: a Mail-style sidebar with the same five sections; the section you're in expands to show its pages;
-  - Company, Ventures, Vault and Growth are in the account menu and at the top of Settings.
+  - iPhone: a floating glass tab bar (Today, CRM, Work, Finance, Wiki) with a sliding lens and a separate search button;
+  - iPad/Mac: a floating glass sidebar with the same five sections; the section you're in expands to show its pages. Company, Ventures, Vault and Growth are in the account menu and at the top of Settings;
+  - iPad (landscape)/Mac: Clients, Contacts, Invoices & Quotes and the Wiki use Mail/Notes-style split views (`components/shell/SplitView.tsx`);
+  - ⌘K opens a Spotlight-style search.
+- **App icon:** `public/icons/icon.svg`, with PNGs for iOS and the PWA rendered from it.
+- **Inputs:** all form fields are at least 16px, so iOS never zooms in on focus.
 
 ## Stack
 
@@ -112,7 +125,7 @@ The app is internal and unlisted. Every response sends `noindex`, so search engi
 ## Roles
 
 - **Partner** (`partner_admin`): everything.
-- **Team member** (`lead_dev`): Home, Work (projects, tasks, calendar), Wiki, Vault (masked values only) and Settings (appearance, password). CRM, Finance, Company and Growth are blocked in the API routes (403) as well as hidden in navigation.
+- **Team member** (`lead_dev`): Today, Work (projects, tasks, calendar), Wiki, Vault (masked values only) and Settings (appearance, password). CRM, Finance, Company and Growth are blocked in the API routes (403) as well as hidden in navigation.
 
 ## Money
 

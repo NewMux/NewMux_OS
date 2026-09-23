@@ -44,7 +44,7 @@ export function ListSection({
 /** "Show All ›" link for a section header. */
 export function SectionLink({ href, children = "Show All" }: { href: string; children?: React.ReactNode }) {
   return (
-    <Link href={href} className="press flex items-center gap-0.5 text-subhead font-medium text-accent">
+    <Link href={href} className="press -my-3 flex items-center gap-0.5 py-3 text-subhead font-medium text-accent">
       {children}
       <ChevronRight className="h-4 w-4" strokeWidth={2.4} aria-hidden />
     </Link>

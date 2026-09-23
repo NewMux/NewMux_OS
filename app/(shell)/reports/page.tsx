@@ -12,6 +12,7 @@ import { listPipelineItems } from "@/lib/data/pipeline";
 import { getSetting } from "@/lib/data/settings";
 import { centsToDisplay, compactMoney } from "@/lib/money";
 import { timeAgo } from "@/lib/time";
+import { plural } from "@/lib/utils";
 
 export const metadata = { title: "Reports" };
 
@@ -40,16 +41,16 @@ export default async function ReportsPage() {
     <Page title="Reports" back={{ href: "/finance", label: "Finance" }} subtitle="All amounts in BHD">
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Widget title="Paid">
-          <Metric value={compactMoney(invoices.paidBhdCents)} caption={`${invoices.paidCount} invoices`} />
+          <Metric value={compactMoney(invoices.paidBhdCents)} caption={plural(invoices.paidCount, "invoice")} />
         </Widget>
         <Widget title="Partly paid">
           <Metric value={compactMoney(invoices.partialOutstandingBhdCents)} caption={`${invoices.partialCount} outstanding`} />
         </Widget>
         <Widget title="Unpaid">
-          <Metric value={compactMoney(invoices.unpaidBhdCents)} caption={`${invoices.unpaidCount} invoices`} />
+          <Metric value={compactMoney(invoices.unpaidBhdCents)} caption={plural(invoices.unpaidCount, "invoice")} />
         </Widget>
         <Widget title="Overdue">
-          <Metric value={compactMoney(invoices.overdueBhdCents)} caption={`${invoices.overdueCount} invoices`} />
+          <Metric value={compactMoney(invoices.overdueBhdCents)} caption={plural(invoices.overdueCount, "invoice")} />
         </Widget>
       </div>
 

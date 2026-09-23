@@ -6,7 +6,7 @@ import { Page, NavButton } from "@/components/ui/Page";
 import { ListRow, ListSection, IconTile } from "@/components/ui/List";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Widget, Metric } from "@/components/ui/Widget";
+import { SummaryCard } from "@/components/ui/Widget";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useConfirm } from "@/components/ui/Confirm";
 import { HostingSheet } from "@/components/hosting/HostingSheet";
@@ -57,10 +57,11 @@ export function HostingScreen({
       onClick={() => setEditing(s)}
       leading={<IconTile icon={ITEM_ICON[s.item]} color={level === "overdue" ? "red" : level === "ok" ? "teal" : "orange"} />}
       title={s.clientName}
-      subtitle={`${s.label ?? s.item[0]!.toUpperCase() + s.item.slice(1)} · ${CYCLE_LABEL[s.cycle]} · ${
+      subtitle={`${level !== "ok" ? `${centsToDisplay(s.amountCents, s.currency)} · ` : ""}${s.label ?? s.item[0]!.toUpperCase() + s.item.slice(1)} · ${CYCLE_LABEL[s.cycle]} · ${
         s.status === "paused" ? "Paused" : s.nextDueDate ? (level === "overdue" ? `overdue since ${formatDate(s.nextDueDate, { day: "numeric", month: "short" })}` : `due ${relativeDay(s.nextDueDate)}`) : "no due date"
       }`}
-      detail={centsToDisplay(s.amountCents, s.currency)}
+      // With a Collect button beside it, the amount reads first in the subtitle instead of being squeezed.
+      detail={level !== "ok" ? undefined : centsToDisplay(s.amountCents, s.currency)}
       trailing={
         level !== "ok" ? (
           <Button
@@ -72,7 +73,7 @@ export function HostingScreen({
               void collect(s);
             }}
           >
-            Collected
+            Collect
           </Button>
         ) : s.status === "paused" ? (
           <Badge>Paused</Badge>
@@ -91,17 +92,13 @@ export function HostingScreen({
         </NavButton>
       }
     >
-      <div className="mb-6 grid grid-cols-3 gap-3">
-        <Widget title="Per year">
-          <Metric value={compactMoney(report.annualizedBhdCents)} caption="recurring" />
-        </Widget>
-        <Widget title="Collected">
-          <Metric value={compactMoney(report.collectedBhdCents)} caption="this year" />
-        </Widget>
-        <Widget title="Alerts">
-          <Metric value={attention.length} tone={attention.some((a) => a.level === "overdue") ? "negative" : undefined} caption="due in 14 days" />
-        </Widget>
-      </div>
+      <SummaryCard
+        items={[
+          { label: "Per year", value: compactMoney(report.annualizedBhdCents), caption: "recurring" },
+          { label: "Collected", value: compactMoney(report.collectedBhdCents), caption: "this year" },
+          { label: "Alerts", value: String(attention.length), caption: "due in 14 days", tone: attention.some((a) => a.level === "overdue") ? "negative" : undefined },
+        ]}
+      />
       {subscriptions.length === 0 && <EmptyState icon={Server} title="No hosting fees" message="Track the hosting and domain fees you collect from clients." />}
       {attention.length > 0 && (
         <ListSection header="Needs collecting" footer="Alerts start 14 days before the due date, again at 3 days, then overdue.">

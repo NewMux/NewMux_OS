@@ -15,6 +15,13 @@ import { cn } from "@/lib/utils";
 import type { MeetingListItem } from "@/lib/data/meetings";
 
 /** Agenda view with a week strip, like Calendar's list mode. */
+/** "Today · 23 Sep", "Saturday · 26 Sep", or "Monday 5 Oct" further out. */
+function dayHeader(day: string) {
+  const rel = relativeDay(day);
+  const date = formatDate(day, { day: "numeric", month: "short" });
+  return rel === date ? formatDate(day, { weekday: "long", day: "numeric", month: "short" }) : `${rel} · ${date}`;
+}
+
 export function CalendarScreen({ meetings, projects, clients }: { meetings: MeetingListItem[]; projects: Option[]; clients: Option[] }) {
   const router = useRouter();
   const { run, pending } = useMutation();
@@ -50,7 +57,7 @@ export function CalendarScreen({ meetings, projects, clients }: { meetings: Meet
   };
 
   const dayGroup = (day: string) => (
-    <ListSection key={day} header={<span className={day === today ? "text-ios-red" : undefined}>{`${relativeDay(day)} · ${formatDate(day, { weekday: "short", day: "numeric", month: "short" })}`}</span>}>
+    <ListSection key={day} header={<span className={day === today ? "text-ios-red" : undefined}>{dayHeader(day)}</span>}>
       {byDay.get(day)!.map((m) => (
         <div key={m.id} className="flex items-stretch gap-3 pl-4 [&:last-child_.row-sep]:shadow-none">
           <span className="my-2.5 w-1 shrink-0 rounded-full bg-ios-red" />

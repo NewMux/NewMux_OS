@@ -3,13 +3,14 @@ import { SearchX } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { buttonVariants } from "@/components/ui/Button";
 
+/** Any unknown URL outside the signed-in app (the shell has its own). */
 export default function NotFound() {
   return (
-    <div className="flex min-h-[70dvh] items-center justify-center">
+    <div className="flex min-h-dvh items-center justify-center bg-bg px-5">
       <EmptyState
         icon={SearchX}
-        title="Not found"
-        message="It may have been deleted, or the link is wrong."
+        title="Page not found"
+        message="It may have been moved, or the link is wrong."
         action={
           <Link href="/home" className={buttonVariants()}>
             Go to Today
