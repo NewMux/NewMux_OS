@@ -24,7 +24,7 @@ export function useOpenTask() {
 }
 
 /** Reminders-style task row: round checkbox, title, and a compact meta line. */
-export function TaskRow({ task, showProject = true }: { task: TaskWithMeta; showProject?: boolean }) {
+export function TaskRow({ task, showProject = true, hideAssignee = false }: { task: TaskWithMeta; showProject?: boolean; hideAssignee?: boolean }) {
   const { run } = useMutation();
   const openTask = useOpenTask();
   const [, startTransition] = useTransition();
@@ -62,7 +62,7 @@ export function TaskRow({ task, showProject = true }: { task: TaskWithMeta; show
             </span>
           )}
           {task.dueAt && <span className={cn(overdue && "text-ios-red")}>{relativeDay(task.dueAt)}</span>}
-          {task.assigneeName && <span className="truncate">{task.assigneeName.split(" ")[0]}</span>}
+          {task.assigneeName && !hideAssignee && <span className="truncate">{task.assigneeName.split(" ")[0]}</span>}
           {task.subtaskCount > 0 && (
             <span className="flex items-center gap-0.5">
               <ListChecks className="h-3.5 w-3.5" />

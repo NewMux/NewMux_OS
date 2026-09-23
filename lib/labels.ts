@@ -33,7 +33,8 @@ export const TASK_STATUS: Record<TaskStatus, Meta> = {
 export const TASK_PRIORITY: Record<TaskPriority, Meta & { marks: string }> = {
   urgent: { label: "Urgent", color: "red", marks: "!!!" },
   high: { label: "High", color: "orange", marks: "!!" },
-  medium: { label: "Medium", color: "blue", marks: "!" },
+  // Medium is the default, so it carries no mark (a "!" on every task is noise).
+  medium: { label: "Medium", color: "blue", marks: "" },
   low: { label: "Low", color: "gray", marks: "" },
 };
 

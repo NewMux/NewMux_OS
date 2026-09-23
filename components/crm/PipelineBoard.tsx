@@ -17,7 +17,6 @@ import {
 } from "@dnd-kit/core";
 import { CalendarClock } from "lucide-react";
 import { Menu } from "@/components/ui/Menu";
-import { Avatar } from "@/components/ui/Avatar";
 import { useMutation } from "@/lib/useMutation";
 import { DEAL_STAGE } from "@/lib/labels";
 import { DEAL_STAGES, type DealStage } from "@/lib/data/types";
@@ -126,8 +125,8 @@ function DealCard({ deal, lifted, onMove }: { deal: DealListItem; lifted?: boole
   const closeIn = deal.expectedClose ? daysUntil(deal.expectedClose) : null;
   const open = deal.stage !== "won" && deal.stage !== "lost";
   return (
-    <div className={cn("relative rounded-[14px] bg-bg-elevated p-3 shadow-widget transition-transform dark:shadow-none", lifted && "rotate-[1.5deg] scale-[1.03] shadow-float")}>
-      <Link href={`/crm/deals/${deal.id}`} className="block pr-7" draggable={false}>
+    <div className={cn("group relative rounded-[14px] bg-bg-elevated p-3 transition-transform", lifted && "rotate-[1.5deg] scale-[1.03] shadow-float")}>
+      <Link href={`/crm/deals/${deal.id}`} className="block md:pr-7" draggable={false}>
         <div className="text-body font-medium leading-snug">{deal.title}</div>
         <div className="mt-0.5 truncate text-subhead text-label-2">{deal.clientName ?? deal.contactName ?? "New prospect"}</div>
         <div className="mt-2.5 flex items-center gap-2">
@@ -138,11 +137,11 @@ function DealCard({ deal, lifted, onMove }: { deal: DealListItem; lifted?: boole
               {formatDate(deal.expectedClose, { day: "numeric", month: "short" })}
             </span>
           )}
-          {deal.ownerName && <Avatar name={deal.ownerName} size={20} className={cn(!(open && closeIn !== null) && "ml-auto")} />}
         </div>
       </Link>
       {onMove && (
-        <div className="absolute right-1.5 top-1.5" onPointerDown={(e) => e.stopPropagation()}>
+        // Keyboard / mouse alternative to dragging; appears on hover or focus (phones use the deal screen's stepper).
+        <div className="absolute right-1.5 top-1.5 hidden opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 md:block" onPointerDown={(e) => e.stopPropagation()}>
           <Menu
             label={`Move ${deal.title}`}
             trigger={

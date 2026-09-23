@@ -74,7 +74,7 @@ export function TasksScreen({ tasks, userId, projects, users }: { tasks: TaskWit
         {groups.map(([label, items]) => (
           <ListSection key={label} header={<span className={label === "Overdue" ? "text-ios-red" : undefined}>{label}</span>}>
             {items.map((t) => (
-              <TaskRow key={t.id} task={t} />
+              <TaskRow key={t.id} task={t} hideAssignee />
             ))}
           </ListSection>
         ))}
@@ -86,7 +86,7 @@ export function TasksScreen({ tasks, userId, projects, users }: { tasks: TaskWit
             {showDone && (
               <ListSection>
                 {done.map((t) => (
-                  <TaskRow key={t.id} task={t} />
+                  <TaskRow key={t.id} task={t} hideAssignee />
                 ))}
               </ListSection>
             )}

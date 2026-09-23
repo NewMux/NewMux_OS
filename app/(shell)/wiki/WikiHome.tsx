@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Plus, Star, FolderPlus } from "lucide-react";
+import { Plus, FolderPlus } from "lucide-react";
 import { Page, NavButton } from "@/components/ui/Page";
 import { SearchField } from "@/components/ui/SearchField";
 import { ListRow, ListSection } from "@/components/ui/List";
@@ -44,6 +43,8 @@ export function WikiHome({
   const [newPage, setNewPage] = useState(false);
   const [newSpace, setNewSpace] = useState(false);
   useNewParam(() => setNewPage(true));
+  // Pages you opened, then pages others changed — one list, no repeats.
+  const recent = [...recents, ...updated.filter((u) => !recents.some((r) => r.id === u.id))].slice(0, 6);
 
   useEffect(() => {
     if (!q.trim()) {
@@ -94,23 +95,13 @@ export function WikiHome({
       ) : (
         <div className="grid gap-x-6 lg:grid-cols-2 [&>*]:min-w-0">
           <div>
-            <div className="mb-7 grid grid-cols-2 gap-3">
+            <ListSection header="Spaces">
               {spaces.map((s) => (
-                <Link key={s.id} href={`/wiki/s/${s.id}`} className="press rounded-[16px] bg-bg-elevated p-3.5 shadow-widget dark:shadow-none">
-                  <SpaceIcon icon={s.icon} color={s.color} />
-                  <div className="mt-3 truncate text-headline">{s.name}</div>
-                  <div className="text-footnote text-label-2">
-                    {s.pageCount} page{s.pageCount === 1 ? "" : "s"}
-                  </div>
-                </Link>
+                <ListRow key={s.id} href={`/wiki/s/${s.id}`} leading={<SpaceIcon icon={s.icon} color={s.color} />} title={s.name} detail={s.pageCount} />
               ))}
-              <button type="button" onClick={() => setNewSpace(true)} className="press flex min-h-[112px] flex-col items-center justify-center gap-1 rounded-[16px] border border-dashed border-separator text-subhead text-accent">
-                <FolderPlus className="h-6 w-6" />
-                New Space
-              </button>
-            </div>
+            </ListSection>
             {favorites.length > 0 && (
-              <ListSection header={<span className="flex items-center gap-1"><Star className="h-3 w-3 fill-current" /> Favorites</span>}>
+              <ListSection header="Favorites">
                 {favorites.map((p) => (
                   <PageRow key={p.id} p={p} />
                 ))}
@@ -118,18 +109,13 @@ export function WikiHome({
             )}
           </div>
           <div>
-            {recents.length > 0 && (
-              <ListSection header="Recently Viewed">
-                {recents.map((p) => (
-                  <PageRow key={p.id} p={p} />
+            {recent.length > 0 && (
+              <ListSection header="Recent">
+                {recent.map((p) => (
+                  <PageRow key={p.id} p={p} subtitle={`${p.spaceName} · ${timeAgo(p.updatedAt)}`} />
                 ))}
               </ListSection>
             )}
-            <ListSection header="Recently Edited">
-              {updated.map((p) => (
-                <PageRow key={p.id} p={p} subtitle={`${p.spaceName} · ${timeAgo(p.updatedAt)}`} />
-              ))}
-            </ListSection>
             <ListSection header="Templates" footer="Start new pages from a template with the + button.">
               {templates.map((p) => (
                 <PageRow key={p.id} p={p} subtitle="Template" />

@@ -92,14 +92,14 @@ export function HostingScreen({
       }
     >
       <div className="mb-6 grid grid-cols-3 gap-3">
-        <Widget title="Per year" color="teal">
+        <Widget title="Per year">
           <Metric value={compactMoney(report.annualizedBhdCents)} caption="recurring" />
         </Widget>
-        <Widget title="Collected" color="green">
+        <Widget title="Collected">
           <Metric value={compactMoney(report.collectedBhdCents)} caption="this year" />
         </Widget>
-        <Widget title="Alerts" color={attention.some((a) => a.level === "overdue") ? "red" : "orange"}>
-          <Metric value={attention.length} caption="due in 14 days" />
+        <Widget title="Alerts">
+          <Metric value={attention.length} tone={attention.some((a) => a.level === "overdue") ? "negative" : undefined} caption="due in 14 days" />
         </Widget>
       </div>
       {subscriptions.length === 0 && <EmptyState icon={Server} title="No hosting fees" message="Track the hosting and domain fees you collect from clients." />}

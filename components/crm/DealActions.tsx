@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlarmClock, Pencil, Plus, Trash2, Trophy, XCircle, FolderKanban, FileText } from "lucide-react";
+import { AlarmClock, BookOpen, Pencil, Plus, Trash2, Trophy, XCircle, FolderKanban, FileText } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Menu } from "@/components/ui/Menu";
 import { useConfirm } from "@/components/ui/Confirm";
@@ -57,7 +57,7 @@ export function DealHeaderActions({ deal }: { deal: DealListItem }) {
       <div className="mt-4 flex gap-3">
         {open && (
           <>
-            <Button className="flex-1 bg-ios-green hover:bg-ios-green/90" disabled={pending} onClick={() => move("won")}>
+            <Button className="flex-1 bg-ios-green/15 text-ios-green hover:bg-ios-green/20" disabled={pending} onClick={() => move("won")}>
               <Trophy className="h-4 w-4" /> Won
             </Button>
             <Button variant="destructive-tinted" className="flex-1" disabled={pending} onClick={() => setLosing(true)}>
@@ -111,11 +111,14 @@ export function DealMenu({ deal, clients, contacts, users }: { deal: DealListIte
   const { run } = useMutation();
   const confirm = useConfirm();
   const [editing, setEditing] = useState(false);
+  const createPage = useCreateLinkedPage();
   return (
     <>
       <Menu
         items={[
           { label: "Edit Deal", icon: Pencil, onSelect: () => setEditing(true) },
+          { label: "New Quote", icon: FileText, onSelect: () => router.push(`/documents/new?type=quote&dealId=${deal.id}`) },
+          { label: "New Wiki Page", icon: BookOpen, onSelect: () => createPage({ dealId: deal.id, clientId: deal.clientId }, `${deal.title} — notes`) },
           "separator",
           {
             label: "Delete Deal",
@@ -157,19 +160,35 @@ export function ActivityButtons({ link }: { link: { clientId?: string | null; co
   );
 }
 
+type PageLink = { clientId?: string | null; projectId?: string | null; dealId?: string | null };
+
 /** Creates a wiki page linked to a client/project/deal and opens it. */
-export function NewLinkedPageButton({ link, title }: { link: { clientId?: string | null; projectId?: string | null; dealId?: string | null }; title: string }) {
+export function useCreateLinkedPage() {
   const router = useRouter();
-  const { run, pending } = useMutation();
-  const create = async () => {
+  const { run } = useMutation();
+  return async (link: PageLink, title: string) => {
     const spaces = await fetch("/api/kb/spaces").then((r) => r.json() as Promise<{ spaces: { id: string; name: string }[] }>);
     const space = spaces.spaces.find((s) => s.name === "Clients") ?? spaces.spaces[0];
     if (!space) return;
     const res = await run<{ page: { id: string } }>("/api/kb/pages", { body: { spaceId: space.id, title, emoji: "📝", ...link }, refresh: false });
     if (res) router.push(`/wiki/${res.page.id}`);
   };
+}
+
+export function NewLinkedPageButton({ link, title }: { link: PageLink; title: string }) {
+  const create = useCreateLinkedPage();
+  const [pending, setPending] = useState(false);
   return (
-    <button type="button" disabled={pending} onClick={create} className="flex min-h-[44px] w-full items-center px-4 text-body text-accent active:bg-fill/20">
+    <button
+      type="button"
+      disabled={pending}
+      onClick={async () => {
+        setPending(true);
+        await create(link, title);
+        setPending(false);
+      }}
+      className="flex min-h-[44px] w-full items-center px-4 text-body text-accent active:bg-fill/20"
+    >
       New Linked Page
     </button>
   );

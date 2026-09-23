@@ -56,11 +56,8 @@ export function CashFlowChart({ months }: { months: CashFlowMonth[] }) {
     <div>
       <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
         <div>
-          <div className="text-footnote text-label-2">{cur?.label}</div>
-          <div className="flex items-baseline gap-4">
-            <span className="font-rounded text-title2 tabular">{centsToDisplay((cur?.inBhdCents ?? 0) - (cur?.outBhdCents ?? 0), "BHD")}</span>
-            <span className="text-footnote text-label-2">net</span>
-          </div>
+          <div className="text-footnote text-label-2">Net cash · {cur?.label}</div>
+          <div className="font-rounded text-title2 font-semibold tabular">{centsToDisplay((cur?.inBhdCents ?? 0) - (cur?.outBhdCents ?? 0), "BHD")}</div>
         </div>
         <div className="flex items-center gap-4 text-footnote text-label-2">
           <span className="flex items-center gap-1.5">

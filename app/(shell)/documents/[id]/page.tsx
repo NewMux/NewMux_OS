@@ -50,7 +50,7 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
     >
       <div className="mx-auto max-w-2xl">
         {/* Summary card */}
-        <div className="mb-6 rounded-[20px] bg-bg-elevated p-5 text-center shadow-widget dark:shadow-none">
+        <div className="mb-6 rounded-[20px] bg-bg-elevated p-5 text-center">
           <div className="text-footnote text-label-2">
             {DOC_TYPE[doc.type]} for {client?.name}
           </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
-import { Database, KeyRound, LogOut, Moon, PieChart, Trash2, Users, Receipt, BookOpen, Info } from "lucide-react";
+import { Database, KeyRound, LogOut, Moon, PieChart, Trash2, Users, Receipt, Info } from "lucide-react";
 import { Page } from "@/components/ui/Page";
 import { Avatar } from "@/components/ui/Avatar";
 import { ListRow, ListSection, IconTile, PlainRowInput } from "@/components/ui/List";
@@ -11,7 +11,9 @@ import { FormSheet } from "@/components/ui/FormSheet";
 import { useConfirm } from "@/components/ui/Confirm";
 import { ProfitSplitRuleSheet, type Scope } from "./ProfitSplitRuleSheet";
 import { useMutation } from "@/lib/useMutation";
-import type { DeductionKind, DeductionType, Party, ProfitSplitRule } from "@/lib/data/types";
+import { COMPANY_LINKS, forRole } from "@/lib/nav";
+import { NavIcon } from "@/components/shell/NavIcon";
+import type { DeductionKind, DeductionType, Party, ProfitSplitRule, UserRole } from "@/lib/data/types";
 
 type Theme = "system" | "light" | "dark";
 
@@ -63,6 +65,17 @@ export function SettingsScreen({
       <div className="mx-auto max-w-2xl">
         <ListSection>
           <ListRow leading={<Avatar name={user.name || user.email} size={56} />} title={<span className="text-title3 font-semibold">{user.name}</span>} subtitle={`${user.email} · ${user.role === "partner_admin" ? "Partner" : "Team member"}`} />
+        </ListSection>
+
+        <ListSection>
+          {forRole(COMPANY_LINKS, user.role as UserRole).map((l) => (
+            <ListRow
+              key={l.href}
+              href={l.href}
+              leading={<IconTile icon={({ className }) => <NavIcon icon={l.icon} className={className} />} color={l.color} />}
+              title={l.label}
+            />
+          ))}
         </ListSection>
 
         <ListSection header="Appearance">
@@ -174,7 +187,6 @@ export function SettingsScreen({
         )}
 
         <ListSection header="More">
-          <ListRow href="/wiki" leading={<IconTile icon={BookOpen} color="yellow" />} title="Wiki Spaces" />
           <ListRow leading={<IconTile icon={Database} color="blue" />} title="Database" detail={dbMode} />
           <ListRow leading={<IconTile icon={Moon} color="indigo" />} title="Install on iPhone" subtitle="Safari → Share → Add to Home Screen" multiline />
           <ListRow leading={<IconTile icon={Info} color="gray" />} title="NEWMUX OS" detail="2.0" />

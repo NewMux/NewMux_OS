@@ -64,8 +64,9 @@ export function Page({
           </div>
           <div
             className={cn(
-              "max-w-[52vw] truncate text-center text-headline transition-opacity duration-200 md:max-w-md",
-              collapsed ? "opacity-100" : "opacity-0",
+              "truncate text-center text-headline transition-opacity duration-200",
+              // Takes no width until it shows, so the back label isn't squeezed.
+              collapsed ? "max-w-[44vw] opacity-100 md:max-w-md" : "max-w-0 opacity-0",
             )}
             aria-hidden={!collapsed}
           >
@@ -77,7 +78,8 @@ export function Page({
 
       <div className={cn("px-4 pb-tabbar md:px-8 md:pb-12", className)}>
         <div className="mb-4 mt-0.5">
-          {!hideLargeTitle && <h1 className="text-large-title">{title}</h1>}
+          {/* Detail screens (with a back link) get a smaller title that wraps to two lines at most. */}
+          {!hideLargeTitle && <h1 className={back ? "line-clamp-2 text-title1 md:text-large-title" : "text-large-title"}>{title}</h1>}
           <div ref={sentinel} aria-hidden />
           {subtitle && <div className="mt-0.5 text-subhead text-label-2">{subtitle}</div>}
           {accessory && <div className="mt-3">{accessory}</div>}

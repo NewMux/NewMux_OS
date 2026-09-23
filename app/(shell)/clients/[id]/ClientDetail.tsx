@@ -53,6 +53,7 @@ export function ClientDetail(props: {
   return (
     <Page
       title={client.name}
+      subtitle={[client.clientCode, client.industry].filter(Boolean).join(" · ") || undefined}
       back={{ href: "/clients", label: "Clients" }}
       actions={
         <Menu
@@ -65,13 +66,7 @@ export function ClientDetail(props: {
       }
     >
       <div className="mx-auto max-w-2xl">
-        <div className="mb-5 flex flex-col items-center text-center">
-          <Avatar name={client.name} size={84} square />
-          <div className="mt-3 text-subhead text-label-2">{[client.clientCode, client.industry].filter(Boolean).join(" · ")}</div>
-        </div>
-        <div className="mb-6">
-          <ContactActions phone={primary?.phone ?? client.phone} whatsapp={primary?.whatsapp} email={primary?.email ?? client.email} website={client.website} />
-        </div>
+        <ContactActions phone={primary?.phone ?? client.phone} whatsapp={primary?.whatsapp} email={primary?.email ?? client.email} website={client.website} />
 
         <SegmentedControl
           className="mb-6"
@@ -79,7 +74,7 @@ export function ClientDetail(props: {
           onChange={setTab}
           options={[
             { value: "overview", label: "Info" },
-            { value: "deals", label: `Deals${deals.length ? ` ${deals.length}` : ""}` },
+            { value: "deals", label: "Deals" },
             { value: "work", label: "Work" },
             { value: "money", label: "Money" },
             { value: "wiki", label: "Wiki" },

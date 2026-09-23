@@ -156,7 +156,7 @@ export function VaultScreen({
     >
       <div className="mx-auto max-w-2xl">
         {admin && state === "locked" && (
-          <form onSubmit={unlock} className="mb-7 flex flex-col items-center rounded-[20px] bg-bg-elevated px-5 py-7 text-center shadow-widget dark:shadow-none">
+          <form onSubmit={unlock} className="mb-7 flex flex-col items-center rounded-[20px] bg-bg-elevated px-5 py-7 text-center">
             <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-fill/[0.14]">
               <Lock className="h-7 w-7 text-label-2" />
             </span>

@@ -2,7 +2,11 @@
 
 One app for running NEWMUX: **CRM, project management, finance and a knowledge base**, designed to feel like a native Apple app on iPhone, iPad and Mac.
 
-- **Home**: a greeting, quick actions (new deal, task, invoice, expense or page), and widgets for today, cash this month, receivables and pipeline. Also shows your tasks, follow-ups due, renewals and hosting fees that need attention, and your favorite wiki pages.
+- **Home** answers "what needs me today?":
+  - one summary card (cash this month, receivables, pipeline);
+  - **Today**: meetings and tasks due;
+  - **Needs attention**: overdue hosting fees, renewals and follow-ups;
+  - every "create" shortcut sits behind a single **+** button.
 - **CRM**:
   - deals pipeline board (drag, or long-press on iPhone), with deal detail, won/lost handling, a one-tap "Create Project", and a quote or invoice from the deal;
   - clients (companies) with tabs for Info, Deals, Work, Money and Wiki;
@@ -38,10 +42,14 @@ One app for running NEWMUX: **CRM, project management, finance and a knowledge b
   - `ListSection`/`ListRow`: inset grouped lists;
   - `Sheet`/`FormSheet`: bottom sheets with a grabber and drag-to-dismiss, which become centered dialogs on desktop;
   - `useConfirm`: iOS action sheets;
-  - `SegmentedControl`, `Toggle`, `CheckCircle`, `Badge`, `Avatar`, `Widget`, `ProgressRing`, `Menu` (context menu) and `SearchField`.
+  - `SegmentedControl`, `Toggle`, `CheckCircle`, `Badge`, `Avatar`, `SummaryCard`/`Widget`, `ProgressRing`, `Menu` (context menu) and `SearchField`.
+- **Restraint:**
+  - blue is the only accent, for things you can tap; red, orange and green appear only when they mean something (overdue, due soon, paid);
+  - each number appears once per screen, empty sections and unavailable actions are hidden, and secondary actions live in the ••• or + menu.
 - **Navigation:**
   - iPhone: a floating 5-tab bar (Home, CRM, Work, Finance, Wiki) plus a search button;
-  - iPad/Mac: a Mail-style sidebar.
+  - iPad/Mac: a Mail-style sidebar with the same five sections; the section you're in expands to show its pages;
+  - Company, Ventures, Vault and Growth are in the account menu and at the top of Settings.
 
 ## Stack
 

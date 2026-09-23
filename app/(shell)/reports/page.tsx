@@ -39,16 +39,16 @@ export default async function ReportsPage() {
   return (
     <Page title="Reports" back={{ href: "/finance", label: "Finance" }} subtitle="All amounts in BHD">
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Widget title="Paid" color="green">
+        <Widget title="Paid">
           <Metric value={compactMoney(invoices.paidBhdCents)} caption={`${invoices.paidCount} invoices`} />
         </Widget>
-        <Widget title="Partly paid" color="orange">
+        <Widget title="Partly paid">
           <Metric value={compactMoney(invoices.partialOutstandingBhdCents)} caption={`${invoices.partialCount} outstanding`} />
         </Widget>
-        <Widget title="Unpaid" color="blue">
+        <Widget title="Unpaid">
           <Metric value={compactMoney(invoices.unpaidBhdCents)} caption={`${invoices.unpaidCount} invoices`} />
         </Widget>
-        <Widget title="Overdue" color="red">
+        <Widget title="Overdue">
           <Metric value={compactMoney(invoices.overdueBhdCents)} caption={`${invoices.overdueCount} invoices`} />
         </Widget>
       </div>

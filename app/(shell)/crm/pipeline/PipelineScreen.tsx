@@ -38,7 +38,6 @@ export function PipelineScreen({
       }
     >
       <PipelineBoard deals={deals} />
-      <p className="mt-2 text-center text-footnote text-label-2 md:hidden">Touch and hold a deal to drag it to another stage.</p>
       <DealSheet open={creating} onOpenChange={setCreating} clients={clients} contacts={contacts} users={users} />
     </Page>
   );
