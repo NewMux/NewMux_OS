@@ -25,7 +25,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const derivedKey = cookieValue ? unpackVaultSessionCookie(cookieValue) : null;
   if (!derivedKey) {
     await logVaultAccess({ secretId: id, accessedBy: session.user.id, action: "unlock_attempt" });
-    return NextResponse.json({ error: "VAULT_LOCKED" }, { status: 401 });
+    return NextResponse.json({ error: "The vault is locked. Unlock it first." }, { status: 401 });
   }
 
   const plaintext = decryptSecret(secret.ciphertext, secret.iv, secret.authTag, derivedKey);

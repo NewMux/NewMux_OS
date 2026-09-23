@@ -1,64 +1,37 @@
-import { store } from "./store";
+import { many, one } from "./sql";
 import { countActiveDeliveryProjects } from "./projects";
+import type { Product } from "./types";
 
 export type SubscriberBreakdown = { paying: number; trialing: number; pastDue: number };
 
-/**
- * v1 assumes single-currency USD across all SaaS subscriptions (no FX
- * table) — see plan's documented assumptions.
- */
-export function getMrrArrCents(productSlug?: string): { mrrCents: number; arrCents: number } {
-  const subs = store.saasSubscriptions.filter((s) => {
-    if (s.status !== "active" && s.status !== "past_due") return false;
-    if (!productSlug || productSlug === "all") return true;
-    const product = store.products.find((p) => p.id === s.productId);
-    return product?.slug === productSlug;
-  });
-
-  const mrrCents = subs.reduce((sum, s) => {
-    const monthly = s.billingInterval === "year" ? s.recurringAmountCents / 12 : s.recurringAmountCents;
-    return sum + monthly;
-  }, 0);
-
-  return { mrrCents: Math.round(mrrCents), arrCents: Math.round(mrrCents * 12) };
+/** SaaS (Paddle) subscriptions are billed in USD. */
+export async function getMrrArrCents(productSlug?: string): Promise<{ mrrCents: number; arrCents: number }> {
+  const params: unknown[] = [];
+  const productFilter =
+    productSlug && productSlug !== "all" ? `and s.product_id = (select id from products where slug = $${params.push(productSlug)})` : "";
+  const row = await one<{ mrr: number }>(
+    `select coalesce(sum(case when s.billing_interval = 'year' then s.recurring_amount_cents / 12.0 else s.recurring_amount_cents end), 0)::numeric as mrr
+     from saas_subscriptions s where s.status in ('active', 'past_due') and s.currency = 'USD' ${productFilter}`,
+    params,
+  );
+  const mrrCents = Math.round(row?.mrr ?? 0);
+  return { mrrCents, arrCents: mrrCents * 12 };
 }
 
-export function getSubscriberBreakdown(): SubscriberBreakdown {
-  return {
-    paying: store.saasSubscriptions.filter((s) => s.status === "active").length,
-    trialing: store.saasSubscriptions.filter((s) => s.status === "trialing").length,
-    pastDue: store.saasSubscriptions.filter((s) => s.status === "past_due").length,
-  };
-}
-
-/**
- * USD-only rollup (legacy agency/SaaS dashboard widget). Mixing currencies
- * without an FX table would silently misreport totals, so BHD-denominated
- * invoices (the real Newmux ERP data) are deliberately excluded here — see
- * lib/data/erpMetrics.ts for the BHD-native Finance module reporting.
- */
-export function getCashFlowCents() {
-  const cashCollected =
-    store.saasTransactions.filter((t) => t.status === "completed").reduce((sum, t) => sum + t.amountCents, 0) +
-    store.documents
-      .filter((d) => d.type === "invoice" && d.status === "paid" && d.currency === "USD")
-      .reduce((sum, d) => sum + d.totalCents, 0);
-
-  const pendingQuotePipeline = store.documents
-    .filter((d) => d.type === "quote" && d.status === "sent" && d.currency === "USD")
-    .reduce((sum, d) => sum + d.totalCents, 0);
-
-  const outstandingInvoices = store.documents
-    .filter((d) => d.type === "invoice" && ["sent", "accepted"].includes(d.status) && d.currency === "USD")
-    .reduce((sum, d) => sum + d.totalCents, 0);
-
-  return { cashCollected, pendingQuotePipeline, outstandingInvoices };
+export async function getSubscriberBreakdown(): Promise<SubscriberBreakdown> {
+  const row = await one<SubscriberBreakdown>(
+    `select count(*) filter (where status = 'active')::int as paying,
+            count(*) filter (where status = 'trialing')::int as trialing,
+            count(*) filter (where status = 'past_due')::int as past_due
+     from saas_subscriptions`,
+  );
+  return row ?? { paying: 0, trialing: 0, pastDue: 0 };
 }
 
 export async function getActiveDeliveryIndex(): Promise<number> {
   return countActiveDeliveryProjects();
 }
 
-export function listProductsForScopeSwitcher() {
-  return store.products;
+export async function listProductsForScopeSwitcher(): Promise<Product[]> {
+  return many<Product>("select * from products order by name");
 }

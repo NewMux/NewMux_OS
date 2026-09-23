@@ -1,4 +1,5 @@
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
+import { formatDate } from "@/lib/time";
 
 const styles = StyleSheet.create({
   page: { padding: 40, fontSize: 10, fontFamily: "Helvetica", color: "#0f172a" },
@@ -24,7 +25,7 @@ export function ReportPdf({
     <Document>
       <Page size="A4" style={styles.page}>
         <Text style={styles.title}>NEWMUX</Text>
-        <Text style={styles.subtitle}>{title} — generated {new Date().toLocaleDateString()}</Text>
+        <Text style={styles.subtitle}>{title} — generated {formatDate(new Date().toISOString())}</Text>
 
         <View style={styles.tableHeaderRow}>
           {headers.map((h, i) => (

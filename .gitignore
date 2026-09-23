@@ -14,3 +14,9 @@ public/sw.js.map
 public/workbox-*.js.map
 .DS_Store
 npm-debug.log*
+.data/
+public/swe-worker-*.js
+
+# Self-hosting (deploy/setup.sh)
+deploy/.env
+deploy/backups/

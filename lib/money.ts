@@ -76,3 +76,33 @@ export function convertMinorUnits(amountMinorUnits: number, fromCurrency: string
   const toMajor = usdMajor / toRate;
   return Math.round(toMajor * 10 ** minorUnitDigits(toCurrency));
 }
+
+/**
+ * Splits `total` minor units by basis-point shares so the parts always sum
+ * back to `total` exactly (largest-remainder method) — per-part rounding
+ * alone can drift by a fils/cent.
+ */
+export function allocateByBps(total: number, sharesBps: number[]): number[] {
+  const sumBps = sharesBps.reduce((a, b) => a + b, 0);
+  if (sumBps === 0) return sharesBps.map(() => 0);
+  const exact = sharesBps.map((bps) => (total * bps) / sumBps);
+  const floored = exact.map((x) => Math.floor(x));
+  let remainder = total - floored.reduce((a, b) => a + b, 0);
+  const order = exact
+    .map((x, i) => ({ i, frac: x - Math.floor(x) }))
+    .sort((a, b) => b.frac - a.frac);
+  for (let k = 0; remainder > 0 && k < order.length; k++, remainder--) floored[order[k]!.i]! += 1;
+  return floored;
+}
+
+/** Converts minor units to a plain major-unit number (for form inputs). */
+export function minorToMajor(amountMinorUnits: number, currency = "USD"): number {
+  return amountMinorUnits / 10 ** minorUnitDigits(currency);
+}
+
+/** Compact display for widgets: "BHD 1.2K", "$15.3K". */
+export function compactMoney(amountMinorUnits: number, currency = "BHD"): string {
+  const major = minorToMajor(amountMinorUnits, currency);
+  const formatted = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(major);
+  return currency === "USD" ? `$${formatted}` : `${currency} ${formatted}`;
+}

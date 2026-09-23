@@ -1,170 +1,116 @@
 import { redirect } from "next/navigation";
+import { Download, FileDown } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { canAccessFinance } from "@/lib/rbac";
-import {
-  getProfitByProjectReport,
-  getProfitByPartnerReport,
-  getInvoiceStatusReport,
-  getHostingFeeReport,
-  getCashFlowForecast,
-} from "@/lib/data/reports";
+import { Page } from "@/components/ui/Page";
+import { ListRow, ListSection, IconTile } from "@/components/ui/List";
+import { Widget, Metric } from "@/components/ui/Widget";
+import { MigrationChecklist, PipelineTracker } from "@/components/reports/ReportWidgets";
+import { getHostingFeeReport, getInvoiceStatusReport, getProfitByPartnerReport, getProfitByProjectReport } from "@/lib/data/reports";
+import { listAuditLog } from "@/lib/data/audit";
 import { listPipelineItems } from "@/lib/data/pipeline";
-import { listAuditLog } from "@/lib/data/pipeline";
-import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
-import { PipelineTracker } from "@/components/reports/PipelineTracker";
-import { NotionMigrationChecklist } from "@/components/reports/NotionMigrationChecklist";
-import { centsToDisplay } from "@/lib/money";
-import { Download } from "lucide-react";
+import { getSetting } from "@/lib/data/settings";
+import { centsToDisplay, compactMoney } from "@/lib/money";
+import { timeAgo } from "@/lib/time";
 
-function ExportLink({ type }: { type: string }) {
-  return (
-    <div className="flex items-center gap-3">
-      <a href={`/api/reports/export?type=${type}`} className="flex items-center gap-1 text-xs text-slate-400 hover:text-emerald-400">
-        <Download className="h-3 w-3" /> CSV
-      </a>
-      <a href={`/api/reports/pdf?type=${type}`} className="flex items-center gap-1 text-xs text-slate-400 hover:text-emerald-400">
-        <Download className="h-3 w-3" /> PDF
-      </a>
-    </div>
-  );
-}
+export const metadata = { title: "Reports" };
+
+const EXPORTS = [
+  { type: "project-profit", label: "Profit & loss by project", pdf: true },
+  { type: "partner-profit", label: "Profit by partner", pdf: true },
+  { type: "invoice-status", label: "Invoice status", pdf: true },
+  { type: "cash-flow", label: "Cash flow — 12 months", pdf: false },
+  { type: "expenses", label: "All expenses", pdf: false },
+];
 
 export default async function ReportsPage() {
   const session = await auth();
-  if (!canAccessFinance(session)) redirect("/dashboard");
-
-  const [projectProfit, partnerProfit, invoiceStatus, hostingFees, forecast, pipelineItems, auditLog] = await Promise.all([
+  if (!canAccessFinance(session)) redirect("/home");
+  const [projects, partners, invoices, hosting, audit, pipeline, checklist] = await Promise.all([
     getProfitByProjectReport(),
     getProfitByPartnerReport(),
     getInvoiceStatusReport(),
     getHostingFeeReport(),
-    getCashFlowForecast(),
+    listAuditLog(25),
     listPipelineItems(),
-    listAuditLog(),
+    getSetting<string[]>("notion_migration_checklist", []),
   ]);
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <h1 className="mb-1 text-xl font-semibold text-white">Reports &amp; Export</h1>
-      <p className="mb-4 text-xs text-slate-500">All figures rolled up to BHD via the fixed peg rate.</p>
+    <Page title="Reports" back={{ href: "/finance", label: "Finance" }} subtitle="All amounts in BHD">
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Widget title="Paid" color="green">
+          <Metric value={compactMoney(invoices.paidBhdCents)} caption={`${invoices.paidCount} invoices`} />
+        </Widget>
+        <Widget title="Partly paid" color="orange">
+          <Metric value={compactMoney(invoices.partialOutstandingBhdCents)} caption={`${invoices.partialCount} outstanding`} />
+        </Widget>
+        <Widget title="Unpaid" color="blue">
+          <Metric value={compactMoney(invoices.unpaidBhdCents)} caption={`${invoices.unpaidCount} invoices`} />
+        </Widget>
+        <Widget title="Overdue" color="red">
+          <Metric value={compactMoney(invoices.overdueBhdCents)} caption={`${invoices.overdueCount} invoices`} />
+        </Widget>
+      </div>
 
-      <Card className="mb-4">
-        <CardHeader>
-          <CardTitle>Profit &amp; Loss by Project</CardTitle>
-          <ExportLink type="project-profit" />
-        </CardHeader>
-        {projectProfit.length === 0 && <p className="text-sm text-slate-500">No invoiced projects yet.</p>}
-        <div className="flex flex-col gap-1">
-          {projectProfit.map((r) => (
-            <div key={r.projectId} className="flex items-center justify-between text-sm">
-              <span className="text-slate-200">{r.projectName}</span>
-              <span className="text-slate-400">
-                {centsToDisplay(r.revenueBhdCents, "BHD")} rev · {centsToDisplay(r.netProfitBhdCents, "BHD")} net
-              </span>
-            </div>
-          ))}
+      <div className="grid gap-x-6 lg:grid-cols-2 [&>*]:min-w-0">
+        <div>
+          <ListSection header="Profit & Loss by Project">
+            {projects.map((p) => (
+              <ListRow
+                key={p.projectId}
+                href={`/projects/${p.projectId}`}
+                title={p.projectName}
+                subtitle={`Revenue ${centsToDisplay(p.revenueBhdCents, "BHD")} · Costs ${centsToDisplay(p.deductionsBhdCents, "BHD")}`}
+                detail={<span className={p.netProfitBhdCents < 0 ? "text-ios-red" : "text-label"}>{centsToDisplay(p.netProfitBhdCents, "BHD")}</span>}
+              />
+            ))}
+            {projects.length === 0 && <ListRow title="No invoiced projects yet" />}
+          </ListSection>
+          <ListSection header="Profit by Partner">
+            {partners.map((p) => (
+              <ListRow key={p.partyId} title={p.partyName} detail={centsToDisplay(p.totalBhdCents, "BHD")} />
+            ))}
+          </ListSection>
+          <ListSection header="Hosting Fees">
+            <ListRow title="Collected this year" detail={centsToDisplay(hosting.collectedBhdCents, "BHD")} />
+            <ListRow title="Due this cycle" detail={centsToDisplay(hosting.dueBhdCents, "BHD")} />
+            <ListRow title="Annualized" detail={centsToDisplay(hosting.annualizedBhdCents, "BHD")} />
+          </ListSection>
+          <ListSection header="Export" footer="CSV opens in Numbers or Excel. PDF is formatted for sharing with the accountant.">
+            {EXPORTS.map((e) => (
+              <ListRow
+                key={e.type}
+                leading={<IconTile icon={FileDown} color="indigo" />}
+                title={e.label}
+                trailing={
+                  <span className="flex gap-3 text-subhead">
+                    <a href={`/api/reports/export?type=${e.type}`} download className="flex items-center gap-1 text-accent">
+                      <Download className="h-3.5 w-3.5" />
+                      CSV
+                    </a>
+                    {e.pdf && (
+                      <a href={`/api/reports/pdf?type=${e.type}`} download className="flex items-center gap-1 text-accent">
+                        <Download className="h-3.5 w-3.5" />
+                        PDF
+                      </a>
+                    )}
+                  </span>
+                }
+              />
+            ))}
+          </ListSection>
         </div>
-      </Card>
-
-      <Card className="mb-4">
-        <CardHeader>
-          <CardTitle>Profit Distribution by Partner</CardTitle>
-          <ExportLink type="partner-profit" />
-        </CardHeader>
-        {partnerProfit.length === 0 && <p className="text-sm text-slate-500">Nothing distributed yet.</p>}
-        <div className="flex flex-col gap-1">
-          {partnerProfit.map((r) => (
-            <div key={r.partyId} className="flex items-center justify-between text-sm">
-              <span className="text-slate-200">{r.partyName}</span>
-              <span className="font-medium text-white">{centsToDisplay(r.totalBhdCents, "BHD")}</span>
-            </div>
-          ))}
+        <div>
+          <PipelineTracker items={pipeline} />
+          <MigrationChecklist initial={checklist} />
+          <ListSection header="Audit Log" footer="Every change to invoices, payments, expenses, deals and split rules.">
+            {audit.map((a) => (
+              <ListRow key={a.id} title={a.summary} subtitle={`${a.changedByName ?? "System"} · ${timeAgo(a.changedAt)}`} multiline />
+            ))}
+          </ListSection>
         </div>
-      </Card>
-
-      <Card className="mb-4">
-        <CardHeader>
-          <CardTitle>Invoice Status</CardTitle>
-          <ExportLink type="invoice-status" />
-        </CardHeader>
-        <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-          <div>
-            <p className="text-xs text-slate-500">Paid</p>
-            <p className="font-medium text-white">
-              {invoiceStatus.paidCount} · {centsToDisplay(invoiceStatus.paidBhdCents, "BHD")}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-500">Partially paid</p>
-            <p className="font-medium text-white">
-              {invoiceStatus.partialCount} · {centsToDisplay(invoiceStatus.partialOutstandingBhdCents, "BHD")}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-500">Unpaid</p>
-            <p className="font-medium text-white">
-              {invoiceStatus.unpaidCount} · {centsToDisplay(invoiceStatus.unpaidBhdCents, "BHD")}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-500">Overdue</p>
-            <p className="font-medium text-red-400">
-              {invoiceStatus.overdueCount} · {centsToDisplay(invoiceStatus.overdueBhdCents, "BHD")}
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      <Card className="mb-4">
-        <CardHeader>
-          <CardTitle>Hosting Fees</CardTitle>
-        </CardHeader>
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div>
-            <p className="text-xs text-slate-500">Collected to date</p>
-            <p className="font-medium text-white">{centsToDisplay(hostingFees.collectedBhdCents, "BHD")}</p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-500">Total active subscriptions</p>
-            <p className="font-medium text-white">{centsToDisplay(hostingFees.dueBhdCents, "BHD")}</p>
-          </div>
-        </div>
-      </Card>
-
-      <Card className="mb-4">
-        <CardHeader>
-          <CardTitle>Cash Flow Forecast (next 3 months)</CardTitle>
-        </CardHeader>
-        <p className="mb-2 text-xs text-slate-500">
-          Confirmed revenue only — outstanding invoice balances due in-month, plus scheduled hosting collections.
-        </p>
-        <div className="grid grid-cols-3 gap-3 text-sm">
-          {forecast.map((m) => (
-            <div key={m.label}>
-              <p className="text-xs text-slate-500">{m.label}</p>
-              <p className="font-medium text-white">{centsToDisplay(m.expectedBhdCents, "BHD")}</p>
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      <PipelineTracker items={pipelineItems} />
-
-      <NotionMigrationChecklist />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Financial Audit Log</CardTitle>
-        </CardHeader>
-        {auditLog.length === 0 && <p className="text-sm text-slate-500">No changes logged yet.</p>}
-        <div className="flex flex-col gap-1">
-          {auditLog.slice(0, 20).map((entry) => (
-            <p key={entry.id} className="text-xs text-slate-500">
-              {new Date(entry.changedAt).toLocaleString()} · {entry.summary}
-            </p>
-          ))}
-        </div>
-      </Card>
-    </div>
+      </div>
+    </Page>
   );
 }

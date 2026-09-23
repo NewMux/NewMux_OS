@@ -18,10 +18,10 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const parsed = unlockVaultSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
 
   const valid = verifyPassphrase(parsed.data.passphrase, config.kdfSalt, config.passphraseVerifier);
-  if (!valid) return NextResponse.json({ error: "Incorrect passphrase" }, { status: 401 });
+  if (!valid) return NextResponse.json({ error: "Incorrect passphrase." }, { status: 401 });
 
   const key = deriveKey(parsed.data.passphrase, config.kdfSalt);
   const cookieValue = packVaultSessionCookie(key);

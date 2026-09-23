@@ -1,14 +1,7 @@
-import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { route } from "@/lib/api";
 import { canAccessFinance } from "@/lib/rbac";
 import { toggleRecurringExpenseStatus } from "@/lib/data/finance";
 
-export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth();
-  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!canAccessFinance(session)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
-
-  const { id } = await params;
-  const expense = await toggleRecurringExpenseStatus(id);
-  return NextResponse.json({ expense });
-}
+export const POST = route<{ id: string }>({ allow: canAccessFinance }, async ({ params }) => ({
+  expense: await toggleRecurringExpenseStatus(params.id),
+}));

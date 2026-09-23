@@ -61,7 +61,8 @@ export function DocumentPdf({
         <View style={styles.section}>
           <Text style={styles.label}>Bill To</Text>
           <Text style={styles.value}>{client.name}</Text>
-          {client.contactEmail && <Text style={styles.value}>{client.contactEmail}</Text>}
+          {client.email && <Text style={styles.value}>{client.email}</Text>}
+          {client.billingAddress && <Text style={styles.value}>{client.billingAddress}</Text>}
         </View>
 
         <View style={styles.table}>

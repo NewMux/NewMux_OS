@@ -1,24 +1,29 @@
-import { randomUUID } from "crypto";
-import { store } from "./store";
+import { query } from "@/lib/db";
+import { many, must, NotFoundError } from "./sql";
 import type { PipelineItem } from "./types";
 
+export { listAuditLog } from "./audit";
+
 export async function listPipelineItems(): Promise<PipelineItem[]> {
-  return store.pipelineItems;
+  return many<PipelineItem>("select id, name, stage, notes from pipeline_items order by stage, created_at");
 }
 
 export async function createPipelineItem(input: { name: string; notes?: string | null }): Promise<PipelineItem> {
-  const item: PipelineItem = { id: randomUUID(), name: input.name, stage: "in_progress", notes: input.notes ?? null };
-  store.pipelineItems.push(item);
-  return item;
+  return must<PipelineItem>("Pipeline item", "insert into pipeline_items (name, notes) values ($1, $2) returning id, name, stage, notes", [
+    input.name,
+    input.notes ?? null,
+  ]);
 }
 
 export async function togglePipelineStage(id: string): Promise<PipelineItem> {
-  const item = store.pipelineItems.find((p) => p.id === id);
-  if (!item) throw new Error("Pipeline item not found");
-  item.stage = item.stage === "in_progress" ? "complete" : "in_progress";
-  return item;
+  return must<PipelineItem>(
+    "Pipeline item",
+    "update pipeline_items set stage = case when stage = 'in_progress' then 'complete' else 'in_progress' end where id = $1 returning id, name, stage, notes",
+    [id],
+  );
 }
 
-export async function listAuditLog() {
-  return [...store.auditLog].sort((a, b) => (a.changedAt < b.changedAt ? 1 : -1));
+export async function deletePipelineItem(id: string): Promise<void> {
+  const rows = await query("delete from pipeline_items where id = $1 returning id", [id]);
+  if (!rows.length) throw new NotFoundError("Pipeline item");
 }

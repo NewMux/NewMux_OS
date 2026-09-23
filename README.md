@@ -1,109 +1,120 @@
-# NEWMUX OS / Internal ERP
+# NEWMUX OS
 
-Internal operations platform for NEWMUX. Started as a generic agency/SaaS
-dashboard (Executive Dashboard, Document Engine, Secrets Vault, Paddle
-billing, Growth tracker) and was then merged with the real **Newmux Internal
-ERP PRD** (Jassim Baqer → Mohammed, Sept 2026) on top of that foundation, so
-both sets of modules coexist:
+One app for running NEWMUX: **CRM, project management, finance and a knowledge base**, designed to feel like a native Apple app on iPhone, iPad and Mac.
 
-- **ERP core (the real spec, Phase 1 built)**: Finance (recurring expenses,
-  profit-split engine, quotation→invoice conversion, partial payments,
-  automatic profit/loss calculation) and admin Settings (payout parties,
-  deduction types, per-project/venture profit-split rules).
-- **Original generic modules (kept per "merge both" decision)**: Executive
-  Dashboard, Documents (PDF export), Projects/Tasks, Secrets Vault, Paddle
-  webhook ingestion, Growth attribution tracker.
-- **Not yet built** (PRD phases 2–5): Hosting Fee Tracking & Reminders,
-  Client Directory page, Project Detail technical pages, Meetings & Tasks,
-  Company Profile, Reports & Export, Newmux's Own Ventures page, and the
-  suggested additions (audit log UI, cash flow forecast, Notion migration
-  checklist). Seed data for these already exists in `lib/data/store.ts`
-  (real clients: Marasi Alsawadi, Al Hussam Tailor, Ox Roastery, Voya; real
-  ventures: Tbadel, Al-Mutadarrib/MTDRB, the Tailor System) — only the UI is
-  missing.
+- **Home**: a greeting, quick actions (new deal, task, invoice, expense or page), and widgets for today, cash this month, receivables and pipeline. Also shows your tasks, follow-ups due, renewals and hosting fees that need attention, and your favorite wiki pages.
+- **CRM**:
+  - deals pipeline board (drag, or long-press on iPhone), with deal detail, won/lost handling, a one-tap "Create Project", and a quote or invoice from the deal;
+  - clients (companies) with tabs for Info, Deals, Work, Money and Wiki;
+  - contacts in a Contacts-app style list, with one-tap call, WhatsApp and email;
+  - an activity timeline with follow-up reminders.
+- **Work**:
+  - Reminders-style smart lists (Today, Next 7 Days, Overdue, All Mine);
+  - projects with progress rings, each with a board, list and details view;
+  - a task sheet with subtasks, comments, assignee, due date and priority;
+  - a calendar agenda with a week strip, where "Notes" opens a linked meeting-notes wiki page.
+- **Finance**:
+  - collected, spent, net profit and receivables at a glance;
+  - a 12-month cash-flow chart, receivables aging, profit by partner, and a 3-month forecast;
+  - invoices, quotes and contracts with a lifecycle, partial payments, quote → invoice conversion and PDFs;
+  - one-off and recurring expenses, hosting-fee collection, and reports with CSV/PDF export and an audit log.
+- **Wiki**:
+  - spaces holding nested pages, edited in an Apple Notes-style editor with autosave, checklists, headings, quotes, code and links;
+  - templates, favorites, recently viewed pages and full-text search;
+  - pages can be linked to clients, projects and deals.
+- **Company**: registration and renewals, certifications, partnerships, ventures with their own profit split, the credentials **Vault** (AES-256-GCM) and **Growth** (campaign attribution, MRR).
+- **Everywhere**:
+  - global search (the Search tab, or ⌘K on iPad/Mac);
+  - light/dark appearance that follows the system, with an override in Settings;
+  - installable as a PWA (Safari → Share → Add to Home Screen).
 
-**Money handling is currency-aware, not USD-only**: BHD (Newmux's real
-invoicing currency) has 3 decimal places, and `lib/money.ts` divides by the
-correct power of 10 per currency instead of assuming cents. A fixed
-USD↔BHD peg rate handles the one real cross-currency case (an invoice's
-linked hosting cost is paid in USD but invoiced to the client in BHD) — see
-the Ox Roastery example below, which reproduces the PRD's worked example
-(section 17) exactly: 15.000 BHD invoice − 4.700 BHD prorated/converted
-vendor cost = 10.300 BHD net profit, split 5.150/5.150 between Jassim and
-Mohammed.
+## Design system
 
-## Current status: frontend-complete, backend deferred
+- **Tokens:** Apple's semantic colors (system grouped backgrounds, labels, separators, system blue/green/red/…) in light and dark. They are defined in `app/globals.css` and exposed to Tailwind as `bg-bg`, `text-label-2`, `bg-ios-green` and so on.
+- **Type:** the SF Pro system font stack with the Dynamic Type scale (`text-large-title`, `text-headline`, `text-footnote` …). It steps down one size on iPad/Mac.
+- **Inputs:** all form fields are at least 16px, so iOS never zooms in on focus.
+- **Components** (`components/ui/`):
+  - `Page`: a large title that collapses into a frosted nav bar;
+  - `ListSection`/`ListRow`: inset grouped lists;
+  - `Sheet`/`FormSheet`: bottom sheets with a grabber and drag-to-dismiss, which become centered dialogs on desktop;
+  - `useConfirm`: iOS action sheets;
+  - `SegmentedControl`, `Toggle`, `CheckCircle`, `Badge`, `Avatar`, `Widget`, `ProgressRing`, `Menu` (context menu) and `SearchField`.
+- **Navigation:**
+  - iPhone: a floating 5-tab bar (Home, CRM, Work, Finance, Wiki) plus a search button;
+  - iPad/Mac: a Mail-style sidebar.
 
-All modules are implemented against an **in-memory mock data layer**
-(`lib/data/*`) instead of a live Postgres database. This was a deliberate
-scoping decision (Supabase project creation hit the account's free-tier
-project limit; the user chose to proceed with frontend work rather than
-resolve that first).
+## Stack
 
-- The full Postgres schema this mirrors lives in `db/migrations/*.sql`,
-  written but **not yet applied** to any live project.
-- `lib/data/store.ts` seeds sample users, clients, documents, projects,
-  tasks, SaaS subscriptions, and campaigns on first access, and re-seeds on
-  every process restart (data is not persisted to disk).
-- Every `lib/data/*.ts` module is shaped so it can be swapped for real
-  `sql` queries (via `lib/db.ts`, already wired for Supabase Postgres)
-  without changing any caller in `app/` or `components/`.
+Next.js 15 (App Router) · React 19 · Tailwind 3 · next-auth v5 (credentials) · Postgres · TipTap · dnd-kit · vaul · sonner · cmdk.
 
-**Important dev-mode caveat:** because the mock store lives in a module-level
-`global` variable, run the app with `npm run build && npm run start`
-(production-style, single compiled server) rather than `npm run dev` when you
-need state to persist across requests — Next.js's dev server recompiles
-route modules independently, which can cause the store to reseed per route
-until Supabase is wired in.
+### Database
+
+All data lives in Postgres, and the schema is in `db/migrations/*.sql`. `lib/db.ts` picks a backend:
+
+| `DATABASE_URL` | Backend |
+| --- | --- |
+| set | **Supabase Postgres** via postgres.js. Use the **pooled / transaction-mode** connection string (prepared statements are off). |
+| not set | **PGlite**, an embedded Postgres persisted to `.data/pglite`. It migrates and seeds itself on first start, so local dev needs no credentials. |
+
+**Row Level Security** is enabled on every table with no policies (`0007_rls.sql`). The app only talks to the database from the server, and access control lives in `lib/rbac.ts`, so Supabase's public REST API can read or write nothing.
+
+The data modules in `lib/data/*.ts` hold all the SQL. API routes in `app/api/**` wrap them with the `route()` helper from `lib/api.ts`: session → role check → zod validation, with errors mapped to 400/403/404/409.
 
 ## Getting started
 
 ```bash
 npm install
-npm run build
-npm run start
+cp .env.example .env.local   # set AUTH_SECRET / NEXTAUTH_SECRET / VAULT_SESSION_SECRET
+npm run build && npm start   # first start creates + seeds .data/pglite
 ```
 
-On first request, the server console prints seeded login credentials:
+Log in as `info@newmux.com` / `changeme123`, then change the password under **Settings → Change Password**. The other seeded logins are `m4ahmed7@gmail.com` (partner) and `lead.dev@newmux.internal` (team member), both with the same default password.
 
-```
-[NEWMUX ERP] Seeded Mohammed's login → email: m4ahmed7@gmail.com password: <random>
-[NEWMUX ERP] Seeded Jassim's login → email: info@newmux.com password: changeme123
-[NEWMUX ERP] Seeded demo limited-access login → email: lead.dev@newmux.internal password: changeme123
+Useful scripts:
+
+```bash
+npm run db:migrate   # apply pending migrations (to DATABASE_URL, or local PGlite)
+npm run seed         # migrate + load db/seed.sql if the database is empty
+npm run db:reset     # wipe local PGlite and reseed
+npm run typecheck && npm run lint
 ```
 
-Copy `.env.example` to `.env.local` and fill in at least `NEXTAUTH_SECRET` /
-`AUTH_SECRET` and `VAULT_SESSION_SECRET` (random strings) before running —
-Supabase/`DATABASE_URL` vars are not required yet since nothing reads them.
+The seed contains the real business data from the ERP PRD:
+- clients: Marasi Alsawadi, Al Hussam Tailor, Ox Roastery, Voya;
+- ventures, hosting fees, and the Ox Roastery worked example (15.000 BHD − 4.700 BHD prorated vendor cost = 10.300 BHD, split 5.150 / 5.150).
+
+It also contains sample deals, activities, tasks, expense history and wiki pages, so every screen has something to show. Delete the sample records whenever you like.
+
+## Deploying
+
+The repo includes a one-command Docker setup (`docker-compose.yml`), with three containers:
+
+- Postgres 16;
+- the app, which migrates the database on start;
+- Caddy, which provides automatic HTTPS.
+
+**[docs/DEPLOY_ORACLE.md](docs/DEPLOY_ORACLE.md)** walks through running it for free on an Oracle Cloud Always Free server:
+
+- it starts on a `<ip>.sslip.io` address;
+- your own domain is a one-line change later;
+- nightly backups are included.
 
 ## Roles
 
-- **Partner Admin** (Mohammed, Jassim) — full access to everything,
-  including Finance, Settings, Documents, Growth, and vault secret reveal.
-  The PRD limits full admin access to these two specifically.
-- **Demo limited-access user** (`lead_dev` role, not built out per PRD 2.2
-  yet — architecture supports it, specific permissions aren't decided) —
-  Dashboard (read-only), Projects & Tasks (full), Vault (masked only, no
-  reveal). No access to Documents, Finance, Growth, or Settings.
+- **Partner** (`partner_admin`): everything.
+- **Team member** (`lead_dev`): Home, Work (projects, tasks, calendar), Wiki, Vault (masked values only) and Settings (appearance, password). CRM, Finance, Company and Growth are blocked in the API routes (403) as well as hidden in navigation.
 
-## Wiring in the real backend later
+## Money
 
-1. Provision a Supabase project (a free-tier slot must be available, or
-   reuse/upgrade the account's org).
-2. Apply `db/migrations/0001` through `0007` via Supabase's migration tooling.
-3. Replace the bodies of `lib/data/*.ts` functions with `sql` queries against
-   `lib/db.ts` — function signatures are designed to stay the same.
-4. Point `DATABASE_URL` / `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`
-   at the new project.
-5. Replace the vault's session-cookie secret and Paddle webhook secret with
-   real production values.
+- Amounts are stored as integer minor units per currency. BHD has 3 decimals (fils); USD has 2.
+- Documents and expenses support **BHD and USD**. Reports roll everything up into BHD using the official fixed peg (1 BHD = 2.6596 USD).
+- Profit splits use largest-remainder allocation, so the partner shares always add up exactly to the net profit.
+- Dates such as "today", due dates and month boundaries use **Asia/Bahrain** time.
 
-## Testing the Paddle webhook without a live account
+## Paddle webhook
+
+`POST /api/webhooks/paddle` is the only route reachable without a session. Its signature is verified, and repeated deliveries are ignored.
 
 ```bash
 PADDLE_WEBHOOK_SECRET=test-secret npm run test:paddle-webhook
 ```
-
-Hand-signs a sample `subscription.created` event and posts it twice to
-confirm signature verification and idempotency (the second delivery should
-be a no-op).

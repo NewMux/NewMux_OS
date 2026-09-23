@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyPaddleSignature } from "@/lib/paddle/verify";
-import { hasProcessedEvent, markEventProcessed } from "@/lib/data/saas";
+import { hasProcessedEvent, claimEvent } from "@/lib/data/saas";
 import {
   handleSubscriptionUpsert,
   handleSubscriptionPastDue,
@@ -32,29 +32,29 @@ export async function POST(req: NextRequest) {
 
   // Idempotency: exact event replays short-circuit here; handlers additionally
   // upsert by Paddle ID so out-of-order/duplicate deliveries stay safe too.
-  if (hasProcessedEvent(event.event_id)) {
+  if (await hasProcessedEvent(event.event_id)) {
     return new NextResponse("ok (duplicate)", { status: 200 });
   }
 
   switch (event.event_type) {
     case "subscription.created":
     case "subscription.updated":
-      handleSubscriptionUpsert(event);
+      await handleSubscriptionUpsert(event);
       break;
     case "subscription.past_due":
-      handleSubscriptionPastDue(event);
+      await handleSubscriptionPastDue(event);
       break;
     case "subscription.canceled":
-      handleSubscriptionCanceled(event);
+      await handleSubscriptionCanceled(event);
       break;
     case "transaction.completed":
-      handleTransactionCompleted(event);
+      await handleTransactionCompleted(event);
       break;
     default:
       // Unhandled event type — acknowledged but ignored.
       break;
   }
 
-  markEventProcessed(event.event_id);
+  await claimEvent(event.event_id);
   return new NextResponse("ok", { status: 200 });
 }

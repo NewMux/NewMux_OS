@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { authConfig } from "./auth.config";
-import { findUserByEmail } from "./data/users";
+import { findUserByEmail, findUserById } from "./data/users";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -29,10 +29,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     ...authConfig.callbacks,
-    jwt({ token, user }) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id as string;
         token.role = user.role;
+        token.checkedAt = Date.now();
+        return token;
+      }
+      // Re-check the account every few minutes so a deactivated user (or a
+      // role change) takes effect without waiting for the JWT to expire.
+      if (token.id && Date.now() - (token.checkedAt ?? 0) > 5 * 60_000) {
+        const current = await findUserById(token.id);
+        if (!current?.isActive) return null;
+        token.role = current.role;
+        token.checkedAt = Date.now();
       }
       return token;
     },

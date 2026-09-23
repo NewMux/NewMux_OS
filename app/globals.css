@@ -2,28 +2,369 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Apple system palette (iOS/macOS semantic colours), light + dark.
+ * Values are "R G B" so Tailwind can apply opacity (bg-accent/15).
+ * Theme = OS setting, overridable via <html data-theme="light|dark">.
+ */
 @layer base {
   :root {
+    color-scheme: light dark;
+
+    --bg: 242 242 247; /* systemGroupedBackground */
+    --bg-elevated: 255 255 255; /* secondarySystemGroupedBackground */
+    --bg-elevated-2: 242 242 247; /* tertiarySystemGroupedBackground */
+    --label: 0 0 0;
+    --label-2: 138 138 142; /* secondaryLabel on white */
+    --label-3: 196 196 198; /* tertiaryLabel on white */
+    --separator: 198 198 200;
+    --fill: 118 118 128; /* use with /12 → /24 alpha */
+    --fill-2: 229 229 234; /* opaque fill for chips/inputs */
+    --material: 249 249 249;
+
+    --blue: 0 122 255;
+    --green: 52 199 89;
+    --red: 255 59 48;
+    --orange: 255 149 0;
+    --yellow: 255 204 0;
+    --teal: 48 176 199;
+    --cyan: 50 173 230;
+    --indigo: 88 86 214;
+    --purple: 175 82 222;
+    --pink: 255 45 85;
+    --gray: 142 142 147;
+    --brown: 162 132 94;
+
+    --fs-large-title: 34px;
+    --fs-title1: 28px;
+    --fs-title2: 22px;
+    --fs-title3: 20px;
+    --fs-body: 17px;
+    --fs-callout: 16px;
+    --fs-subhead: 15px;
+    --fs-footnote: 13px;
+    --fs-caption1: 12px;
+    --fs-caption2: 11px;
+
+    --tabbar-height: 64px;
+  }
+
+  @media (min-width: 768px) {
+    :root {
+      --fs-large-title: 30px;
+      --fs-title1: 26px;
+      --fs-title2: 20px;
+      --fs-title3: 18px;
+      --fs-body: 15px;
+      --fs-callout: 14px;
+      --fs-subhead: 13px;
+      --fs-footnote: 12px;
+      --fs-caption1: 11px;
+      --fs-caption2: 10px;
+    }
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: 0 0 0;
+      --bg-elevated: 28 28 30;
+      --bg-elevated-2: 44 44 46;
+      --label: 255 255 255;
+      --label-2: 141 141 147;
+      --label-3: 72 72 74;
+      --separator: 56 56 58;
+      --fill: 118 118 128;
+      --fill-2: 44 44 46;
+      --material: 30 30 30;
+      --blue: 10 132 255;
+      --green: 48 209 88;
+      --red: 255 69 58;
+      --orange: 255 159 10;
+      --yellow: 255 214 10;
+      --teal: 64 200 224;
+      --cyan: 100 210 255;
+      --indigo: 94 92 230;
+      --purple: 191 90 242;
+      --pink: 255 55 95;
+      --gray: 142 142 147;
+      --brown: 172 142 104;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: 0 0 0;
+    --bg-elevated: 28 28 30;
+    --bg-elevated-2: 44 44 46;
+    --label: 255 255 255;
+    --label-2: 141 141 147;
+    --label-3: 72 72 74;
+    --separator: 56 56 58;
+    --fill: 118 118 128;
+    --fill-2: 44 44 46;
+    --material: 30 30 30;
+    --blue: 10 132 255;
+    --green: 48 209 88;
+    --red: 255 69 58;
+    --orange: 255 159 10;
+    --yellow: 255 214 10;
+    --teal: 64 200 224;
+    --cyan: 100 210 255;
+    --indigo: 94 92 230;
+    --purple: 191 90 242;
+    --pink: 255 55 95;
+    --gray: 142 142 147;
+    --brown: 172 142 104;
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
     color-scheme: dark;
   }
 
-  html,
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+  }
+
   body {
-    background-color: #020617;
-    color: #e2e8f0;
+    @apply bg-bg font-sans text-body text-label antialiased;
+    overscroll-behavior-y: none;
+    font-feature-settings: "kern";
+  }
+
+  /* No 300ms delay / double-tap zoom on buttons. */
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  label,
+  [role="button"] {
+    touch-action: manipulation;
+  }
+
+  /* iOS zooms into any input under 16px — keep form text at body size or larger. */
+  input,
+  select,
+  textarea {
+    font-size: max(16px, var(--fs-body));
+  }
+
+  ::selection {
+    background: rgb(var(--blue) / 0.25);
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--blue) / 0.6);
+    outline-offset: 2px;
+  }
+
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="time"] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-height: 1.3em;
+  }
+  input[type="date"]::-webkit-date-and-time-value,
+  input[type="datetime-local"]::-webkit-date-and-time-value {
+    text-align: right;
   }
 }
 
 @layer utilities {
   .safe-bottom {
-    padding-bottom: max(env(safe-area-inset-bottom), 0px);
+    padding-bottom: env(safe-area-inset-bottom);
   }
-
   .safe-top {
-    padding-top: max(env(safe-area-inset-top), 0px);
+    padding-top: env(safe-area-inset-top);
   }
+  .pb-tabbar {
+    padding-bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom) + 24px);
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  /* Frosted "material" used by bars and floating controls. */
+  .material {
+    background-color: rgb(var(--material) / 0.72);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+  }
+  /* Liquid-glass surface for the floating tab bar and glass buttons. */
+  .glass {
+    background-color: rgb(var(--bg-elevated) / 0.62);
+    -webkit-backdrop-filter: saturate(200%) blur(24px);
+    backdrop-filter: saturate(200%) blur(24px);
+    border: 0.5px solid rgb(var(--label) / 0.08);
+  }
+  .hairline-b {
+    box-shadow: inset 0 -0.5px 0 rgb(var(--separator));
+  }
+  .hairline-t {
+    box-shadow: inset 0 0.5px 0 rgb(var(--separator));
+  }
+  .press {
+    transition: transform 160ms cubic-bezier(0.32, 0.72, 0, 1), opacity 160ms;
+  }
+  .press:active {
+    transform: scale(0.97);
+    opacity: 0.85;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .snap-x-mandatory {
+    scroll-snap-type: x mandatory;
+  }
+}
 
-  .glass-surface {
-    @apply border-t border-white/10 bg-slate-950/90 backdrop-blur-md;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
+}
+
+/* ---------- Wiki editor (TipTap / ProseMirror), Apple Notes-like ---------- */
+.prose-notes {
+  @apply text-body text-label;
+  line-height: 1.5;
+}
+.prose-notes .ProseMirror {
+  outline: none;
+  min-height: 40vh;
+}
+.prose-notes > * + *,
+.prose-notes .ProseMirror > * + * {
+  margin-top: 0.6em;
+}
+.prose-notes h1 {
+  @apply text-title1;
+  margin-top: 1.2em;
+}
+.prose-notes h2 {
+  @apply text-title3 font-semibold;
+  margin-top: 1.4em;
+}
+.prose-notes h3 {
+  @apply text-headline;
+  margin-top: 1.2em;
+}
+.prose-notes ul {
+  list-style: disc;
+  padding-left: 1.4em;
+}
+.prose-notes ol {
+  list-style: decimal;
+  padding-left: 1.4em;
+}
+.prose-notes li > p {
+  margin: 0.15em 0;
+}
+.prose-notes blockquote {
+  border-left: 3px solid rgb(var(--orange));
+  padding-left: 0.9em;
+  color: rgb(var(--label-2));
+}
+.prose-notes a {
+  color: rgb(var(--blue));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prose-notes code {
+  @apply rounded-md bg-fill/15 px-1.5 py-0.5 text-[0.9em];
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+}
+.prose-notes pre {
+  @apply rounded-xl bg-fill/15 p-4 text-footnote;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  overflow-x: auto;
+}
+.prose-notes pre code {
+  background: none;
+  padding: 0;
+}
+.prose-notes hr {
+  border: none;
+  border-top: 0.5px solid rgb(var(--separator));
+  margin: 1.5em 0;
+}
+.prose-notes ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0.1em;
+}
+.prose-notes ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6em;
+}
+.prose-notes ul[data-type="taskList"] li > label {
+  flex: none;
+  margin-top: 0.2em;
+  user-select: none;
+}
+.prose-notes ul[data-type="taskList"] li > div {
+  flex: 1;
+}
+.prose-notes ul[data-type="taskList"] input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1.25em;
+  height: 1.25em;
+  border-radius: 999px;
+  border: 1.5px solid rgb(var(--label-3));
+  display: grid;
+  place-content: center;
+  cursor: pointer;
+  font-size: inherit;
+}
+.prose-notes ul[data-type="taskList"] input[type="checkbox"]:checked {
+  background: rgb(var(--orange));
+  border-color: rgb(var(--orange));
+}
+.prose-notes ul[data-type="taskList"] input[type="checkbox"]:checked::after {
+  content: "";
+  width: 0.35em;
+  height: 0.65em;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+.prose-notes ul[data-type="taskList"] li[data-checked="true"] > div {
+  color: rgb(var(--label-2));
+  text-decoration: line-through;
+}
+.prose-notes p.is-editor-empty:first-child::before,
+.prose-notes .is-empty::before {
+  content: attr(data-placeholder);
+  color: rgb(var(--label-3));
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Chart series colours — validated for colour-blind separation and lightness
+   (dataviz validator), light and dark picked separately. */
+:root {
+  --chart-in: #007aff;
+  --chart-out: #e8890c;
+  --chart-grid: rgb(var(--separator) / 0.7);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --chart-in: #0a84ff;
+    --chart-out: #cc7400;
+  }
+}
+:root[data-theme="dark"] {
+  --chart-in: #0a84ff;
+  --chart-out: #cc7400;
 }

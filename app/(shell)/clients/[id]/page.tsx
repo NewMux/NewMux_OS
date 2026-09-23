@@ -1,100 +1,51 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { canAccessFinance } from "@/lib/rbac";
-import { getClientById, listDocuments } from "@/lib/data/documents";
-import { listProjects } from "@/lib/data/projects";
+import { canAccessCrm } from "@/lib/rbac";
+import { getClientById, listClients } from "@/lib/data/clients";
+import { listActivities, listContacts, listDeals } from "@/lib/data/crm";
+import { listProjectsWithStats } from "@/lib/data/projects";
+import { listDocuments } from "@/lib/data/documents";
 import { listHostingSubscriptionsForClient } from "@/lib/data/hosting";
-import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
-import { StatusBadge } from "@/components/documents/StatusBadge";
-import { centsToDisplay } from "@/lib/money";
+import { listLinkedPages } from "@/lib/data/kb";
+import { listUsers } from "@/lib/data/users";
+import { listExpenses } from "@/lib/data/expenses";
+import { ClientDetail } from "./ClientDetail";
 
-export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ClientPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
-  if (!canAccessFinance(session)) redirect("/dashboard");
-
+  if (!canAccessCrm(session)) redirect("/home");
   const { id } = await params;
   const client = await getClientById(id);
   if (!client) notFound();
-
-  const [allProjects, allDocuments, hostingSubs] = await Promise.all([
-    listProjects(),
-    listDocuments(),
+  const [contacts, deals, projects, documents, hosting, activities, pages, clients, allContacts, users, expenses] = await Promise.all([
+    listContacts({ clientId: id }),
+    listDeals({ clientId: id }),
+    listProjectsWithStats({ clientId: id, includeArchived: true }),
+    listDocuments({ clientId: id }),
     listHostingSubscriptionsForClient(id),
+    listActivities({ clientId: id }),
+    listLinkedPages({ clientId: id }),
+    listClients(),
+    listContacts(),
+    listUsers(),
+    listExpenses({ clientId: id }),
   ]);
-  const projects = allProjects.filter((p) => p.clientId === id);
-  const documents = allDocuments.filter((d) => d.clientId === id);
-
   return (
-    <div className="mx-auto max-w-3xl">
-      <div className="mb-4">
-        <h1 className="text-xl font-semibold text-white">{client.name}</h1>
-        <p className="text-sm text-slate-500">{client.clientCode}</p>
-      </div>
-
-      <Card className="mb-4">
-        <CardHeader>
-          <CardTitle>Contact</CardTitle>
-        </CardHeader>
-        <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-          <p className="text-slate-300">Contact person: {client.contactPerson ?? "—"}</p>
-          <p className="text-slate-300">Email: {client.contactEmail ?? "—"}</p>
-          <p className="text-slate-300">Phone: {client.contactPhone ?? "—"}</p>
-          <p className="text-slate-300">Address: {client.billingAddress ?? "—"}</p>
-        </div>
-        {client.notes && <p className="mt-3 text-xs text-slate-500">{client.notes}</p>}
-      </Card>
-
-      <Card className="mb-4">
-        <CardHeader>
-          <CardTitle>Projects</CardTitle>
-        </CardHeader>
-        {projects.length === 0 && <p className="text-sm text-slate-500">No projects yet.</p>}
-        <div className="flex flex-col gap-2">
-          {projects.map((p) => (
-            <Link key={p.id} href={`/projects/${p.id}`} className="text-sm text-emerald-400 hover:underline">
-              {p.name}
-            </Link>
-          ))}
-        </div>
-      </Card>
-
-      <Card className="mb-4">
-        <CardHeader>
-          <CardTitle>Documents</CardTitle>
-        </CardHeader>
-        {documents.length === 0 && <p className="text-sm text-slate-500">No documents yet.</p>}
-        <div className="flex flex-col gap-2">
-          {documents.map((d) => (
-            <Link key={d.id} href={`/documents/${d.id}`}>
-              <div className="flex items-center justify-between rounded-lg border border-white/5 px-3 py-2 text-sm hover:border-emerald-500/40">
-                <span className="text-slate-200">{d.documentNumber}</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-400">{centsToDisplay(d.totalCents, d.currency)}</span>
-                  <StatusBadge status={d.status} />
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Hosting Subscriptions</CardTitle>
-        </CardHeader>
-        {hostingSubs.length === 0 && <p className="text-sm text-slate-500">No hosting subscriptions yet.</p>}
-        <div className="flex flex-col gap-2">
-          {hostingSubs.map((h) => (
-            <div key={h.id} className="flex items-center justify-between rounded-lg border border-white/5 px-3 py-2 text-sm">
-              <span className="capitalize text-slate-200">{h.item}</span>
-              <span className="text-slate-400">
-                {centsToDisplay(h.amountCents, h.currency)} / {h.cycle}
-              </span>
-            </div>
-          ))}
-        </div>
-      </Card>
-    </div>
+    <ClientDetail
+      client={client}
+      contacts={contacts}
+      deals={deals}
+      projects={projects}
+      documents={documents}
+      hosting={hosting}
+      activities={activities}
+      pages={pages}
+      expenses={expenses}
+      options={{
+        clients: clients.map((c) => ({ id: c.id, name: c.name })),
+        contacts: allContacts.map((c) => ({ id: c.id, name: c.fullName, clientId: c.clientId })),
+        users: users.map((u) => ({ id: u.id, name: u.fullName })),
+      }}
+    />
   );
 }

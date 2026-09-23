@@ -4,8 +4,6 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Card } from "@/components/ui/Card";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,55 +19,62 @@ export default function LoginPage() {
     const result = await signIn("credentials", { email, password, redirect: false });
     setLoading(false);
     if (result?.error) {
-      setError("Invalid email or password.");
+      setError("Incorrect email or password.");
       return;
     }
-    router.push("/dashboard");
+    router.push("/home");
     router.refresh();
   }
 
   return (
-    <Card className="w-full max-w-sm">
-      <div className="mb-6 text-center">
-        <div className="mx-auto mb-3 h-10 w-10 rounded-lg bg-emerald-600" aria-hidden />
-        <h1 className="text-lg font-semibold text-white">NEWMUX OS</h1>
-        <p className="text-sm text-slate-400">Internal access only</p>
+    <div className="w-full max-w-[380px] animate-slide-up">
+      <div className="mb-8 flex flex-col items-center text-center">
+        <span className="mb-5 flex h-[76px] w-[76px] items-center justify-center rounded-[22px] bg-gradient-to-br from-[#1c1c1e] to-[#3a3a3c] font-rounded text-[34px] font-bold text-white shadow-float dark:from-white dark:to-[#d1d1d6] dark:text-black">
+          N
+        </span>
+        <h1 className="text-title1">Sign in to NEWMUX</h1>
+        <p className="mt-1.5 text-subhead text-label-2">CRM, projects, finance and wiki — in one place.</p>
       </div>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <div>
-          <label htmlFor="email" className="mb-1 block text-xs font-medium text-slate-400">
+
+      <form onSubmit={handleSubmit}>
+        <div className="overflow-hidden rounded-[12px] bg-bg-elevated">
+          <label className="sr-only" htmlFor="email">
             Email
           </label>
-          <Input
+          <input
             id="email"
             type="email"
-            autoComplete="email"
+            autoComplete="username"
+            autoCapitalize="none"
+            inputMode="email"
             required
+            placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            className="h-[52px] w-full bg-transparent px-4 text-label shadow-[inset_0_-0.5px_0_rgb(var(--separator))] placeholder:text-label-3 focus:outline-none"
           />
-        </div>
-        <div>
-          <label htmlFor="password" className="mb-1 block text-xs font-medium text-slate-400">
+          <label className="sr-only" htmlFor="password">
             Password
           </label>
-          <Input
+          <input
             id="password"
             type="password"
             autoComplete="current-password"
             required
+            placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            className="h-[52px] w-full bg-transparent px-4 text-label placeholder:text-label-3 focus:outline-none"
           />
         </div>
-        {error && <p className="text-sm text-red-400">{error}</p>}
-        <Button type="submit" disabled={loading} className="mt-2 w-full">
-          {loading ? "Signing in…" : "Sign in"}
+        <p role="alert" className="mt-2 min-h-[20px] px-4 text-footnote text-ios-red">
+          {error}
+        </p>
+        <Button type="submit" size="lg" disabled={loading || !email || !password} className="mt-2">
+          {loading ? "Signing In…" : "Continue"}
         </Button>
       </form>
-      <p className="mt-4 text-center text-xs text-slate-500">
-        Credentials are seeded to the server console on first run (mock data mode).
-      </p>
-    </Card>
+      <p className="mt-8 text-center text-footnote text-label-2">For the NEWMUX team only.</p>
+    </div>
   );
 }

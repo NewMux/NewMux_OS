@@ -27,17 +27,17 @@ function num(data: Record<string, unknown>, key: string): number | undefined {
   return typeof v === "number" ? v : undefined;
 }
 
-export function handleSubscriptionUpsert(event: PaddleEvent): void {
+export async function handleSubscriptionUpsert(event: PaddleEvent): Promise<void> {
   const data = event.data;
   const customerId = str(data, "customer_id");
   if (!customerId) return;
 
-  const customer = upsertSaasCustomer({ paddleCustomerId: customerId, email: str(data, "customer_email") });
+  const customer = await upsertSaasCustomer({ paddleCustomerId: customerId, email: str(data, "customer_email") });
 
   const subscriptionId = str(data, "subscription_id") ?? str(data, "id");
   if (!subscriptionId) return;
 
-  upsertSaasSubscription({
+  await upsertSaasSubscription({
     paddleSubscriptionId: subscriptionId,
     saasCustomerId: customer.id,
     status: (str(data, "status") as "trialing" | "active" | "past_due" | "canceled" | "paused") ?? "active",
@@ -50,22 +50,22 @@ export function handleSubscriptionUpsert(event: PaddleEvent): void {
   });
 }
 
-export function handleSubscriptionPastDue(event: PaddleEvent): void {
+export async function handleSubscriptionPastDue(event: PaddleEvent): Promise<void> {
   const subscriptionId = str(event.data, "subscription_id") ?? str(event.data, "id");
-  if (subscriptionId) markSubscriptionPastDue(subscriptionId);
+  if (subscriptionId) await markSubscriptionPastDue(subscriptionId);
 }
 
-export function handleSubscriptionCanceled(event: PaddleEvent): void {
+export async function handleSubscriptionCanceled(event: PaddleEvent): Promise<void> {
   const subscriptionId = str(event.data, "subscription_id") ?? str(event.data, "id");
-  if (subscriptionId) markSubscriptionCanceled(subscriptionId);
+  if (subscriptionId) await markSubscriptionCanceled(subscriptionId);
 }
 
-export function handleTransactionCompleted(event: PaddleEvent): void {
+export async function handleTransactionCompleted(event: PaddleEvent): Promise<void> {
   const data = event.data;
   const transactionId = str(data, "transaction_id") ?? str(data, "id");
   if (!transactionId) return;
 
-  recordTransaction({
+  await recordTransaction({
     paddleTransactionId: transactionId,
     paddleSubscriptionId: str(data, "subscription_id") ?? null,
     saasCustomerId: null,

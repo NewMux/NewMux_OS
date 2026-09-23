@@ -1,10 +1,14 @@
 import { z } from "zod";
+import { requiredText, text } from "./common";
 
-export const createClientSchema = z.object({
-  name: z.string().min(1),
-  contactPerson: z.string().optional(),
-  contactEmail: z.string().email().optional().or(z.literal("")),
-  contactPhone: z.string().optional(),
-  billingAddress: z.string().optional(),
-  notes: z.string().optional(),
+export const clientSchema = z.object({
+  name: requiredText,
+  industry: text,
+  website: text,
+  email: z.union([z.string().trim().email("Enter a valid email"), z.literal("")]).nullish().transform((v) => v || null),
+  phone: text,
+  billingAddress: text,
+  notes: text,
 });
+export const createClientSchema = clientSchema;
+export const updateClientSchema = clientSchema.partial();

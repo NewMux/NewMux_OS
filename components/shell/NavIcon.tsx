@@ -1,38 +1,55 @@
 import {
-  LayoutDashboard,
+  Activity,
+  BarChart3,
+  BookOpen,
+  Building2,
+  CalendarDays,
+  CircleCheckBig,
+  Contact,
   FileText,
-  KanbanSquare,
+  Handshake,
+  House,
   KeyRound,
   Megaphone,
-  Wallet,
-  Settings,
-  Server,
-  Users,
-  Calendar,
-  Building2,
+  Receipt,
   Rocket,
-  BarChart3,
+  Search,
+  Server,
+  Settings,
+  SquareKanban,
+  Users,
+  Wallet,
   type LucideProps,
 } from "lucide-react";
-import type { NavItem } from "@/lib/nav";
+import type { NavIconName } from "@/lib/nav";
 
-const ICONS: Record<NavItem["icon"], React.ComponentType<LucideProps>> = {
-  layoutDashboard: LayoutDashboard,
-  fileText: FileText,
-  kanbanSquare: KanbanSquare,
-  keyRound: KeyRound,
-  megaphone: Megaphone,
-  wallet: Wallet,
+const ICONS: Record<NavIconName, React.ComponentType<LucideProps>> = {
+  home: House,
+  search: Search,
+  crm: Handshake,
+  pipeline: SquareKanban,
+  clients: Building2,
+  contacts: Contact,
+  activity: Activity,
+  work: CircleCheckBig,
+  tasks: CircleCheckBig,
+  calendar: CalendarDays,
+  finance: Wallet,
+  documents: FileText,
+  expenses: Receipt,
+  hosting: Server,
+  reports: BarChart3,
+  wiki: BookOpen,
+  company: Building2,
+  ventures: Rocket,
+  vault: KeyRound,
+  growth: Megaphone,
   settings: Settings,
-  server: Server,
-  users: Users,
-  calendar: Calendar,
-  building: Building2,
-  rocket: Rocket,
-  barChart: BarChart3,
 };
 
-export function NavIcon({ icon, className }: { icon: NavItem["icon"]; className?: string }) {
+export function NavIcon({ icon, className, filled, strokeWidth = 2 }: { icon: NavIconName; className?: string; filled?: boolean; strokeWidth?: number }) {
   const Icon = ICONS[icon];
-  return <Icon className={className} aria-hidden />;
+  return <Icon className={className} strokeWidth={strokeWidth} fill={filled ? "currentColor" : "none"} fillOpacity={filled ? 0.18 : 0} aria-hidden />;
 }
+
+export { Users };

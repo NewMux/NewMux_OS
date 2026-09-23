@@ -16,6 +16,7 @@ export async function GET() {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const secrets = await listSecrets();
+  // Masked previews only — ciphertext never leaves the server.
   return NextResponse.json({ secrets });
 }
 
@@ -29,11 +30,11 @@ export async function POST(req: NextRequest) {
 
   const cookieValue = req.cookies.get(VAULT_SESSION_COOKIE)?.value;
   const derivedKey = cookieValue ? unpackVaultSessionCookie(cookieValue) : null;
-  if (!derivedKey) return NextResponse.json({ error: "VAULT_LOCKED" }, { status: 401 });
+  if (!derivedKey) return NextResponse.json({ error: "The vault is locked. Unlock it first." }, { status: 401 });
 
   const body = await req.json();
   const parsed = createSecretSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
 
   const { ciphertext, iv, authTag } = encryptSecret(parsed.data.value, derivedKey);
   const secret = await createSecret({
@@ -49,5 +50,5 @@ export async function POST(req: NextRequest) {
   });
   await logVaultAccess({ secretId: secret.id, accessedBy: session.user.id, action: "create" });
 
-  return NextResponse.json({ secret: { id: secret.id, label: secret.label, maskedPreview: secret.maskedPreview } }, { status: 201 });
+  return NextResponse.json({ secret: { id: secret.id, label: secret.label, maskedPreview: maskPreview(parsed.data.value) } }, { status: 201 });
 }

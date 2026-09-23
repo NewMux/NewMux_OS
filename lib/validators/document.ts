@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { currency, ref, text, ymd } from "./common";
 import type { DocumentStatus, DocumentType } from "@/lib/data/types";
 
 export const ALLOWED_TRANSITIONS: Record<DocumentStatus, DocumentStatus[]> = {
@@ -15,7 +16,7 @@ export function canTransition(from: DocumentStatus, to: DocumentStatus): boolean
 }
 
 export const lineItemSchema = z.object({
-  description: z.string().min(1),
+  description: z.string().trim().min(1),
   quantity: z.number().positive(),
   unitPriceCents: z.number().int().nonnegative(),
 });
@@ -23,17 +24,26 @@ export const lineItemSchema = z.object({
 export const createDocumentSchema = z.object({
   type: z.enum(["quote", "contract", "invoice"]) satisfies z.ZodType<DocumentType>,
   clientId: z.string().uuid(),
-  productId: z.string().uuid().nullable().optional(),
-  projectId: z.string().uuid().nullable().optional(),
-  currency: z.string().length(3).optional(),
+  productId: ref,
+  projectId: ref,
+  dealId: ref,
+  currency: currency.default("BHD"),
   taxRateBps: z.number().int().min(0).max(10000).default(0),
-  paymentTerms: z.string().optional(),
-  notes: z.string().optional(),
+  paymentTerms: text,
+  notes: text,
+  dueAt: ymd,
   lineItems: z.array(lineItemSchema).min(1),
 });
 
-export const updateDocumentSchema = createDocumentSchema.partial().extend({
-  lineItems: z.array(lineItemSchema).optional(),
+export const updateDocumentSchema = z.object({
+  lineItems: z.array(lineItemSchema).min(1).optional(),
+  taxRateBps: z.number().int().min(0).max(10000).optional(),
+  currency: currency.optional(),
+  clientId: z.string().uuid().optional(),
+  projectId: ref.optional(),
+  paymentTerms: text.optional(),
+  notes: text.optional(),
+  dueAt: ymd.optional(),
 });
 
 export const transitionSchema = z.object({

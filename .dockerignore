@@ -1,0 +1,14 @@
+node_modules
+.next
+.data
+.git
+.env
+.env*.local
+deploy/.env
+deploy/backups
+*.log
+public/sw.js
+public/sw.js.map
+public/workbox-*.js
+public/workbox-*.js.map
+public/swe-worker-*.js
