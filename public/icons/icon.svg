@@ -1,31 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <defs>
-    <linearGradient id="bg" x1="0.15" y1="0" x2="0.85" y2="1">
-      <stop offset="0" stop-color="#4FA3FF"/>
-      <stop offset="0.55" stop-color="#1F5FE0"/>
-      <stop offset="1" stop-color="#1636A8"/>
-    </linearGradient>
-    <radialGradient id="glow" cx="0.28" cy="0.08" r="0.75">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.42"/>
-      <stop offset="0.7" stop-color="#FFFFFF" stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="depth" cx="0.85" cy="1" r="0.7">
-      <stop offset="0" stop-color="#5E3BE0" stop-opacity="0.55"/>
-      <stop offset="1" stop-color="#5E3BE0" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#FFFFFF"/>
-      <stop offset="1" stop-color="#E4ECFF" stop-opacity="0.86"/>
-    </linearGradient>
-    <filter id="lift" x="-30%" y="-30%" width="160%" height="170%">
-      <feDropShadow dx="0" dy="22" stdDeviation="26" flood-color="#0B1F6B" flood-opacity="0.45"/>
-    </filter>
-  </defs>
-  <rect width="1024" height="1024" fill="url(#bg)"/>
-  <rect width="1024" height="1024" fill="url(#depth)"/>
-  <rect width="1024" height="1024" fill="url(#glow)"/>
-  <!-- Glass monogram: the N, lifted off the surface with a specular top edge. -->
-  <g filter="url(#lift)">
-    <path d="M352 700V324l320 376V324" fill="none" stroke="url(#glass)" stroke-width="118" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect width="1024" height="1024" fill="#001D21"/>
+  <g fill="#1768D3">
+    <circle cx="348" cy="348" r="62.5"/>
+    <circle cx="676" cy="348" r="62.5"/>
+    <circle cx="348" cy="512" r="62.5"/>
+    <circle cx="512" cy="512" r="62.5"/>
+    <circle cx="676" cy="512" r="62.5"/>
+    <circle cx="348" cy="676" r="62.5"/>
+    <circle cx="676" cy="676" r="62.5"/>
+  </g>
+  <g fill="#FFFFFF">
+    <circle cx="512" cy="348" r="62.5"/>
+    <circle cx="512" cy="676" r="62.5"/>
   </g>
 </svg>

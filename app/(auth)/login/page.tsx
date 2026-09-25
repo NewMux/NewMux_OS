@@ -30,7 +30,7 @@ export default function LoginPage() {
   return (
     <div className="animate-slide-up">
       <div className="mb-8 flex flex-col items-center text-center">
-        <Image src="/icons/icon.svg" alt="" width={88} height={88} unoptimized priority className="mb-5 rounded-[22.5%] shadow-[0_12px_32px_rgb(22_54_168/0.35)]" />
+        <Image src="/icons/icon.svg" alt="" width={88} height={88} unoptimized priority className="mb-5 rounded-[22.5%] shadow-[0_12px_32px_rgb(0_29_33/0.35)]" />
         <h1 className="text-title1">Sign in to NEWMUX</h1>
         <p className="mt-1.5 text-subhead text-label-2">CRM, projects, finance and wiki — in one place.</p>
       </div>
