@@ -82,24 +82,29 @@ On iPhone, open the address in Safari, then *Share → Add to Home Screen* for t
 
 ## Moving to os.newmux.com
 
-The public website (`www.newmux.com`, on Odoo) stays exactly as it is. NEWMUX OS gets its own subdomain next to it.
+The public website (`www.newmux.com`, on Cloudflare Pages) stays exactly as it is. NEWMUX OS gets its own subdomain next to it.
 
-1. Sign in wherever newmux.com's DNS is managed, which is the same place the `www` → Odoo record is set. Add one record:
+newmux.com's DNS is managed at **GoDaddy** (nameservers `ns43`/`ns44.domaincontrol.com`), the same place the `www` → `newmux.pages.dev` record lives.
+
+1. GoDaddy → **My Products → newmux.com → DNS → Add New Record**:
    - type **A**;
    - name `os`;
-   - value: the server's public IP.
+   - value: the server's public IP;
+   - TTL: 1 hour (the default).
 
-   Leave the existing `www` and `@` records alone.
+   GoDaddy may ask for an authenticator code. Leave every other record alone: the `www` CNAME (website), the root forwarding, and the MX, `autodiscover` and SPF records (Microsoft 365 email).
 2. On the server, edit `deploy/.env` (`nano deploy/.env`) and set `DOMAIN=os.newmux.com`.
 3. Run `./deploy/update.sh`.
 
 Caddy fetches the new certificate automatically. DNS can take a few minutes to update. Log in again at **https://os.newmux.com**.
 
+To undo it, delete the `os` record at GoDaddy. Nothing else on the domain depends on it.
+
 ### Keeping it private
 
 - **Only the login page is public.** Everything else needs a NEWMUX login, including the API. The one exception is the signed Paddle webhook.
 - **Search engines are told not to list it.** Every response carries `X-Robots-Tag: noindex` and every page has a `noindex` meta tag.
-- **Don't link to it** from the Odoo website, email signatures or social profiles.
+- **Don't link to it** from the website, email signatures or social profiles.
 - **The name itself isn't secret.** HTTPS certificates are logged publicly, so anyone searching those logs can see that `os.newmux.com` exists. All they reach is the login page, which is why strong passwords matter.
 - **Change the seeded passwords** (step 5 above), and deactivate any login nobody uses.
 
