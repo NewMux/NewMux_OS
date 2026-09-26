@@ -218,13 +218,16 @@ export type RecurringExpenseInput = {
   nextDueDate?: string | null;
   linkedClientId?: string | null;
   linkedProjectId?: string | null;
+  linkedVentureId?: string | null;
+  paidByPartyId?: string | null;
 };
 
 export async function createRecurringExpense(input: RecurringExpenseInput): Promise<RecurringExpense> {
   const expense = await must<RecurringExpense>(
     "Recurring expense",
-    `insert into recurring_expenses (name, category, amount_cents, currency, cycle, next_due_date, linked_client_id, linked_project_id)
-     values ($1,$2,$3,$4,$5,$6,$7,$8) returning *`,
+    `insert into recurring_expenses (name, category, amount_cents, currency, cycle, next_due_date, linked_client_id, linked_project_id,
+       linked_venture_id, paid_by_party_id)
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) returning *`,
     [
       input.name,
       input.category,
@@ -234,6 +237,8 @@ export async function createRecurringExpense(input: RecurringExpenseInput): Prom
       input.nextDueDate ?? addMonthsYmd(todayYmd(), CYCLE_MONTHS[input.cycle]),
       input.linkedClientId ?? null,
       input.linkedProjectId ?? null,
+      input.linkedVentureId ?? null,
+      input.paidByPartyId ?? null,
     ],
   );
   await logAudit({ entityType: "recurring_expense", entityId: expense.id, action: "create", summary: `Added recurring expense "${expense.name}"`, changedBy: null });
@@ -244,9 +249,22 @@ export async function updateRecurringExpense(id: string, input: RecurringExpense
   return must<RecurringExpense>(
     "Recurring expense",
     `update recurring_expenses set name = $2, category = $3, amount_cents = $4, currency = $5, cycle = $6,
-       next_due_date = coalesce($7, next_due_date), linked_client_id = $8, linked_project_id = $9
+       next_due_date = coalesce($7, next_due_date), linked_client_id = $8, linked_project_id = $9,
+       linked_venture_id = $10, paid_by_party_id = $11
      where id = $1 returning *`,
-    [id, input.name, input.category, input.amountCents, input.currency, input.cycle, input.nextDueDate ?? null, input.linkedClientId ?? null, input.linkedProjectId ?? null],
+    [
+      id,
+      input.name,
+      input.category,
+      input.amountCents,
+      input.currency,
+      input.cycle,
+      input.nextDueDate ?? null,
+      input.linkedClientId ?? null,
+      input.linkedProjectId ?? null,
+      input.linkedVentureId ?? null,
+      input.paidByPartyId ?? null,
+    ],
   );
 }
 

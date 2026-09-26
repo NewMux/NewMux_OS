@@ -379,6 +379,9 @@ export type RecurringExpense = {
   nextDueDate: string | null;
   linkedClientId: string | null;
   linkedProjectId: string | null;
+  linkedVentureId: string | null;
+  /** Charged to a partner's personal card rather than the company account. */
+  paidByPartyId: string | null;
   status: RecurringExpenseStatus;
 };
 
@@ -542,7 +545,8 @@ export type AuditEntityType =
   | "hosting_subscription"
   | "deal"
   | "bank_account"
-  | "payout";
+  | "payout"
+  | "file";
 
 export type AuditLogEntry = {
   id: string;

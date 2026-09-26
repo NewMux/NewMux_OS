@@ -9,9 +9,30 @@ import { Badge } from "@/components/ui/Badge";
 import { ListRow, ListSection } from "@/components/ui/List";
 import { VENTURE_STATUS, VentureSheet } from "@/components/company/VentureSheet";
 import { ProfitSplitRuleSheet } from "@/components/settings/ProfitSplitRuleSheet";
+import { SummaryCard } from "@/components/ui/Widget";
+import { centsToDisplay, compactMoney } from "@/lib/money";
+import { formatDate } from "@/lib/time";
+import { CYCLE_LABEL } from "@/lib/labels";
+import type { ExpenseListItem, getVentureSpend } from "@/lib/data/expenses";
 import type { DeductionType, Party, ProfitSplitRule, Venture } from "@/lib/data/types";
 
-export function VentureDetail({ venture, rule, parties, deductionTypes }: { venture: Venture; rule?: ProfitSplitRule; parties: Party[]; deductionTypes: DeductionType[] }) {
+type Spend = Awaited<ReturnType<typeof getVentureSpend>>;
+
+export function VentureDetail({
+  venture,
+  rule,
+  parties,
+  deductionTypes,
+  spend,
+  expenses,
+}: {
+  venture: Venture;
+  rule?: ProfitSplitRule;
+  parties: Party[];
+  deductionTypes: DeductionType[];
+  spend: Spend;
+  expenses: ExpenseListItem[];
+}) {
   const [editing, setEditing] = useState(false);
   const [splitOpen, setSplitOpen] = useState(false);
   const status = VENTURE_STATUS[venture.launchStatus];
@@ -39,6 +60,29 @@ export function VentureDetail({ venture, rule, parties, deductionTypes }: { vent
             </a>
           )}
         </div>
+        <SummaryCard
+          items={[
+            { label: "Spent", value: compactMoney(spend.allTimeBhdCents), caption: `${spend.count} expense${spend.count === 1 ? "" : "s"}` },
+            { label: "This year", value: compactMoney(spend.thisYearBhdCents) },
+            { label: "Recurring", value: compactMoney(spend.monthlyRunRateBhdCents), caption: "per month" },
+          ]}
+        />
+        <ListSection header="Spending" info="Expenses and recurring costs linked to this venture." action={<a href="/finance/expenses?new=1" className="text-subhead text-accent">Add</a>}>
+          {spend.recurring.map((r) => (
+            <ListRow key={r.id} href="/finance/expenses?tab=recurring" title={r.name} subtitle={`${CYCLE_LABEL[r.cycle]}${r.status === "paused" ? " · Paused" : ""}`} detail={centsToDisplay(r.amountCents, r.currency)} />
+          ))}
+          {expenses.map((e) => (
+            <ListRow
+              key={e.id}
+              href={`/finance/expenses?id=${e.id}`}
+              title={e.description}
+              subtitle={[formatDate(e.spentOn), e.paidByName ? `paid by ${e.paidByName}` : null].filter(Boolean).join(" · ")}
+              detail={centsToDisplay(e.amountBhdCents ?? e.amountCents, e.amountBhdCents !== null ? "BHD" : e.currency)}
+            />
+          ))}
+          {expenses.length === 0 && spend.recurring.length === 0 && <ListRow title="No spending linked yet" />}
+        </ListSection>
+
         <ListSection header="Ownership & Profit Split" footer="Ventures are held personally by the founders — the split is set here, not assumed.">
           {rule ? (
             rule.splits.map((s) => <ListRow key={s.partyId} title={parties.find((p) => p.id === s.partyId)?.name ?? "?"} detail={`${s.percentageBps / 100}%`} />)

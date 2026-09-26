@@ -10,6 +10,9 @@ export const recurringExpenseSchema = z.object({
   nextDueDate: ymd,
   linkedClientId: ref,
   linkedProjectId: ref,
+  linkedVentureId: ref,
+  /** A partner's card it's charged to, if not the company account (item 16). */
+  paidByPartyId: ref,
 });
 /** Kept for existing callers. */
 export const createRecurringExpenseSchema = recurringExpenseSchema;
@@ -20,9 +23,22 @@ export const expenseSchema = z.object({
   vendor: text,
   amount,
   currency: currency.default("BHD"),
+  /** Non-BHD expenses: the BHD amount actually charged (item 17). Blank = the official peg. */
+  amountBhd: z
+    .union([z.coerce.number().positive().max(1_000_000_000), z.literal(""), z.null()])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? null : v)),
   spentOn: requiredYmd,
   linkedClientId: ref,
   linkedProjectId: ref,
+  linkedVentureId: ref,
+  /** Pass-through cost of this invoice. */
+  documentId: ref,
+  accountId: ref,
+  paidByPartyId: ref,
+  reimbursementStatus: z.enum(["not_required", "pending", "reimbursed"]).optional(),
+  fundPartyId: ref,
+  receiptFileId: ref,
   notes: text,
 });
 
