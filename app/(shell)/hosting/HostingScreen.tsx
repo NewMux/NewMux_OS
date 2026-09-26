@@ -35,7 +35,7 @@ function margin(s: HostingListItem) {
 
 function MarginText({ s, compact }: { s: HostingListItem; compact?: boolean }) {
   const m = margin(s);
-  if (!m) return <span className="text-label-2">{s.annualFeeBhdCents === null ? "—" : compact ? "No cost set" : "Set a cost"}</span>;
+  if (!m) return <span className="text-label-2">{s.annualFeeBhdCents === null ? "—" : compact ? "unknown (no vendor cost)" : "Set a cost"}</span>;
   return (
     <span className={cn(m.cents < 0 ? "text-ios-red" : "text-ios-green")}>
       {compact ? compactMoney(m.cents) : centsToDisplay(m.cents, "BHD")}
@@ -100,13 +100,14 @@ export function HostingScreen({
       title={s.clientName}
       subtitle={
         <>
-          {`${s.label ?? s.item[0]!.toUpperCase() + s.item.slice(1)} · ${CYCLE_LABEL[s.cycle]} · ${due(s, level)}`}
+          {/* With a Collect button beside it, the amount reads first here instead of being squeezed. */}
+          {`${level !== "ok" ? `${amountOrTbd(s.amountCents, s.currency)} · ` : ""}${s.label ?? s.item[0]!.toUpperCase() + s.item.slice(1)} · ${CYCLE_LABEL[s.cycle]} · ${due(s, level)}`}
           <span className="block text-footnote">
             Margin <MarginText s={s} compact />
           </span>
         </>
       }
-      detail={<span className={s.amountCents === null ? "text-ios-orange" : undefined}>{amountOrTbd(s.amountCents, s.currency)}</span>}
+      detail={level !== "ok" ? undefined : <span className={s.amountCents === null ? "text-ios-orange" : undefined}>{amountOrTbd(s.amountCents, s.currency)}</span>}
       trailing={level !== "ok" ? collectButton(s, level) : s.status in STATUS_BADGE ? <Badge>{STATUS_BADGE[s.status as keyof typeof STATUS_BADGE]}</Badge> : undefined}
       multiline
     />

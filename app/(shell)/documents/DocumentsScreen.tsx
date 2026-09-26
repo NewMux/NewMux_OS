@@ -2,7 +2,7 @@
 
 import { useContext, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown, FileText, X } from "lucide-react";
 import { QuickAddMenu } from "@/components/shell/QuickAdd";
 import { Page } from "@/components/ui/Page";
@@ -86,6 +86,7 @@ export function DocumentsScreen({ documents }: { documents: DocumentListItem[] }
   const params = useSearchParams();
   const router = useRouter();
   const wide = useContext(SplitWideContext);
+  const pathname = usePathname();
   const initialType = (params.get("type") as TypeFilter | null) ?? "all";
   const [type, setType] = useState<TypeFilter>(["all", "quote", "invoice", "contract", "credit_note"].includes(initialType) ? initialType : "all");
   const [status, setStatus] = useState<StatusFilter>((params.get("status") as StatusFilter | null) ?? "any");
@@ -153,17 +154,14 @@ export function DocumentsScreen({ documents }: { documents: DocumentListItem[] }
   const open = visible.filter((d) => !isClosed(d));
   const closed = visible.filter(isClosed);
 
+  const pay = (d: DocumentListItem) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setPaying(d);
+  };
   const payButton = (d: DocumentListItem) =>
     outstanding(d) > 0 ? (
-      <Button
-        size="sm"
-        variant={isOverdue(d) ? "destructive-tinted" : "tinted"}
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setPaying(d);
-        }}
-      >
+      <Button size="sm" variant={isOverdue(d) ? "destructive-tinted" : "tinted"} onClick={pay(d)}>
         Pay
       </Button>
     ) : null;
@@ -174,7 +172,11 @@ export function DocumentsScreen({ documents }: { documents: DocumentListItem[] }
     return (
       <ListRow
         key={d.id}
-        href={`/documents/${d.id}`}
+        // A row holding its own Pay button can't be a link (no buttons inside <a>); it navigates on click instead.
+        href={owed > 0 ? undefined : `/documents/${d.id}`}
+        onClick={owed > 0 ? () => router.push(`/documents/${d.id}`) : undefined}
+        chevron
+        className={owed > 0 && pathname === `/documents/${d.id}` ? "lg:bg-fill/[0.16]" : undefined}
         multiline
         title={<span className="line-clamp-2">{d.clientShortName ?? d.clientName}</span>}
         subtitle={[
@@ -192,10 +194,21 @@ export function DocumentsScreen({ documents }: { documents: DocumentListItem[] }
               {d.type === "credit_note" ? "− " : ""}
               {centsToDisplay(d.totalCents, d.currency)}
             </span>
-            <Badge color={badge.color}>{badge.label}</Badge>
+            <span className="flex items-center gap-1.5">
+              <Badge color={badge.color}>{badge.label}</Badge>
+              {/* Item 35: record a payment without opening the invoice. */}
+              {owed > 0 && (
+                <button
+                  type="button"
+                  onClick={pay(d)}
+                  className={cn("press rounded-full px-2.5 py-0.5 text-caption1 font-semibold", isOverdue(d) ? "bg-ios-red text-white" : "bg-accent text-white")}
+                >
+                  Pay
+                </button>
+              )}
+            </span>
           </span>
         }
-        trailing={payButton(d)}
       />
     );
   };
@@ -254,7 +267,7 @@ export function DocumentsScreen({ documents }: { documents: DocumentListItem[] }
               { value: "invoice", label: "Invoices" },
               { value: "quote", label: "Quotes" },
               { value: "contract", label: "Contracts" },
-              ...(wide || documents.some((d) => d.type === "credit_note") ? [{ value: "credit_note" as const, label: "Credits" }] : []),
+              ...(documents.some((d) => d.type === "credit_note") ? [{ value: "credit_note" as const, label: "Credits" }] : []),
             ]}
           />
           <SearchField value={q} onChange={setQ} placeholder="Client, number or original number" />
@@ -269,14 +282,16 @@ export function DocumentsScreen({ documents }: { documents: DocumentListItem[] }
       {visible.length === 0 && (
         <EmptyState icon={FileText} title={filtered ? "No matching documents" : "Nothing here yet"} message={filtered ? "Try another filter." : "Create a quote or invoice with the + button."} />
       )}
-      {wide ? (
-        visible.length > 0 && <DocumentTable documents={visible} payButton={payButton} />
-      ) : (
-        <>
-          {open.length > 0 && <ListSection header="Open">{open.map(row)}</ListSection>}
-          {closed.length > 0 && <ListSection header="Closed">{closed.map(row)}</ListSection>}
-        </>
+      {/* "Wide" only means nothing is open; the table is for iPad landscape and Mac. */}
+      {wide && visible.length > 0 && (
+        <div className="hidden lg:block">
+          <DocumentTable documents={visible} payButton={payButton} />
+        </div>
       )}
+      <div className={wide ? "lg:hidden" : undefined}>
+        {open.length > 0 && <ListSection header="Open">{open.map(row)}</ListSection>}
+        {closed.length > 0 && <ListSection header="Closed">{closed.map(row)}</ListSection>}
+      </div>
       {status === "any" && documents.some((d) => d.status === "void") && (
         <button type="button" onClick={() => setStatus("void")} className="mx-auto block text-subhead text-accent">
           Show {plural(documents.filter((d) => d.status === "void").length, "void document")}
