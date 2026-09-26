@@ -6,6 +6,6 @@ import { createDeductionType, listDeductionTypes } from "@/lib/data/finance";
 export const GET = route({ allow: canAccessSettings }, async () => ({ deductionTypes: await listDeductionTypes() }));
 
 export const POST = route({ allow: canAccessSettings, status: 201 }, async ({ req }) => {
-  const { name, kind } = await body(req, createDeductionTypeSchema);
-  return { deductionType: await createDeductionType(name, kind) };
+  const { name, kind, fundPartyId } = await body(req, createDeductionTypeSchema);
+  return { deductionType: await createDeductionType(name, kind, fundPartyId) };
 });

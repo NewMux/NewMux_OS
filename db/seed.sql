@@ -5,8 +5,7 @@
 
 insert into users (id, email, password_hash, full_name, role) values
   ('00000000-0000-4000-8000-000000000001', 'm4ahmed7@gmail.com', '$2a$10$Y10f2W1un5TPP9vqThB3tuTB/UUMBfklmJltXyk.fng5IWsKkfuFW', 'Mohammed', 'partner_admin'),
-  ('00000000-0000-4000-8000-000000000002', 'info@newmux.com', '$2a$10$Y10f2W1un5TPP9vqThB3tuTB/UUMBfklmJltXyk.fng5IWsKkfuFW', 'Jassim Baqer', 'partner_admin'),
-  ('00000000-0000-4000-8000-000000000003', 'lead.dev@newmux.internal', '$2a$10$Y10f2W1un5TPP9vqThB3tuTB/UUMBfklmJltXyk.fng5IWsKkfuFW', 'Demo Limited-Access User', 'lead_dev');
+  ('00000000-0000-4000-8000-000000000002', 'info@newmux.com', '$2a$10$Y10f2W1un5TPP9vqThB3tuTB/UUMBfklmJltXyk.fng5IWsKkfuFW', 'Jassim Baqer', 'partner_admin');
 
 insert into parties (id, name) values ('00000000-0000-4000-8000-000000000011', 'Jassim'), ('00000000-0000-4000-8000-000000000012', 'Mohammed');
 
@@ -66,8 +65,8 @@ insert into tasks (id, project_id, title, description, priority, status, assigne
   ('00000000-0000-4000-8000-000000000307', '00000000-0000-4000-8000-000000000065', 'Write Ox Roastery case study', null, 'medium', 'todo', '00000000-0000-4000-8000-000000000002', current_date + 7, 7, null, '00000000-0000-4000-8000-000000000001'),
   ('00000000-0000-4000-8000-000000000308', '00000000-0000-4000-8000-000000000065', 'Design new homepage', null, 'high', 'in_progress', '00000000-0000-4000-8000-000000000002', current_date + 14, 8, null, '00000000-0000-4000-8000-000000000001'),
   ('00000000-0000-4000-8000-000000000309', '00000000-0000-4000-8000-000000000066', 'Multi-branch support', null, 'high', 'in_progress', '00000000-0000-4000-8000-000000000001', current_date + 5, 9, null, '00000000-0000-4000-8000-000000000001'),
-  ('00000000-0000-4000-8000-000000000310', '00000000-0000-4000-8000-000000000066', 'Arabic RTL polish', null, 'medium', 'todo', '00000000-0000-4000-8000-000000000003', current_date + 1, 10, null, '00000000-0000-4000-8000-000000000001'),
-  ('00000000-0000-4000-8000-000000000311', '00000000-0000-4000-8000-000000000066', 'Onboarding flow', null, 'medium', 'todo', '00000000-0000-4000-8000-000000000003', current_date + 12, 11, null, '00000000-0000-4000-8000-000000000001'),
+  ('00000000-0000-4000-8000-000000000310', '00000000-0000-4000-8000-000000000066', 'Arabic RTL polish', null, 'medium', 'todo', '00000000-0000-4000-8000-000000000001', current_date + 1, 10, null, '00000000-0000-4000-8000-000000000001'),
+  ('00000000-0000-4000-8000-000000000311', '00000000-0000-4000-8000-000000000066', 'Onboarding flow', null, 'medium', 'todo', '00000000-0000-4000-8000-000000000001', current_date + 12, 11, null, '00000000-0000-4000-8000-000000000001'),
   ('00000000-0000-4000-8000-000000000312', '00000000-0000-4000-8000-000000000063', 'Handover documentation', null, 'low', 'done', '00000000-0000-4000-8000-000000000001', current_date + -110, 12, now() - interval '2 days', '00000000-0000-4000-8000-000000000001');
 insert into subtasks (task_id, title, done, sort_order) values
   ('00000000-0000-4000-8000-000000000300', 'Sales by tailor report', true, 0),
@@ -110,11 +109,10 @@ insert into document_status_history (document_id, from_status, to_status, change
 insert into document_status_history (document_id, from_status, to_status, changed_by, changed_at) values ('00000000-0000-4000-8000-000000000402', 'sent', 'accepted', '00000000-0000-4000-8000-000000000001', now() + interval '-94 days');
 insert into document_status_history (document_id, from_status, to_status, changed_by, changed_at) values ('00000000-0000-4000-8000-000000000402', 'accepted', 'paid', '00000000-0000-4000-8000-000000000001', now() + interval '-88 days');
 insert into payments (document_id, amount_cents, paid_on, method, recorded_by) values ('00000000-0000-4000-8000-000000000402', 1200000, current_date + -88, 'transfer', '00000000-0000-4000-8000-000000000001');
-insert into documents (id, type, status, client_id, product_id, project_id, profit_split_rule_id, document_number, currency, subtotal_cents, tax_rate_bps, tax_cents, total_cents, payment_terms, notes, issued_at, due_at, accepted_at, paid_at, created_by, created_at, updated_at) values ('00000000-0000-4000-8000-000000000403', 'invoice', 'accepted', '00000000-0000-4000-8000-000000000024', '00000000-0000-4000-8000-000000000031', '00000000-0000-4000-8000-000000000064', '00000000-0000-4000-8000-000000000072', 'INV-2026-0259', 'BHD', 600000, 0, 0, 600000, 'Net 30', 'Milestone 2 — booking engine.', now() + interval '-40 days', current_date + -10, now() + interval '-39 days', null, '00000000-0000-4000-8000-000000000001', now() + interval '-40 days', now() + interval '-40 days');
+insert into documents (id, type, status, client_id, product_id, project_id, profit_split_rule_id, document_number, currency, subtotal_cents, tax_rate_bps, tax_cents, total_cents, payment_terms, notes, issued_at, due_at, accepted_at, paid_at, created_by, created_at, updated_at) values ('00000000-0000-4000-8000-000000000403', 'invoice', 'sent', '00000000-0000-4000-8000-000000000024', '00000000-0000-4000-8000-000000000031', '00000000-0000-4000-8000-000000000064', '00000000-0000-4000-8000-000000000072', 'INV-2026-0259', 'BHD', 600000, 0, 0, 600000, 'Net 30', 'Milestone 2 — booking engine.', now() + interval '-40 days', current_date + -10, now() + interval '-39 days', null, '00000000-0000-4000-8000-000000000001', now() + interval '-40 days', now() + interval '-40 days');
 insert into document_line_items (document_id, description, quantity, unit_price_cents, sort_order) values ('00000000-0000-4000-8000-000000000403', 'Milestone 2 — booking engine', 1, 600000, 0);
 insert into document_status_history (document_id, from_status, to_status, changed_by, changed_at) values ('00000000-0000-4000-8000-000000000403', null, 'draft', '00000000-0000-4000-8000-000000000001', now() + interval '-40 days');
 insert into document_status_history (document_id, from_status, to_status, changed_by, changed_at) values ('00000000-0000-4000-8000-000000000403', 'draft', 'sent', '00000000-0000-4000-8000-000000000001', now() + interval '-40 days');
-insert into document_status_history (document_id, from_status, to_status, changed_by, changed_at) values ('00000000-0000-4000-8000-000000000403', 'sent', 'accepted', '00000000-0000-4000-8000-000000000001', now() + interval '-39 days');
 insert into payments (document_id, amount_cents, paid_on, method, recorded_by) values ('00000000-0000-4000-8000-000000000403', 300000, current_date + -20, 'transfer', '00000000-0000-4000-8000-000000000001');
 insert into documents (id, type, status, client_id, product_id, project_id, profit_split_rule_id, document_number, currency, subtotal_cents, tax_rate_bps, tax_cents, total_cents, payment_terms, notes, issued_at, due_at, accepted_at, paid_at, created_by, created_at, updated_at) values ('00000000-0000-4000-8000-000000000404', 'invoice', 'paid', '00000000-0000-4000-8000-000000000024', '00000000-0000-4000-8000-000000000031', '00000000-0000-4000-8000-000000000064', '00000000-0000-4000-8000-000000000072', 'INV-2026-0262', 'BHD', 45000, 0, 0, 45000, 'Due on receipt', 'Quarterly hosting.', now() + interval '-12 days', current_date + -5, now() + interval '-11 days', now() + interval '-10 days', '00000000-0000-4000-8000-000000000001', now() + interval '-12 days', now() + interval '-12 days');
 insert into document_line_items (document_id, description, quantity, unit_price_cents, sort_order) values ('00000000-0000-4000-8000-000000000404', 'Server/hosting (quarterly)', 1, 45000, 0);
@@ -258,6 +256,41 @@ insert into campaigns (id, name, channel, product_id, start_date, created_by) va
 insert into campaign_metrics (campaign_id, metric_date, spend_cents, leads_captured, conversions, revenue_cents) values
   ('00000000-0000-4000-8000-000000000701', current_date - 1, 45000, 32, 4, 39600), ('00000000-0000-4000-8000-000000000701', current_date - 2, 42000, 28, 3, 29700),
   ('00000000-0000-4000-8000-000000000702', current_date - 1, 60000, 15, 2, 900000), ('00000000-0000-4000-8000-000000000703', current_date - 1, 30000, 9, 1, 11880);
+
+-- Improvements PRD (Sep 2026): the account balance, partner payouts, the
+-- Newmux reserve, venture and partner-paid expenses, original numbers.
+update clients set short_name = 'Marasi' where id = '00000000-0000-4000-8000-000000000021';
+update clients set short_name = 'Al Hussam' where id = '00000000-0000-4000-8000-000000000022';
+update clients set short_name = 'Voya' where id = '00000000-0000-4000-8000-000000000024';
+
+insert into bank_accounts (id, name, currency, opening_balance_cents, opening_balance_date, is_default) values
+  ('00000000-0000-4000-8000-000000000901', 'Newmux — BBK current account', 'BHD', 4850000, (date_trunc('month', current_date) - interval '2 months')::date, true);
+
+-- 20% of what remains after costs goes to the reserve fund (created by migration 0008).
+insert into deduction_types (id, name, kind, fund_party_id) values
+  ('00000000-0000-4000-8000-000000000045', 'Newmux Reserve', 'percentage', (select id from parties where kind = 'fund' order by created_at limit 1));
+update profit_split_rules set deductions = '[{"deductionTypeId": "00000000-0000-4000-8000-000000000043", "value": 250, "base": "total"}, {"deductionTypeId": "00000000-0000-4000-8000-000000000045", "value": 2000, "base": "remaining"}]'
+  where id = '00000000-0000-4000-8000-000000000072';
+update profit_split_rules set deductions = '[{"deductionTypeId": "00000000-0000-4000-8000-000000000045", "value": 2000, "base": "remaining"}]'
+  where id = '00000000-0000-4000-8000-000000000073';
+
+insert into payouts (party_id, type, amount_cents, currency, paid_on, reference, notes, created_by) values
+  ('00000000-0000-4000-8000-000000000011', 'share', 900000, 'BHD', current_date - 40, 'Bank transfer', 'Voya platform milestone', '00000000-0000-4000-8000-000000000002'),
+  ('00000000-0000-4000-8000-000000000012', 'share', 900000, 'BHD', current_date - 40, 'Bank transfer', 'Voya platform milestone', '00000000-0000-4000-8000-000000000002'),
+  ('00000000-0000-4000-8000-000000000012', 'advance', 60000, 'BHD', current_date - 12, 'BenefitPay', null, '00000000-0000-4000-8000-000000000001');
+
+insert into expenses (description, category, vendor, amount_cents, currency, spent_on, linked_venture_id, paid_by_party_id, reimbursement_status, fund_party_id, created_by) values
+  ('Tbadel logo design', 'contractor', 'Fiverr', 12000, 'USD', current_date - 25, '00000000-0000-4000-8000-000000000051', '00000000-0000-4000-8000-000000000011', 'pending', null, '00000000-0000-4000-8000-000000000002'),
+  ('Instagram ads — Newmux', 'marketing', 'Meta', 25000, 'BHD', current_date - 6, null, null, 'not_required', (select id from parties where kind = 'fund' order by created_at limit 1), '00000000-0000-4000-8000-000000000001');
+update expenses set linked_venture_id = '00000000-0000-4000-8000-000000000052' where description = 'Meta ads — MTDRB launch';
+
+-- Every invoice billed for a hosting fee, and a service whose price isn't agreed yet.
+update documents d set hosting_subscription_id = h.id from hosting_subscriptions h where h.linked_invoice_id = d.id;
+insert into hosting_subscriptions (client_id, project_id, item, label, amount_cents, currency, cycle, next_due_date, status) values
+  ('00000000-0000-4000-8000-000000000024', '00000000-0000-4000-8000-000000000064', 'domain', 'voya.example domain', null, 'BHD', 'annual', null, 'not_started');
+
+update documents set external_ref = '#00204' where document_number = 'INV-2026-0204';
+update documents set external_ref = '#00210' where document_number = 'INV-2026-0210';
 
 insert into kb_spaces (id, name, description, icon, color, sort_order) values
   ('00000000-0000-4000-8000-000000000201', 'SOPs', 'How we do recurring work, step by step.', 'listChecks', 'orange', 0),

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { amount, currency, cycle, ref, requiredText, requiredYmd, text, ymd } from "./common";
+import { amount, currency, cycle, paymentMethod, ref, requiredText, requiredYmd, signedAmount, text, ymd } from "./common";
 
 export const recurringExpenseSchema = z.object({
   name: requiredText,
@@ -29,6 +29,13 @@ export const expenseSchema = z.object({
 export const createDeductionTypeSchema = z.object({
   name: requiredText,
   kind: z.enum(["fixed", "percentage"]),
+  /** The fund this deduction feeds (e.g. the Newmux reserve), if any. */
+  fundPartyId: ref,
+});
+
+export const updateDeductionTypeSchema = z.object({
+  name: requiredText,
+  fundPartyId: ref,
 });
 
 export const profitSplitSplitSchema = z.object({
@@ -39,10 +46,11 @@ export const profitSplitSplitSchema = z.object({
 export const profitSplitDeductionSchema = z.object({
   deductionTypeId: z.string().uuid(),
   value: z.number().nonnegative(),
+  base: z.enum(["total", "remaining"]).optional(),
 });
 
 export const upsertProfitSplitRuleSchema = z.object({
-  scopeType: z.enum(["project", "venture"]),
+  scopeType: z.enum(["project", "venture", "document"]),
   scopeId: z.string().uuid(),
   splits: z.array(profitSplitSplitSchema).min(1),
   deductions: z.array(profitSplitDeductionSchema),
@@ -51,13 +59,48 @@ export const upsertProfitSplitRuleSchema = z.object({
 
 export const addPaymentSchema = z.object({
   amount,
-  method: z.enum(["cash", "transfer", "card", "cheque"]),
+  method: paymentMethod,
   paidOn: ymd,
   reference: text,
+  accountId: ref,
 });
 
 export const createPartySchema = z.object({
   name: requiredText,
+  kind: z.enum(["partner", "fund"]).default("partner"),
+});
+
+export const invoiceSplitRuleSchema = z.object({
+  /** An existing rule to use, or null for the project's rule. */
+  ruleId: ref,
+});
+
+export const bankAccountSchema = z.object({
+  name: requiredText,
+  currency: currency.default("BHD"),
+  openingBalance: signedAmount,
+  openingBalanceDate: requiredYmd,
+  isDefault: z.boolean().optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const reconcileSchema = z.object({
+  statementDate: requiredYmd,
+  statementBalance: signedAmount,
+  adjust: z.boolean().default(false),
+  note: text,
+});
+
+export const payoutSchema = z.object({
+  partyId: z.string().uuid(),
+  type: z.enum(["share", "advance", "withdrawal", "reimbursement"]),
+  amount,
+  currency: currency.default("BHD"),
+  paidOn: requiredYmd,
+  documentId: ref,
+  accountId: ref,
+  reference: text,
+  notes: text,
 });
 
 export const ventureSchema = z.object({

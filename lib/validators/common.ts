@@ -29,4 +29,10 @@ export const requiredYmd = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-
 /** A money amount in major units as typed by a person (e.g. 15.5 BHD). */
 export const amount = z.coerce.number().positive("Must be more than zero").max(1_000_000_000);
 
+/** A money amount that may be zero or negative (an overdrawn opening balance, a statement figure). */
+export const signedAmount = z.coerce.number().min(-1_000_000_000).max(1_000_000_000);
+
 export const cycle = z.enum(["monthly", "quarterly", "annual"]);
+
+export const PAYMENT_METHODS = ["transfer", "benefitpay", "cash", "card", "paypal", "upwork", "cheque", "other"] as const;
+export const paymentMethod = z.enum(PAYMENT_METHODS);

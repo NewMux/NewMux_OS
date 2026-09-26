@@ -26,6 +26,12 @@ export function centsToDisplay(amountMinorUnits: number, currency = "USD"): stri
   }).format(amountMinorUnits / 10 ** digits);
 }
 
+/** "1,172.951" — the amount without its currency code, for dense tables where the code is shown once. */
+export function formatAmount(amountMinorUnits: number, currency = "BHD"): string {
+  const digits = minorUnitDigits(currency);
+  return new Intl.NumberFormat("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(amountMinorUnits / 10 ** digits);
+}
+
 export function dollarsToCents(dollars: number): number {
   return Math.round(dollars * 100);
 }

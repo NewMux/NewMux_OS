@@ -27,6 +27,12 @@ export type DocumentFormInitial = {
   paymentTerms: string;
   notes: string;
   dueAt: string;
+  /** YYYY-MM-DD, defaults to today (item 7). */
+  issuedAt: string;
+  /** Original number from before NEWMUX OS (item 8). */
+  externalRef: string;
+  /** Credit notes: the invoice being credited. */
+  creditFor?: { id: string; documentNumber: string; remainingCreditCents: number } | null;
   lineItems: { description: string; quantity: number; unitPriceCents: number }[];
 };
 
@@ -44,6 +50,9 @@ export function DocumentForm({ initial, clients, projects }: { initial: Document
   const [terms, setTerms] = useState(initial.paymentTerms);
   const [notes, setNotes] = useState(initial.notes);
   const [dueAt, setDueAt] = useState(initial.dueAt);
+  const [issuedAt, setIssuedAt] = useState(initial.issuedAt);
+  const [externalRef, setExternalRef] = useState(initial.externalRef);
+  const creditFor = initial.creditFor;
   const [saving, setSaving] = useState(false);
   const [lines, setLines] = useState<Line[]>(
     initial.lineItems.length
@@ -66,7 +75,8 @@ export function DocumentForm({ initial, clients, projects }: { initial: Document
   const taxBps = Math.round((Number(taxRate) || 0) * 100);
   const subtotal = subtotalCents(minorLines);
   const tax = taxCents(subtotal, taxBps);
-  const canSave = !!clientId && minorLines.length > 0 && minorLines.every((l) => l.quantity > 0);
+  const overCredit = !!creditFor && subtotal + tax > creditFor.remainingCreditCents;
+  const canSave = !!clientId && !!issuedAt && minorLines.length > 0 && minorLines.every((l) => l.quantity > 0) && !overCredit;
 
   const update = (key: number, patch: Partial<Line>) => setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)));
 
@@ -74,7 +84,7 @@ export function DocumentForm({ initial, clients, projects }: { initial: Document
     if (!canSave || saving) return;
     setSaving(true);
     const payload = {
-      ...(editing ? {} : { type, dealId: initial.dealId ?? null }),
+      ...(editing ? {} : { type, dealId: initial.dealId ?? null, creditForId: creditFor?.id ?? null }),
       clientId,
       projectId,
       currency,
@@ -82,6 +92,8 @@ export function DocumentForm({ initial, clients, projects }: { initial: Document
       paymentTerms: terms,
       notes,
       dueAt,
+      issuedAt,
+      externalRef,
       lineItems: minorLines,
     };
     const res = await fetch(editing ? `/api/documents/${initial.id}` : "/api/documents", {
@@ -102,14 +114,14 @@ export function DocumentForm({ initial, clients, projects }: { initial: Document
 
   return (
     <Page
-      title={editing ? "Edit Draft" : `New ${type === "quote" ? "Quote" : type === "invoice" ? "Invoice" : "Contract"}`}
+      title={editing ? "Edit Draft" : `New ${type === "quote" ? "Quote" : type === "invoice" ? "Invoice" : type === "credit_note" ? "Credit Note" : "Contract"}`}
       back={editing ? { href: `/documents/${initial.id}`, label: "Cancel" } : { href: "/documents", label: "Documents" }}
       actions={
         <SheetIconButton kind="confirm" label={editing ? "Save" : "Create"} onClick={save} disabled={!canSave} busy={saving} />
       }
     >
       <div className="mx-auto max-w-2xl">
-        {!editing && (
+        {!editing && !creditFor && (
           <div className="mb-6">
             <SegmentedControl
               value={type}
@@ -123,19 +135,42 @@ export function DocumentForm({ initial, clients, projects }: { initial: Document
           </div>
         )}
 
-        <ListSection header="Bill to">
-          <ClientProjectRows clients={clients} projects={projects} clientId={clientId} projectId={projectId} onClient={setClientId} onProject={setProjectId} />
-          <FieldRow label="Currency">
-            <Select value={currency} onChange={(e) => setCurrency(e.target.value as Currency)}>
-              <option value="BHD">BHD — Bahraini Dinar</option>
-              <option value="USD">USD — US Dollar</option>
-            </Select>
+        {creditFor ? (
+          <ListSection
+            header="Credit for"
+            footer={`Up to ${centsToDisplay(creditFor.remainingCreditCents, currency)} can be credited. Once issued, it reduces what ${creditFor.documentNumber} is owed; a refund can then be recorded on it.`}
+          >
+            <FieldRow label="Invoice">
+              <span className="text-label-2">{creditFor.documentNumber}</span>
+            </FieldRow>
+            <FieldRow label="Client">
+              <span className="truncate text-label-2">{clients.find((c) => c.id === clientId)?.name}</span>
+            </FieldRow>
+          </ListSection>
+        ) : (
+          <ListSection header="Bill to">
+            <ClientProjectRows clients={clients} projects={projects} clientId={clientId} projectId={projectId} onClient={setClientId} onProject={setProjectId} />
+            <FieldRow label="Currency">
+              <Select value={currency} onChange={(e) => setCurrency(e.target.value as Currency)}>
+                <option value="BHD">BHD — Bahraini Dinar</option>
+                <option value="USD">USD — US Dollar</option>
+              </Select>
+            </FieldRow>
+          </ListSection>
+        )}
+
+        <ListSection footer="The issue date decides which month the document counts in. Use the original number for documents issued before NEWMUX OS.">
+          <FieldRow label="Issue date">
+            <RowInput type="date" value={issuedAt} onChange={(e) => setIssuedAt(e.target.value)} />
           </FieldRow>
-          {type !== "quote" && (
+          {(type === "invoice" || type === "contract") && (
             <FieldRow label="Due date">
               <RowInput type="date" value={dueAt} onChange={(e) => setDueAt(e.target.value)} />
             </FieldRow>
           )}
+          <FieldRow label="Original number">
+            <RowInput placeholder="e.g. #00267 (optional)" value={externalRef} onChange={(e) => setExternalRef(e.target.value)} />
+          </FieldRow>
         </ListSection>
 
         <ListSection header="Items">
@@ -208,7 +243,7 @@ export function DocumentForm({ initial, clients, projects }: { initial: Document
             </div>
             <div className="flex justify-between pt-1 text-headline">
               <span>Total</span>
-              <span>{centsToDisplay(subtotal + tax, currency)}</span>
+              <span className={overCredit ? "text-ios-red" : undefined}>{centsToDisplay(subtotal + tax, currency)}</span>
             </div>
           </div>
         </ListSection>

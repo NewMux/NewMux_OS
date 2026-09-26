@@ -62,7 +62,7 @@ export default async function ReportsPage() {
                 key={p.projectId}
                 href={`/projects/${p.projectId}`}
                 title={p.projectName}
-                subtitle={`Revenue ${centsToDisplay(p.revenueBhdCents, "BHD")} · Costs ${centsToDisplay(p.deductionsBhdCents, "BHD")}`}
+                subtitle={`Revenue ${centsToDisplay(p.revenueBhdCents, "BHD")} · Costs ${centsToDisplay(p.costsBhdCents, "BHD")}`}
                 detail={<span className={p.netProfitBhdCents < 0 ? "text-ios-red" : "text-label"}>{centsToDisplay(p.netProfitBhdCents, "BHD")}</span>}
               />
             ))}

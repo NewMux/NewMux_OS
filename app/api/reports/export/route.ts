@@ -18,8 +18,8 @@ export async function GET(req: NextRequest) {
   if (type === "project-profit") {
     const rows = await getProfitByProjectReport();
     csv = toCsv(
-      ["Project", "Revenue (BHD)", "Deductions (BHD)", "Net Profit (BHD)"],
-      rows.map((r) => [r.projectName, centsToDisplay(r.revenueBhdCents, "BHD"), centsToDisplay(r.deductionsBhdCents, "BHD"), centsToDisplay(r.netProfitBhdCents, "BHD")]),
+      ["Project", "Revenue (BHD)", "Costs (BHD)", "Net Profit (BHD)"],
+      rows.map((r) => [r.projectName, centsToDisplay(r.revenueBhdCents, "BHD"), centsToDisplay(r.costsBhdCents, "BHD"), centsToDisplay(r.netProfitBhdCents, "BHD")]),
     );
     filename = "profit-by-project.csv";
   } else if (type === "partner-profit") {

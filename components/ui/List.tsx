@@ -3,6 +3,7 @@ import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { solidBg, type SysColor } from "@/lib/colors";
 import { RowLink } from "./RowLink";
+import { InfoTip } from "./InfoTip";
 
 /**
  * Inset grouped list (iOS 26): a sentence-case header, a rounded card of rows
@@ -12,6 +13,7 @@ import { RowLink } from "./RowLink";
 export function ListSection({
   header,
   footer,
+  info,
   action,
   children,
   className,
@@ -20,6 +22,8 @@ export function ListSection({
 }: {
   header?: React.ReactNode;
   footer?: React.ReactNode;
+  /** Explanation behind an ⓘ beside the header, instead of a footer sentence. */
+  info?: React.ReactNode;
   action?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
@@ -31,7 +35,14 @@ export function ListSection({
     <section className={cn(prominent ? "mb-8" : "mb-7", className)}>
       {(header || action) && (
         <div className={cn("flex items-end justify-between", prominent ? "mb-2.5 px-1" : "mb-1.5 px-4")}>
-          {header ? <h2 className={prominent ? "text-title3 font-bold text-label" : "text-footnote font-medium text-label-2"}>{header}</h2> : <span />}
+          {header ? (
+            <h2 className={cn("flex items-center gap-1.5", prominent ? "text-title3 font-bold text-label" : "text-footnote font-medium text-label-2")}>
+              {header}
+              {info && <InfoTip>{info}</InfoTip>}
+            </h2>
+          ) : (
+            <span />
+          )}
           {action}
         </div>
       )}

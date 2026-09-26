@@ -8,8 +8,10 @@ import type {
   DeductionType,
   DocumentRecord,
   Party,
+  PartyKind,
   Payment,
   PaymentMethod,
+  ProfitSplitDeduction,
   ProfitSplitRule,
   ProfitSplitScope,
   RecurringExpense,
@@ -17,10 +19,12 @@ import type {
   Venture,
   VentureLaunchStatus,
 } from "./types";
-import { allocateByBps, centsToDisplay, convertMinorUnits, taxCents as calcPercentage } from "@/lib/money";
+import { centsToDisplay, convertMinorUnits } from "@/lib/money";
 import { addMonthsYmd, monthStartYmd, todayYmd } from "@/lib/time";
+import { COUNTED_INVOICE_SQL, getInvoiceProfitBreakdown, loadBreakdowns, netTotalCents } from "./profit";
 
 export { convertQuotationToInvoice } from "./documents";
+export { computeBreakdown, getInvoiceProfitBreakdown, type ProfitBreakdown } from "./profit";
 
 // --- Ventures (PRD 14) ---
 
@@ -68,30 +72,49 @@ export async function deleteVenture(id: string): Promise<void> {
 
 // --- Parties ---
 
+/** Partners first, then funds. */
 export async function listParties(): Promise<Party[]> {
-  return many<Party>("select id, name from parties order by created_at");
+  return many<Party>("select id, name, kind from parties order by kind desc, created_at");
 }
 
-export async function createParty(name: string): Promise<Party> {
-  return must<Party>("Party", "insert into parties (name) values ($1) returning id, name", [name]);
+export async function createParty(name: string, kind: PartyKind = "partner"): Promise<Party> {
+  return must<Party>("Party", "insert into parties (name, kind) values ($1, $2) returning id, name, kind", [name, kind]);
 }
 
 export async function deleteParty(id: string): Promise<void> {
   const used = await query("select 1 from profit_split_rules where splits @> $1::jsonb limit 1", [JSON.stringify([{ partyId: id }])]);
   if (used.length) throw new ValidationError("This party is part of a profit-split rule. Remove it from the rule first.");
+  const money = await query(
+    `select 1 where exists (select 1 from payouts where party_id = $1) or exists (select 1 from expenses where paid_by_party_id = $1 or fund_party_id = $1)
+       or exists (select 1 from deduction_types where fund_party_id = $1)`,
+    [id],
+  );
+  if (money.length) throw new ValidationError("Payouts, expenses or deductions refer to this party, so it's kept for the books.");
   await query("delete from parties where id = $1", [id]);
 }
 
 // --- Deduction types ---
 
 export async function listDeductionTypes(): Promise<DeductionType[]> {
-  return many<DeductionType>("select id, name, kind from deduction_types order by created_at");
+  return many<DeductionType>("select id, name, kind, fund_party_id from deduction_types order by created_at");
 }
 
-export async function createDeductionType(name: string, kind: DeductionKind): Promise<DeductionType> {
-  const type = await must<DeductionType>("Deduction type", "insert into deduction_types (name, kind) values ($1, $2) returning id, name, kind", [name, kind]);
+export async function createDeductionType(name: string, kind: DeductionKind, fundPartyId: string | null = null): Promise<DeductionType> {
+  const type = await must<DeductionType>(
+    "Deduction type",
+    "insert into deduction_types (name, kind, fund_party_id) values ($1, $2, $3) returning id, name, kind, fund_party_id",
+    [name, kind, fundPartyId],
+  );
   await logAudit({ entityType: "deduction_type", entityId: type.id, action: "create", summary: `Added deduction type "${name}"`, changedBy: null });
   return type;
+}
+
+export async function updateDeductionType(id: string, input: { name: string; fundPartyId: string | null }): Promise<DeductionType> {
+  return must<DeductionType>(
+    "Deduction type",
+    "update deduction_types set name = $2, fund_party_id = $3 where id = $1 returning id, name, kind, fund_party_id",
+    [id, input.name, input.fundPartyId],
+  );
 }
 
 export async function deleteDeductionType(id: string): Promise<void> {
@@ -115,16 +138,22 @@ export async function listProfitSplitRules(): Promise<ProfitSplitRule[]> {
 }
 
 async function scopeName(scopeType: ProfitSplitScope, scopeId: string): Promise<string> {
+  if (scopeType === "document") {
+    const row = await one<{ documentNumber: string }>("select document_number from documents where id = $1", [scopeId]);
+    return row?.documentNumber ?? scopeId;
+  }
   const table = scopeType === "project" ? "projects" : "ventures";
   const row = await one<{ name: string }>(`select name from ${table} where id = $1`, [scopeId]);
   return row?.name ?? scopeId;
 }
 
+const SCOPE_TABLE: Record<ProfitSplitScope, string> = { project: "projects", venture: "ventures", document: "documents" };
+
 export async function upsertProfitSplitRule(input: {
   scopeType: ProfitSplitScope;
   scopeId: string;
   splits: { partyId: string; percentageBps: number }[];
-  deductions: { deductionTypeId: string; value: number }[];
+  deductions: ProfitSplitDeduction[];
   isDefault?: boolean;
   updatedBy: string;
 }): Promise<ProfitSplitRule> {
@@ -133,6 +162,10 @@ export async function upsertProfitSplitRule(input: {
     throw new ValidationError(`Split percentages must total 100% (got ${(totalBps / 100).toFixed(2)}%)`);
   }
   return tx(async () => {
+    if (input.scopeType === "document") {
+      const doc = await one<{ type: string }>("select type from documents where id = $1", [input.scopeId]);
+      if (doc?.type !== "invoice") throw new ValidationError("Only invoices carry a profit split.");
+    }
     const existing = await getRuleForScope(input.scopeType, input.scopeId);
     const rule = await must<ProfitSplitRule>(
       "Rule",
@@ -143,8 +176,7 @@ export async function upsertProfitSplitRule(input: {
        returning *`,
       [input.scopeType, input.scopeId, JSON.stringify(input.splits), JSON.stringify(input.deductions), input.isDefault ?? false, input.updatedBy],
     );
-    const table = input.scopeType === "project" ? "projects" : "ventures";
-    await query(`update ${table} set profit_split_rule_id = $2 where id = $1`, [input.scopeId, rule.id]);
+    await query(`update ${SCOPE_TABLE[input.scopeType]} set profit_split_rule_id = $2 where id = $1`, [input.scopeId, rule.id]);
     const name = await scopeName(input.scopeType, input.scopeId);
     await logAudit({
       entityType: "profit_split_rule",
@@ -161,6 +193,8 @@ export async function deleteProfitSplitRule(id: string, deletedBy: string): Prom
   const rule = await getProfitSplitRule(id);
   if (!rule) throw new NotFoundError("Rule");
   const name = await scopeName(rule.scopeType, rule.scopeId);
+  // documents.profit_split_rule_id is ON DELETE SET NULL, so an invoice whose
+  // override is removed falls back to its project's rule.
   await query("delete from profit_split_rules where id = $1", [id]);
   await logAudit({ entityType: "profit_split_rule", entityId: id, action: "delete", summary: `Deleted profit-split rule for ${rule.scopeType} "${name}"`, changedBy: deletedBy });
 }
@@ -234,12 +268,32 @@ export async function toggleRecurringExpenseStatus(id: string): Promise<Recurrin
  */
 export async function markRecurringExpensePaid(id: string, paidBy: string): Promise<RecurringExpense> {
   return tx(async () => {
-    const e = await must<RecurringExpense>("Recurring expense", "select * from recurring_expenses where id = $1 for update", [id]);
+    const e = await must<RecurringExpense & { linkedVentureId: string | null; paidByPartyId: string | null }>(
+      "Recurring expense",
+      "select * from recurring_expenses where id = $1 for update",
+      [id],
+    );
     const today = todayYmd();
     await query(
-      `insert into expenses (description, category, amount_cents, currency, spent_on, linked_client_id, linked_project_id, recurring_expense_id, created_by)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-      [e.name, e.category, e.amountCents, e.currency, today, e.linkedClientId, e.linkedProjectId, e.id, paidBy],
+      `insert into expenses (description, category, amount_cents, currency, fx_rate, amount_bhd_cents, spent_on, linked_client_id, linked_project_id,
+         linked_venture_id, recurring_expense_id, paid_by_party_id, reimbursement_status, created_by)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+      [
+        e.name,
+        e.category,
+        e.amountCents,
+        e.currency,
+        pegRate(e.currency),
+        convertMinorUnits(e.amountCents, e.currency, "BHD"),
+        today,
+        e.linkedClientId,
+        e.linkedProjectId,
+        e.linkedVentureId,
+        e.id,
+        e.paidByPartyId,
+        e.paidByPartyId ? "pending" : "not_required",
+        paidBy,
+      ],
     );
     return must<RecurringExpense>(
       "Recurring expense",
@@ -247,6 +301,11 @@ export async function markRecurringExpensePaid(id: string, paidBy: string): Prom
       [id, today, addMonthsYmd(e.nextDueDate ?? today, CYCLE_MONTHS[e.cycle])],
     );
   });
+}
+
+/** BHD per one unit of `currency` at the official peg. */
+export function pegRate(currency: Currency): number {
+  return currency === "BHD" ? 1 : Number((convertMinorUnits(1_000_000, currency, "BHD") / 10 ** 3 / (1_000_000 / 10 ** 2)).toFixed(6));
 }
 
 /** Prorates a recurring expense's amount into a specific invoice's billing cycle. */
@@ -260,64 +319,105 @@ export async function listPaymentsForDocument(documentId: string): Promise<Payme
   return many<Payment>("select * from payments where document_id = $1 order by paid_on, created_at", [documentId]);
 }
 
+/** What is still owed on an invoice (after credit notes), or still to refund on a credit note. */
+async function openAmountCents(doc: DocumentRecord): Promise<number> {
+  const paid = (await listPaymentsForDocument(doc.id)).reduce((sum, p) => sum + p.amountCents, 0);
+  if (doc.type === "credit_note") return doc.totalCents - paid;
+  const credited = await one<{ cents: number }>(
+    `select coalesce(sum(total_cents), 0)::int8 as cents from documents
+     where credit_for_id = $1 and type = 'credit_note' and status not in ('draft', 'void')`,
+    [doc.id],
+  );
+  return doc.totalCents - (credited?.cents ?? 0) - paid;
+}
+
+/**
+ * Records money received on an invoice, or a refund paid out on a credit
+ * note. An invoice becomes Paid only once payments cover its total (less
+ * credit notes); "Partly paid" is derived from the payments (item 10).
+ */
 export async function addPayment(input: {
   documentId: string;
   amountCents: number;
   method: PaymentMethod;
   paidOn?: string;
   reference?: string | null;
+  accountId?: string | null;
   recordedBy: string;
 }): Promise<Payment> {
   return tx(async () => {
     const doc = await must<DocumentRecord>("Invoice", "select * from documents where id = $1 for update", [input.documentId]);
-    if (doc.type !== "invoice") throw new ValidationError("Payments can only be recorded against invoices.");
-    if (doc.status === "draft") throw new ValidationError("Send the invoice before recording a payment.");
-    if (doc.status === "archived" || doc.status === "paid") throw new ValidationError(`This invoice is already ${doc.status}.`);
+    if (doc.type !== "invoice" && doc.type !== "credit_note") throw new ValidationError("Payments can only be recorded against invoices.");
+    const noun = doc.type === "credit_note" ? "credit note" : "invoice";
+    if (doc.status === "draft") throw new ValidationError(`Send the ${noun} before recording a payment.`);
+    if (["void", "archived", "paid"].includes(doc.status)) throw new ValidationError(`This ${noun} is already ${doc.status === "void" ? "void" : doc.status}.`);
 
-    const paidSoFar = (await listPaymentsForDocument(doc.id)).reduce((sum, p) => sum + p.amountCents, 0);
-    const remaining = doc.totalCents - paidSoFar;
+    const remaining = await openAmountCents(doc);
     if (input.amountCents > remaining) {
-      throw new ValidationError(`That's more than the ${centsToDisplay(remaining, doc.currency)} still owed.`);
+      throw new ValidationError(
+        doc.type === "credit_note"
+          ? `That's more than the ${centsToDisplay(remaining, doc.currency)} left to refund.`
+          : `That's more than the ${centsToDisplay(remaining, doc.currency)} still owed.`,
+      );
     }
 
     const payment = await must<Payment>(
       "Payment",
-      "insert into payments (document_id, amount_cents, method, paid_on, reference, recorded_by) values ($1,$2,$3,$4,$5,$6) returning *",
-      [doc.id, input.amountCents, input.method, input.paidOn ?? todayYmd(), input.reference ?? null, input.recordedBy],
+      "insert into payments (document_id, amount_cents, method, paid_on, reference, account_id, recorded_by) values ($1,$2,$3,$4,$5,$6,$7) returning *",
+      [doc.id, input.amountCents, input.method, input.paidOn ?? todayYmd(), input.reference ?? null, input.accountId ?? null, input.recordedBy],
     );
 
-    // Paid/Unpaid auto-flips once payments cover the total (PRD 5.5), through
-    // the normal lifecycle so the status history records it.
-    if (paidSoFar + input.amountCents >= doc.totalCents) {
-      if (doc.status === "sent") await transitionDocumentStatus(doc.id, "accepted", input.recordedBy);
-      await transitionDocumentStatus(doc.id, "paid", input.recordedBy);
-    }
+    if (doc.type === "invoice" && input.amountCents >= remaining) await markInvoicePaid(doc, input.recordedBy);
 
     await logAudit({
       entityType: "payment",
       entityId: payment.id,
       action: "create",
-      summary: `Recorded payment of ${centsToDisplay(input.amountCents, doc.currency)} on ${doc.documentNumber}`,
+      summary:
+        doc.type === "credit_note"
+          ? `Recorded a refund of ${centsToDisplay(input.amountCents, doc.currency)} on ${doc.documentNumber}`
+          : `Recorded payment of ${centsToDisplay(input.amountCents, doc.currency)} on ${doc.documentNumber}`,
       changedBy: input.recordedBy,
     });
     return payment;
   });
 }
 
+/** Payments (and credit notes) now cover the invoice: mark it paid and note the hosting collection. */
+export async function markInvoicePaid(doc: DocumentRecord, by: string | null) {
+  if (doc.status === "paid") return;
+  const last = await one<{ paidOn: string }>("select max(paid_on) as paid_on from payments where document_id = $1", [doc.id]);
+  await query("update documents set status = 'paid', paid_at = now(), updated_at = now() where id = $1", [doc.id]);
+  await query("insert into document_status_history (document_id, from_status, to_status, changed_by) values ($1, $2, 'paid', $3)", [doc.id, doc.status, by]);
+  if (doc.hostingSubscriptionId && last?.paidOn) {
+    await query(
+      `update hosting_subscriptions set last_collected_date = greatest(coalesce(last_collected_date, $2::date), $2::date),
+         linked_invoice_id = $3, status = case when status = 'overdue' then 'active' else status end
+       where id = $1`,
+      [doc.hostingSubscriptionId, last.paidOn, doc.id],
+    );
+  }
+}
+
+/** Re-derives Paid ⇄ Sent after payments or credit notes change. */
+export async function syncInvoicePaidStatus(documentId: string, by: string | null) {
+  const doc = await one<DocumentRecord>("select * from documents where id = $1", [documentId]);
+  if (!doc || doc.type !== "invoice" || !["sent", "paid"].includes(doc.status)) return;
+  const open = await openAmountCents(doc);
+  if (open <= 0 && doc.status === "sent") await markInvoicePaid(doc, by);
+  if (open > 0 && doc.status === "paid") {
+    await query("update documents set status = 'sent', paid_at = null, updated_at = now() where id = $1", [doc.id]);
+    await query("insert into document_status_history (document_id, from_status, to_status, changed_by) values ($1, 'paid', 'sent', $2)", [doc.id, by]);
+  }
+}
+
 export async function deletePayment(paymentId: string, deletedBy: string): Promise<void> {
   await tx(async () => {
     const payment = await must<Payment>("Payment", "select * from payments where id = $1", [paymentId]);
     const doc = await must<DocumentRecord>("Invoice", "select * from documents where id = $1 for update", [payment.documentId]);
-    if (doc.status === "archived") throw new ValidationError("Payments on archived invoices can't be removed.");
+    if (doc.status === "archived" || doc.status === "void") throw new ValidationError(`Payments on ${doc.status} documents can't be removed.`);
     await query("delete from payments where id = $1", [paymentId]);
-    if (doc.status === "paid") {
-      // Reopen: the invoice is no longer fully covered.
-      await query("update documents set status = 'accepted', paid_at = null, updated_at = now() where id = $1", [doc.id]);
-      await query(
-        "insert into document_status_history (document_id, from_status, to_status, changed_by) values ($1, 'paid', 'accepted', $2)",
-        [doc.id, deletedBy],
-      );
-    }
+    await syncInvoicePaidStatus(doc.id, deletedBy);
     await logAudit({
       entityType: "payment",
       entityId: paymentId,
@@ -328,75 +428,34 @@ export async function deletePayment(paymentId: string, deletedBy: string): Promi
   });
 }
 
-export function remainingBalanceCents(doc: Pick<DocumentRecord, "totalCents">, payments: Payment[]): number {
+export function remainingBalanceCents(doc: Pick<DocumentRecord, "totalCents">, payments: Payment[], creditedCents = 0): number {
   const paid = payments.reduce((sum, p) => sum + p.amountCents, 0);
-  return Math.max(doc.totalCents - paid, 0);
+  return Math.max(doc.totalCents - creditedCents - paid, 0);
 }
 
-// --- Automatic profit/loss calculation (PRD 5.6, worked example section 17) ---
-
-export type ProfitBreakdown = {
-  invoiceTotalCents: number;
-  deductions: { deductionTypeId: string | null; name: string; amountCents: number }[];
-  totalDeductionsCents: number;
-  netProfitCents: number;
-  splits: { partyId: string; partyName: string; percentageBps: number; amountCents: number }[];
-};
+// --- Split rule per invoice (item 5) ---
 
 /**
- * PRD 5.6 step 2: deducts (a) active recurring expenses linked to the same
- * project, prorated into a quarter (Newmux's hosting-invoice cadence, see
- * the Ox Roastery example in PRD 17) and FX-converted into the invoice's
- * currency, plus (b) deductions configured on the split rule. Fixed
- * deductions are stored in the invoice's currency's minor units.
+ * Points an invoice at an existing rule (e.g. a venture's), or back at its
+ * project's rule when `ruleId` is null. Any custom rule for the invoice is removed.
  */
-export async function getInvoiceProfitBreakdown(documentId: string): Promise<ProfitBreakdown | null> {
-  const doc = await getInvoice(documentId);
-  if (!doc || doc.type !== "invoice" || !doc.profitSplitRuleId) return null;
-  const rule = await getProfitSplitRule(doc.profitSplitRuleId);
-  if (!rule) return null;
-  const [expenses, types, parties] = await Promise.all([
-    doc.projectId
-      ? many<RecurringExpense>("select * from recurring_expenses where status = 'active' and linked_project_id = $1", [doc.projectId])
-      : Promise.resolve([] as RecurringExpense[]),
-    listDeductionTypes(),
-    listParties(),
-  ]);
-  return computeBreakdown(doc, rule, expenses, types, parties);
-}
-
-async function getInvoice(id: string) {
-  return one<DocumentRecord>("select * from documents where id = $1", [id]);
-}
-
-export function computeBreakdown(
-  doc: DocumentRecord,
-  rule: ProfitSplitRule,
-  linkedExpenses: RecurringExpense[],
-  types: DeductionType[],
-  parties: Party[],
-): ProfitBreakdown {
-  const linkedExpenseDeductions = linkedExpenses.map((e) => ({
-    deductionTypeId: null,
-    name: e.name,
-    amountCents: convertMinorUnits(prorateExpenseCents(e, "quarterly"), e.currency, doc.currency),
-  }));
-  const configuredDeductions = rule.deductions.map((d) => {
-    const type = types.find((t) => t.id === d.deductionTypeId);
-    const amountCents = type?.kind === "percentage" ? calcPercentage(doc.totalCents, d.value) : d.value;
-    return { deductionTypeId: d.deductionTypeId, name: type?.name ?? "Deduction", amountCents };
+export async function setInvoiceSplitRule(documentId: string, ruleId: string | null, changedBy: string): Promise<void> {
+  await tx(async () => {
+    const doc = await must<DocumentRecord>("Invoice", "select * from documents where id = $1 for update", [documentId]);
+    if (doc.type !== "invoice") throw new ValidationError("Only invoices carry a profit split.");
+    if (ruleId) await must<ProfitSplitRule>("Rule", "select * from profit_split_rules where id = $1", [ruleId]);
+    const custom = await getRuleForScope("document", documentId);
+    if (custom && custom.id !== ruleId) await query("delete from profit_split_rules where id = $1", [custom.id]);
+    const projectRule = doc.projectId ? await getRuleForScope("project", doc.projectId) : undefined;
+    await query("update documents set profit_split_rule_id = $2, updated_at = now() where id = $1", [documentId, ruleId ?? projectRule?.id ?? null]);
+    await logAudit({
+      entityType: "document",
+      entityId: documentId,
+      action: "update",
+      summary: ruleId ? `Changed the profit-split rule on ${doc.documentNumber}` : `${doc.documentNumber} now uses its project's profit-split rule`,
+      changedBy,
+    });
   });
-  const deductions = [...linkedExpenseDeductions, ...configuredDeductions];
-  const totalDeductionsCents = deductions.reduce((sum, d) => sum + d.amountCents, 0);
-  const netProfitCents = doc.totalCents - totalDeductionsCents;
-  const amounts = allocateByBps(Math.max(netProfitCents, 0), rule.splits.map((s) => s.percentageBps));
-  const splits = rule.splits.map((s, i) => ({
-    partyId: s.partyId,
-    partyName: parties.find((p) => p.id === s.partyId)?.name ?? "Unknown",
-    percentageBps: s.percentageBps,
-    amountCents: netProfitCents < 0 ? calcPercentage(netProfitCents, s.percentageBps) : amounts[i]!,
-  }));
-  return { invoiceTotalCents: doc.totalCents, deductions, totalDeductionsCents, netProfitCents, splits };
 }
 
 // --- Dashboard aggregation (PRD section 4) ---
@@ -412,52 +471,47 @@ export type ErpDashboardSummary = {
 
 /** Everything is rolled up into BHD via the fixed USD peg. */
 export async function getErpDashboardSummary(): Promise<ErpDashboardSummary> {
-  const open = await many<{ currency: Currency; totalCents: number; paidCents: number }>(
-    `select d.currency, d.total_cents,
-       coalesce((select sum(p.amount_cents) from payments p where p.document_id = d.id), 0)::int8 as paid_cents
-     from documents d where d.type = 'invoice' and d.status in ('sent', 'accepted', 'signed')`,
-  );
+  const { invoices, breakdowns } = await loadBreakdowns();
   let unpaidInvoiceCount = 0;
   let partiallyPaidInvoiceCount = 0;
   let totalOutstandingBhdCents = 0;
-  for (const d of open) {
-    const outstanding = Math.max(d.totalCents - d.paidCents, 0);
-    if (outstanding <= 0) continue;
-    if (d.paidCents > 0) partiallyPaidInvoiceCount += 1;
-    else unpaidInvoiceCount += 1;
-    totalOutstandingBhdCents += convertMinorUnits(outstanding, d.currency, "BHD");
-  }
-
-  const monthStart = monthStartYmd();
-  const monthInvoices = await many<{ id: string; currency: Currency }>(
-    `select id, currency from documents where type = 'invoice' and status <> 'archived'
-       and issued_at is not null and (issued_at at time zone 'Asia/Bahrain')::date >= $1::date`,
-    [monthStart],
-  );
   let netProfitThisMonthBhdCents = 0;
-  for (const inv of monthInvoices) {
-    const breakdown = await getInvoiceProfitBreakdown(inv.id);
-    if (breakdown) netProfitThisMonthBhdCents += convertMinorUnits(breakdown.netProfitCents, inv.currency, "BHD");
+  const monthStart = monthStartYmd();
+  for (const d of invoices) {
+    const outstanding = Math.max(netTotalCents(d) - d.paidCents, 0);
+    if (d.status === "sent" && outstanding > 0) {
+      if (d.paidCents > 0) partiallyPaidInvoiceCount += 1;
+      else unpaidInvoiceCount += 1;
+      totalOutstandingBhdCents += convertMinorUnits(outstanding, d.currency, "BHD");
+    }
+    // "This month" = invoices whose issue date falls in this month (Bahrain time).
+    if (d.issuedAt && toBahrainYmd(d.issuedAt) >= monthStart) {
+      netProfitThisMonthBhdCents += convertMinorUnits(breakdowns.get(d.id)?.netProfitCents ?? netTotalCents(d), d.currency, "BHD");
+    }
   }
 
   const collected = await many<{ currency: Currency; amount: number }>(
-    `select d.currency, sum(p.amount_cents)::int8 as amount from payments p join documents d on d.id = p.document_id
-     where p.paid_on >= $1::date group by d.currency`,
+    `select d.currency, sum(case when d.type = 'credit_note' then -p.amount_cents else p.amount_cents end)::int8 as amount
+     from payments p join documents d on d.id = p.document_id
+     where p.paid_on >= $1::date and d.status <> 'void' group by d.currency`,
     [monthStart],
   );
-  const spent = await many<{ currency: Currency; amount: number }>(
-    "select currency, sum(amount_cents)::int8 as amount from expenses where spent_on >= $1::date group by currency",
+  const spent = await one<{ amount: number }>(
+    "select coalesce(sum(amount_bhd_cents), 0)::int8 as amount from expenses where spent_on >= $1::date",
     [monthStart],
   );
-  const toBhd = (rows: { currency: Currency; amount: number }[]) =>
-    rows.reduce((sum, r) => sum + convertMinorUnits(r.amount, r.currency, "BHD"), 0);
 
   return {
     unpaidInvoiceCount,
     partiallyPaidInvoiceCount,
     totalOutstandingBhdCents,
     netProfitThisMonthBhdCents,
-    collectedThisMonthBhdCents: toBhd(collected),
-    spentThisMonthBhdCents: toBhd(spent),
+    collectedThisMonthBhdCents: collected.reduce((sum, r) => sum + convertMinorUnits(r.amount, r.currency, "BHD"), 0),
+    spentThisMonthBhdCents: spent?.amount ?? 0,
   };
 }
+
+const toBahrainYmd = (iso: string) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bahrain" }).format(new Date(iso));
+
+/** Invoices that count in reports, for callers that only need the SQL predicate. */
+export { COUNTED_INVOICE_SQL, getInvoiceProfitBreakdown as getProfitBreakdown };

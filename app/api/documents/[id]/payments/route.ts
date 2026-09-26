@@ -20,6 +20,7 @@ export const POST = route<P>({ allow: canAccessFinance, status: 201 }, async ({ 
     method: input.method,
     paidOn: input.paidOn ?? undefined,
     reference: input.reference,
+    accountId: input.accountId,
     recordedBy: session.user.id,
   });
   return { payment };

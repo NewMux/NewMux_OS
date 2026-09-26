@@ -22,8 +22,8 @@ export async function GET(req: NextRequest) {
   if (type === "project-profit") {
     const data = await getProfitByProjectReport();
     title = "Profit & Loss by Project";
-    headers = ["Project", "Revenue", "Deductions", "Net Profit"];
-    rows = data.map((r) => [r.projectName, centsToDisplay(r.revenueBhdCents, "BHD"), centsToDisplay(r.deductionsBhdCents, "BHD"), centsToDisplay(r.netProfitBhdCents, "BHD")]);
+    headers = ["Project", "Revenue", "Costs", "Net Profit"];
+    rows = data.map((r) => [r.projectName, centsToDisplay(r.revenueBhdCents, "BHD"), centsToDisplay(r.costsBhdCents, "BHD"), centsToDisplay(r.netProfitBhdCents, "BHD")]);
     filename = "profit-by-project.pdf";
   } else if (type === "partner-profit") {
     const data = await getProfitByPartnerReport();

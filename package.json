@@ -11,7 +11,8 @@
     "seed": "tsx scripts/db.ts seed",
     "test:paddle-webhook": "tsx scripts/test-paddle-webhook.ts",
     "db:migrate": "tsx scripts/db.ts migrate",
-    "db:reset": "rm -rf .data/pglite && tsx scripts/db.ts seed"
+    "db:reset": "rm -rf .data/pglite && tsx scripts/db.ts seed",
+    "test:prd": "tsx scripts/verify-prd.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

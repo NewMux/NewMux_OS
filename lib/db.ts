@@ -132,7 +132,8 @@ async function migrate(backend: Backend, opts: { seed: boolean }): Promise<{ app
   }
   let seeded = false;
   const count = ((await backend.query("select count(*)::int as count from users"))[0]?.count as number) ?? 0;
-  if (opts.seed && count === 0 && fs.existsSync(SEED_FILE)) {
+  // DB_SKIP_SEED=1 gives an empty database (scripts/verify-prd.ts builds its own data).
+  if (opts.seed && count === 0 && process.env.DB_SKIP_SEED !== "1" && fs.existsSync(SEED_FILE)) {
     await execScript(fs.readFileSync(SEED_FILE, "utf8"));
     seeded = true;
     // eslint-disable-next-line no-console

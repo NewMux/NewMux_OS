@@ -63,12 +63,16 @@ export type SummaryItem = {
   tone?: "negative";
 };
 
-/** One card holding two to four related figures side by side, split by hairlines. */
+/**
+ * One card holding two to four related figures side by side, split by
+ * hairlines. Four figures sit 2 × 2 on a phone and in one row from iPad up.
+ */
 export function SummaryCard({ items, className }: { items: SummaryItem[]; className?: string }) {
+  const four = items.length === 4;
   return (
     <div
-      className={cn("mb-7 grid overflow-hidden rounded-card bg-bg-elevated", className)}
-      style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
+      className={cn("mb-7 grid overflow-hidden rounded-card bg-bg-elevated", four && "grid-cols-2 md:grid-cols-4", className)}
+      style={four ? undefined : { gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
     >
       {items.map((item, i) => {
         const body = (
@@ -80,7 +84,10 @@ export function SummaryCard({ items, className }: { items: SummaryItem[]; classN
             {item.caption && <div className="mt-0.5 truncate text-caption1 text-label-2">{item.caption}</div>}
           </>
         );
-        const cls = cn("block min-w-0 px-3 py-3 md:px-5 md:py-4", i > 0 && "shadow-[inset_0.5px_0_0_rgb(var(--separator))]");
+        const cls = cn(
+          "block min-w-0 px-3 py-3 md:px-5 md:py-4",
+          four ? FOUR_SEPARATORS[i] : i > 0 && "shadow-[inset_0.5px_0_0_rgb(var(--separator))]",
+        );
         return item.href ? (
           <Link key={item.label} href={item.href} className={cn(cls, "press transition-colors hover:bg-fill/[0.06]")}>
             {body}
@@ -94,6 +101,14 @@ export function SummaryCard({ items, className }: { items: SummaryItem[]; classN
     </div>
   );
 }
+
+/** Hairlines for a 2 × 2 grid on phones that becomes one row from iPad up. */
+const FOUR_SEPARATORS = [
+  "",
+  "shadow-[inset_0.5px_0_0_rgb(var(--separator))]",
+  "shadow-[inset_0_0.5px_0_rgb(var(--separator))] md:shadow-[inset_0.5px_0_0_rgb(var(--separator))]",
+  "shadow-[inset_0.5px_0.5px_0_rgb(var(--separator))] md:shadow-[inset_0.5px_0_0_rgb(var(--separator))]",
+];
 
 /** "BHD 305.1" → a small grey currency code and the figure, so three fit side by side on a phone. */
 function Amount({ value }: { value: React.ReactNode }) {

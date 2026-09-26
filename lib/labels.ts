@@ -1,9 +1,9 @@
 import type { SysColor } from "./colors";
-import type { ActivityKind, DealStage, DocumentStatus, DocumentType, ProjectStatus, TaskPriority, TaskStatus } from "./data/types";
+import type { ActivityKind, DealStage, DocumentStatus, DocumentType, PaymentMethod, ProjectStatus, TaskPriority, TaskStatus } from "./data/types";
 
 type Meta = { label: string; color: SysColor };
 
-export const DOC_TYPE: Record<DocumentType, string> = { quote: "Quote", contract: "Contract", invoice: "Invoice" };
+export const DOC_TYPE: Record<DocumentType, string> = { quote: "Quote", contract: "Contract", invoice: "Invoice", credit_note: "Credit Note" };
 
 export const DOC_STATUS: Record<DocumentStatus, Meta> = {
   draft: { label: "Draft", color: "gray" },
@@ -12,6 +12,25 @@ export const DOC_STATUS: Record<DocumentStatus, Meta> = {
   signed: { label: "Signed", color: "purple" },
   paid: { label: "Paid", color: "green" },
   archived: { label: "Archived", color: "gray" },
+  declined: { label: "Declined", color: "red" },
+  void: { label: "Void", color: "gray" },
+};
+
+/** Status label for a document, with credit-note wording ("Issued" rather than "Sent"). */
+export function docStatusLabel(type: DocumentType, status: DocumentStatus): string {
+  if (type === "credit_note" && status === "sent") return "Issued";
+  return DOC_STATUS[status].label;
+}
+
+export const PAYMENT_METHOD: Record<PaymentMethod, string> = {
+  transfer: "Bank transfer",
+  benefitpay: "BenefitPay",
+  cash: "Cash",
+  card: "Card",
+  paypal: "PayPal",
+  upwork: "Upwork",
+  cheque: "Cheque",
+  other: "Other",
 };
 
 export const DEAL_STAGE: Record<DealStage, Meta> = {

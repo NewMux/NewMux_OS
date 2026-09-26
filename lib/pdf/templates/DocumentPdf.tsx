@@ -1,6 +1,7 @@
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import type { DocumentRecord, DocumentLineItem, Client, DocumentType } from "@/lib/data/types";
 import { centsToDisplay } from "@/lib/money";
+import { formatDate } from "@/lib/time";
 
 const styles = StyleSheet.create({
   page: { padding: 40, fontSize: 10, fontFamily: "Helvetica", color: "#0f172a" },
@@ -36,16 +37,20 @@ const TYPE_LABEL: Record<DocumentType, string> = {
   quote: "Quote",
   contract: "Contract",
   invoice: "Invoice",
+  credit_note: "Credit Note",
 };
 
 export function DocumentPdf({
   document,
   lineItems,
   client,
+  creditFor,
 }: {
   document: DocumentRecord;
   lineItems: DocumentLineItem[];
   client: Client;
+  /** Credit notes: the invoice number being credited. */
+  creditFor?: string | null;
 }) {
   return (
     <Document>
@@ -55,8 +60,19 @@ export function DocumentPdf({
           <View>
             <Text style={styles.docType}>{TYPE_LABEL[document.type]}</Text>
             <Text style={styles.docNumber}>{document.documentNumber}</Text>
+            {document.externalRef && <Text style={styles.docNumber}>Ref. {document.externalRef}</Text>}
+            {document.issuedAt && <Text style={styles.docNumber}>Issued {formatDate(document.issuedAt)}</Text>}
+            {document.dueAt && document.type !== "quote" && document.type !== "credit_note" && <Text style={styles.docNumber}>Due {formatDate(document.dueAt)}</Text>}
+            {document.status === "void" && <Text style={[styles.docType, { color: "#dc2626" }]}>VOID</Text>}
           </View>
         </View>
+
+        {creditFor && (
+          <View style={styles.section}>
+            <Text style={styles.label}>Credit for invoice</Text>
+            <Text style={styles.value}>{creditFor}</Text>
+          </View>
+        )}
 
         <View style={styles.section}>
           <Text style={styles.label}>Bill To</Text>

@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
-import { Database, KeyRound, LogOut, Moon, PieChart, Trash2, Users, Receipt, Info } from "lucide-react";
+import { Database, KeyRound, LogOut, Moon, PieChart, PiggyBank, Trash2, Users, Receipt, Info } from "lucide-react";
 import { Page } from "@/components/ui/Page";
 import { Avatar } from "@/components/ui/Avatar";
-import { ListRow, ListSection, IconTile, PlainRowInput } from "@/components/ui/List";
+import { FieldRow, ListRow, ListSection, IconTile, PlainRowInput } from "@/components/ui/List";
+import { Select } from "@/components/ui/Input";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { FormSheet } from "@/components/ui/FormSheet";
 import { useConfirm } from "@/components/ui/Confirm";
@@ -45,6 +46,7 @@ export function SettingsScreen({
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [partyOpen, setPartyOpen] = useState(false);
   const [deductionOpen, setDeductionOpen] = useState(false);
+  const [editingDeduction, setEditingDeduction] = useState<DeductionType | null>(null);
   const [editingRule, setEditingRule] = useState<Scope | null>(null);
 
   useEffect(() => setTheme(readTheme()), []);
@@ -59,6 +61,10 @@ export function SettingsScreen({
   const scopeName = (r: ProfitSplitRule) => scopes.find((s) => s.scopeType === r.scopeType && s.scopeId === r.scopeId)?.name ?? "Unknown";
   const partyName = (id: string) => parties.find((p) => p.id === id)?.name ?? "?";
   const unconfigured = scopes.filter((s) => !rules.some((r) => r.scopeType === s.scopeType && r.scopeId === s.scopeId));
+  // Invoice-level overrides are edited on the invoice itself.
+  const scopedRules = rules.filter((r) => r.scopeType !== "document");
+  const invoiceOverrides = rules.length - scopedRules.length;
+  const funds = parties.filter((p) => p.kind === "fund");
 
   return (
     <Page title="Settings">
@@ -105,9 +111,9 @@ export function SettingsScreen({
                   Profit-Split Rules
                 </span>
               }
-              footer="Each project or venture can have its own split and deductions. New invoices inherit their project's rule."
+              footer={`Each project or venture can have its own split and deductions, applied in order. Invoices follow their project's rule unless changed on the invoice${invoiceOverrides ? ` (${invoiceOverrides} invoice${invoiceOverrides === 1 ? " has" : "s have"} a custom split)` : ""}.`}
             >
-              {rules.map((r) => (
+              {scopedRules.map((r) => (
                 <ListRow
                   key={r.id}
                   leading={<IconTile icon={PieChart} color="purple" />}
@@ -138,12 +144,21 @@ export function SettingsScreen({
               )}
             </ListSection>
 
-            <ListSection header="Payout Parties" action={<button className="text-subhead text-accent" onClick={() => setPartyOpen(true)}>Add</button>} footer="People or companies that receive a share of profit. They don't need a login.">
+            <ListSection
+              header={
+                <span id="parties" className="scroll-mt-20">
+                  Payout Parties
+                </span>
+              }
+              action={<button className="text-subhead text-accent" onClick={() => setPartyOpen(true)}>Add</button>}
+              footer="Partners receive a share of profit and don't need a login. A fund (such as the Newmux reserve) collects deductions and is spent through expenses."
+            >
               {parties.map((p) => (
                 <ListRow
                   key={p.id}
-                  leading={<IconTile icon={Users} color="green" />}
+                  leading={<IconTile icon={p.kind === "fund" ? PiggyBank : Users} color={p.kind === "fund" ? "purple" : "green"} />}
                   title={p.name}
+                  subtitle={p.kind === "fund" ? "Fund" : "Partner"}
                   trailing={
                     <button
                       type="button"
@@ -161,19 +176,21 @@ export function SettingsScreen({
               ))}
             </ListSection>
 
-            <ListSection header="Deduction Types" action={<button className="text-subhead text-accent" onClick={() => setDeductionOpen(true)}>Add</button>} footer="Costs taken out before profit is split — fixed amounts or a percentage of the invoice.">
+            <ListSection header="Deduction Types" action={<button className="text-subhead text-accent" onClick={() => setDeductionOpen(true)}>Add</button>} footer="Taken out before profit is split: fixed amounts or a percentage. One that goes to a fund sets money aside rather than counting as a cost.">
               {deductionTypes.map((d) => (
                 <ListRow
                   key={d.id}
-                  leading={<IconTile icon={Receipt} color="orange" />}
+                  onClick={() => setEditingDeduction(d)}
+                  leading={<IconTile icon={Receipt} color={d.fundPartyId ? "purple" : "orange"} />}
                   title={d.name}
-                  subtitle={d.kind === "fixed" ? "Fixed amount" : "Percentage"}
+                  subtitle={[d.kind === "fixed" ? "Fixed amount" : "Percentage", d.fundPartyId ? `goes to ${parties.find((p) => p.id === d.fundPartyId)?.name ?? "a fund"}` : null].filter(Boolean).join(" · ")}
                   trailing={
                     <button
                       type="button"
                       aria-label={`Remove ${d.name}`}
                       className="p-2 text-label-3 hover:text-ios-red"
-                      onClick={async () => {
+                      onClick={async (e) => {
+                        e.stopPropagation();
                         if (await confirm({ title: `Remove “${d.name}”?`, destructive: true, confirmLabel: "Remove" })) await run(`/api/finance/deduction-types/${d.id}`, { method: "DELETE", success: "Removed" });
                       }}
                     >
@@ -194,14 +211,9 @@ export function SettingsScreen({
       </div>
 
       <PasswordSheet open={passwordOpen} onOpenChange={setPasswordOpen} />
-      <NameSheet
-        open={partyOpen}
-        onOpenChange={setPartyOpen}
-        title="New Party"
-        placeholder="Name (e.g. Referral partner)"
-        onSave={async (name) => !!(await run("/api/finance/parties", { body: { name }, success: "Party added" }))}
-      />
-      <DeductionSheet open={deductionOpen} onOpenChange={setDeductionOpen} />
+      <PartySheet open={partyOpen} onOpenChange={setPartyOpen} />
+      <DeductionSheet open={deductionOpen} onOpenChange={setDeductionOpen} funds={funds} />
+      <DeductionSheet open={!!editingDeduction} onOpenChange={(o) => !o && setEditingDeduction(null)} funds={funds} editing={editingDeduction ?? undefined} />
       {editingRule && (
         <ProfitSplitRuleSheet
           open={!!editingRule}
@@ -247,52 +259,98 @@ function PasswordSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (o
   );
 }
 
-function NameSheet({ open, onOpenChange, title, placeholder, onSave }: { open: boolean; onOpenChange: (o: boolean) => void; title: string; placeholder: string; onSave: (name: string) => Promise<boolean> }) {
-  const [name, setName] = useState("");
-  useEffect(() => {
-    if (open) setName("");
-  }, [open]);
-  return (
-    <FormSheet open={open} onOpenChange={onOpenChange} title={title} submitLabel="Add" size="auto" canSubmit={!!name.trim()} onSubmit={() => onSave(name)}>
-      <ListSection>
-        <PlainRowInput placeholder={placeholder} value={name} onChange={(e) => setName(e.target.value)} autoFocus />
-      </ListSection>
-    </FormSheet>
-  );
-}
-
-function DeductionSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+function PartySheet({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const { run } = useMutation();
   const [name, setName] = useState("");
-  const [kind, setKind] = useState<DeductionKind>("percentage");
+  const [kind, setKind] = useState<"partner" | "fund">("partner");
   useEffect(() => {
     if (open) {
       setName("");
-      setKind("percentage");
+      setKind("partner");
     }
   }, [open]);
   return (
     <FormSheet
       open={open}
       onOpenChange={onOpenChange}
-      title="New Deduction"
+      title="New Party"
       submitLabel="Add"
       size="auto"
       canSubmit={!!name.trim()}
-      onSubmit={async () => !!(await run("/api/finance/deduction-types", { body: { name, kind }, success: "Deduction added" }))}
+      onSubmit={async () => !!(await run("/api/finance/parties", { body: { name, kind }, success: "Party added" }))}
     >
       <ListSection>
-        <PlainRowInput placeholder="Name (e.g. Payment gateway fee)" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+        <PlainRowInput placeholder={kind === "fund" ? "Name (e.g. Equipment fund)" : "Name (e.g. Referral partner)"} value={name} onChange={(e) => setName(e.target.value)} autoFocus />
       </ListSection>
       <SegmentedControl
         value={kind}
         onChange={setKind}
         options={[
-          { value: "percentage", label: "Percentage" },
-          { value: "fixed", label: "Fixed amount" },
+          { value: "partner", label: "Partner" },
+          { value: "fund", label: "Fund" },
         ]}
       />
       <div className="h-6" />
+    </FormSheet>
+  );
+}
+
+function DeductionSheet({ open, onOpenChange, funds, editing }: { open: boolean; onOpenChange: (o: boolean) => void; funds: Party[]; editing?: DeductionType }) {
+  const { run } = useMutation();
+  const [name, setName] = useState("");
+  const [kind, setKind] = useState<DeductionKind>("percentage");
+  const [fundPartyId, setFundPartyId] = useState("");
+  useEffect(() => {
+    if (open) {
+      setName(editing?.name ?? "");
+      setKind(editing?.kind ?? "percentage");
+      setFundPartyId(editing?.fundPartyId ?? "");
+    }
+  }, [open, editing]);
+  return (
+    <FormSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title={editing ? "Deduction" : "New Deduction"}
+      submitLabel={editing ? "Save" : "Add"}
+      size="auto"
+      canSubmit={!!name.trim()}
+      onSubmit={async () =>
+        !!(editing
+          ? await run(`/api/finance/deduction-types/${editing.id}`, { method: "PATCH", body: { name, fundPartyId }, success: "Saved" })
+          : await run("/api/finance/deduction-types", { body: { name, kind, fundPartyId }, success: "Deduction added" }))
+      }
+    >
+      <ListSection>
+        <PlainRowInput placeholder="Name (e.g. Newmux Reserve)" value={name} onChange={(e) => setName(e.target.value)} autoFocus={!editing} />
+      </ListSection>
+      {!editing && (
+        <>
+          <SegmentedControl
+            value={kind}
+            onChange={setKind}
+            options={[
+              { value: "percentage", label: "Percentage" },
+              { value: "fixed", label: "Fixed amount" },
+            ]}
+          />
+          <div className="h-6" />
+        </>
+      )}
+      {funds.length > 0 && (
+        <ListSection footer="When it goes to a fund, the amount is set aside in that fund's balance instead of counting as a cost.">
+          <FieldRow label="Goes to">
+            <Select value={fundPartyId} onChange={(e) => setFundPartyId(e.target.value)}>
+              <option value="">Nowhere (a cost)</option>
+              {funds.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
+            </Select>
+          </FieldRow>
+        </ListSection>
+      )}
     </FormSheet>
   );
 }

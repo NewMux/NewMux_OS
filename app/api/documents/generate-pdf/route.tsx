@@ -18,10 +18,15 @@ export async function GET(req: NextRequest) {
   const document = await getDocumentById(id);
   if (!document) return NextResponse.json({ error: "not found" }, { status: 404 });
 
-  const [lineItems, client] = await Promise.all([getLineItems(id), getClientById(document.clientId)]);
+  const [lineItems, client, credited] = await Promise.all([
+    getLineItems(id),
+    getClientById(document.clientId),
+    document.creditForId ? getDocumentById(document.creditForId) : undefined,
+  ]);
   if (!client) return NextResponse.json({ error: "client not found" }, { status: 404 });
+  const creditFor = credited ? `${credited.documentNumber}${credited.externalRef ? ` (${credited.externalRef})` : ""}` : null;
 
-  const buffer = await renderToBuffer(<DocumentPdf document={document} lineItems={lineItems} client={client} />);
+  const buffer = await renderToBuffer(<DocumentPdf document={document} lineItems={lineItems} client={client} creditFor={creditFor} />);
 
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
