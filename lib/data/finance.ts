@@ -1,6 +1,7 @@
 import { query, tx } from "@/lib/db";
 import { many, one, must, NotFoundError, ValidationError } from "./sql";
 import { logAudit } from "./audit";
+import { assertNoFinancialRecords } from "./guards";
 import { transitionDocumentStatus } from "./documents";
 import type {
   Currency,
@@ -66,6 +67,7 @@ export async function updateVenture(id: string, input: VentureInput): Promise<Ve
 }
 
 export async function deleteVenture(id: string): Promise<void> {
+  await assertNoFinancialRecords("venture", id);
   const rows = await query("delete from ventures where id = $1 returning id", [id]);
   if (!rows.length) throw new NotFoundError("Venture");
 }

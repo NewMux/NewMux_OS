@@ -148,7 +148,7 @@ export function ProjectDetail(props: {
               </ListSection>
             )}
             {admin && (
-              <ListSection header="Invoices & Quotes" action={<a href={`/documents/new?type=invoice&projectId=${project.id}${project.clientId ? `&clientId=${project.clientId}` : ""}`} className="text-subhead text-accent">New</a>}>
+              <ListSection header="Documents" action={<a href={`/documents/new?type=invoice&projectId=${project.id}${project.clientId ? `&clientId=${project.clientId}` : ""}`} className="text-subhead text-accent">New</a>}>
                 {documents.map((d) => (
                   <ListRow
                     key={d.id}

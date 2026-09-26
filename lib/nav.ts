@@ -92,7 +92,7 @@ export const SIDEBAR: NavSection[] = [
     match: ["/documents", "/hosting", "/reports"],
     children: [
       { href: "/finance", label: "Overview", icon: "finance", color: "green", roles: ADMIN },
-      { href: "/documents", label: "Invoices & Quotes", icon: "documents", color: "green", roles: ADMIN },
+      { href: "/documents", label: "Documents", icon: "documents", color: "green", roles: ADMIN },
       { href: "/finance/expenses", label: "Expenses", icon: "expenses", color: "green", roles: ADMIN },
       { href: "/hosting", label: "Hosting Fees", icon: "hosting", color: "green", roles: ADMIN },
       { href: "/reports", label: "Reports", icon: "reports", color: "green", roles: ADMIN },

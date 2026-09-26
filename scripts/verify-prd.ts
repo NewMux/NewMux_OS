@@ -323,7 +323,77 @@ async function extraChecks(t: {
   advanceId: string;
   jassimId: string;
 }) {
-  void t;
+  const { check, rejects, section, bhd, by, clientId } = t;
+  const { query } = await import("../lib/db");
+  const hosting = await import("../lib/data/hosting");
+  const reports = await import("../lib/data/reports");
+  const docs = await import("../lib/data/documents");
+  const finance = await import("../lib/data/finance");
+  const expenses = await import("../lib/data/expenses");
+  const ledger = await import("../lib/data/ledger");
+  const { one } = await import("../lib/data/sql");
+  const { deleteProject } = await import("../lib/data/projects");
+  const { deleteClient } = await import("../lib/data/clients");
+  const { todayYmd, addMonthsYmd } = await import("../lib/time");
+
+  section("Item 13 — hosting fee with amount TBD and no due date");
+  const tbd = await hosting.createHostingSubscription({ clientId, item: "domain", label: "alhussam.example", amountCents: null, currency: "BHD", cycle: "annual", nextDueDate: null, status: "not_started" });
+  check("Saved with no amount and no due date", [tbd.amountCents, tbd.nextDueDate, tbd.status], [null, null, "not_started"]);
+  const ox = await hosting.createHostingSubscription({ clientId, item: "server", amountCents: bhd(15), currency: "BHD", cycle: "quarterly", nextDueDate: "2026-09-20" });
+  const cleared = await hosting.updateHostingSubscription(ox.id, { clientId, item: "server", amountCents: bhd(15), currency: "BHD", cycle: "quarterly", nextDueDate: null, status: "paused" });
+  check("The next due date can be cleared", cleared.nextDueDate, null);
+  await hosting.updateHostingSubscription(ox.id, { clientId, item: "server", amountCents: bhd(15), currency: "BHD", cycle: "quarterly", nextDueDate: "2026-09-20", status: "active" });
+  await rejects("Collecting a TBD fee needs an amount", () => hosting.collectHostingFee(tbd.id, by), /amount/);
+
+  section("Item 12 — Collect creates the invoice, records the payment, moves the due date");
+  const collected = await hosting.collectHostingFee(ox.id, by, { paidOn: todayYmd(), method: "benefitpay" });
+  check("Invoice is paid and linked to the fee", [collected.invoice.hostingSubscriptionId, (await docs.getDocumentById(collected.invoice.id))!.status], [ox.id, "paid"]);
+  check("Next due date moves one quarter", collected.subscription.nextDueDate, addMonthsYmd("2026-09-20", 3));
+  check("Last collected = payment date", collected.subscription.lastCollectedDate, todayYmd());
+  const priced = await hosting.collectHostingFee(tbd.id, by, { amountCents: bhd(2.635), paidOn: todayYmd() });
+  check("A TBD fee takes the collected amount as its price", priced.subscription.amountCents, bhd(2.635));
+
+  section("Item 12 — an invoice issued elsewhere can be linked, and its payment counts");
+  const manual = await docs.createDocument({ type: "invoice", clientId, currency: "BHD", taxRateBps: 0, issuedAt: todayYmd(), lineItems: [{ description: "Hosting (Notion era)", quantity: 1, unitPriceCents: bhd(60) }], createdBy: by });
+  await docs.transitionDocumentStatus(manual.id, "sent", by);
+  await hosting.linkHostingInvoice(ox.id, manual.id, { advance: true }, by);
+  check("Linking can move the due date on", (await one<{ nextDueDate: string }>("select next_due_date from hosting_subscriptions where id = $1", [ox.id]))?.nextDueDate, addMonthsYmd("2026-09-20", 6));
+  await finance.addPayment({ documentId: manual.id, amountCents: bhd(60), method: "paypal", paidOn: todayYmd(), recordedBy: by });
+  const report = await reports.getHostingFeeReport();
+  check("Collected this year = 15 + 2.635 + 60", report.collectedBhdCents, bhd(77.635));
+
+  section("Item 14 — margin per hosting client");
+  const [recurring] = await query<{ id: string }>(
+    "insert into recurring_expenses (name, category, amount_cents, currency, cycle) values ('Vendor server', 'hosting', 5000, 'USD', 'annual') returning id",
+  );
+  const withCost = await hosting.createHostingSubscription({ clientId, item: "server", label: "Ox", amountCents: bhd(60), currency: "BHD", cycle: "annual", nextDueDate: "2027-01-01", recurringExpenseId: recurring!.id });
+  const row = (await hosting.listHostingSubscriptions()).find((h) => h.id === withCost.id)!;
+  check("Annual fee 60.000, cost ≈ 18.800 (50 USD)", [row.annualFeeBhdCents, row.annualCostBhdCents], [bhd(60), 18800]);
+  const typed = await hosting.createHostingSubscription({ clientId, item: "domain", amountCents: bhd(10), currency: "BHD", cycle: "annual", costPerYearCents: bhd(4), costCurrency: "BHD" });
+  check("…or a typed yearly cost", (await hosting.listHostingSubscriptions()).find((h) => h.id === typed.id)?.annualCostBhdCents, bhd(4));
+
+  section("Items 15, 17 — venture expenses and stored exchange rates");
+  const [venture] = await query<{ id: string }>("insert into ventures (name, slug) values ('Tbadel', 'tbadel-verify') returning id");
+  const usd = await expenses.createExpense({ description: "Tbadel app store fee", category: "software subscription", amountCents: 9900, currency: "USD", amountBhdCents: bhd(37.5), spentOn: "2026-09-02", linkedVentureId: venture!.id }, by);
+  check("The BHD amount actually charged is kept, with its rate", [usd.amountBhdCents, usd.fxRate], [bhd(37.5), 0.378788]);
+  const pegged = await expenses.createExpense({ description: "Tbadel domain", category: "hosting", amountCents: 1000, currency: "USD", spentOn: "2026-09-03", linkedVentureId: venture!.id }, by);
+  check("…or the official peg when not given", pegged.amountBhdCents, 3760);
+  const spend = await expenses.getVentureSpend(venture!.id);
+  check("Venture page total = 41.260", spend.allTimeBhdCents, bhd(41.26));
+
+  section("Item 16 — reimbursing a partner");
+  const jassim = t.jassimId;
+  const owed = await one<{ id: string }>("select id from expenses where paid_by_party_id = $1 and reimbursement_status = 'pending'", [jassim]);
+  const beforeBal = (await ledger.getCompanyBalanceBhd(todayYmd()))!.balanceBhdCents;
+  await expenses.reimburseExpense(owed!.id, { paidOn: todayYmd() }, by);
+  const after = (await ledger.getPartyBalances()).partners.find((p) => p.party.id === jassim)!;
+  check("Nothing left to reimburse", after.reimbursementDueBhdCents, 0);
+  check("The reimbursement leaves the account", (await ledger.getCompanyBalanceBhd(todayYmd()))!.balanceBhdCents, beforeBal - bhd(3));
+
+  section("Item 20 — deletes are blocked while money is recorded");
+  const prj = await query<{ id: string }>("select id from projects where name = 'PRJ-001'");
+  await rejects("A project with invoices can't be deleted", () => deleteProject(prj[0]!.id), /archive/i);
+  await rejects("A client with invoices can't be deleted", () => deleteClient(clientId), /documents?/);
 }
 
 main().catch((e) => {

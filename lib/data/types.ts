@@ -17,6 +17,8 @@ export type Client = {
   id: string;
   clientCode: string;
   name: string;
+  /** Shown in lists instead of a long legal name. */
+  shortName: string | null;
   industry: string | null;
   website: string | null;
   email: string | null;
@@ -473,7 +475,7 @@ export type Payout = {
 };
 
 export type HostingItemType = "server" | "domain" | "other";
-export type HostingSubscriptionStatus = "active" | "overdue" | "paused";
+export type HostingSubscriptionStatus = "active" | "overdue" | "paused" | "not_started";
 
 export type HostingSubscription = {
   id: string;
@@ -481,13 +483,19 @@ export type HostingSubscription = {
   projectId: string | null;
   item: HostingItemType;
   label: string | null;
-  amountCents: number;
+  /** Null while the client price is to be decided ("amount TBD"). */
+  amountCents: number | null;
   currency: Currency;
   cycle: RecurringExpenseCycle;
   lastCollectedDate: string | null;
   nextDueDate: string | null;
   status: HostingSubscriptionStatus;
+  /** The latest invoice; every invoice carries documents.hosting_subscription_id. */
   linkedInvoiceId: string | null;
+  /** What it costs NEWMUX: a linked recurring expense, or a typed yearly cost (item 14). */
+  recurringExpenseId: string | null;
+  costPerYearCents: number | null;
+  costCurrency: Currency | null;
 };
 
 export type VentureLaunchStatus = "planning" | "in_development" | "launched" | "paused";

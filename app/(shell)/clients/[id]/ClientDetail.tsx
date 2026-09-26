@@ -15,7 +15,7 @@ import { ClientSheet, ContactSheet, DealSheet, type ContactOption } from "@/comp
 import { ActivityButtons, NewLinkedPageButton } from "@/components/crm/DealActions";
 import type { Option } from "@/components/forms/Fields";
 import { DEAL_STAGE, DOC_STATUS, DOC_TYPE, PROJECT_STATUS, CYCLE_LABEL } from "@/lib/labels";
-import { centsToDisplay, convertMinorUnits } from "@/lib/money";
+import { amountOrTbd, centsToDisplay, convertMinorUnits } from "@/lib/money";
 import { formatDate, relativeDay } from "@/lib/time";
 import type { Client, HostingSubscription, KbPageSummary } from "@/lib/data/types";
 import type { ActivityListItem, ContactListItem, DealListItem } from "@/lib/data/crm";
@@ -166,7 +166,7 @@ export function ClientDetail(props: {
                 </div>
               ))}
             </div>
-            <ListSection header="Invoices & Quotes" action={<a href={`/documents/new?type=invoice&clientId=${client.id}`} className="text-subhead text-accent">New Invoice</a>}>
+            <ListSection header="Documents" action={<a href={`/documents/new?type=invoice&clientId=${client.id}`} className="text-subhead text-accent">New Invoice</a>}>
               {documents.map((d) => (
                 <ListRow
                   key={d.id}
@@ -186,7 +186,7 @@ export function ClientDetail(props: {
                   href="/hosting"
                   title={h.label ?? h.item}
                   subtitle={`${CYCLE_LABEL[h.cycle]} · next ${h.nextDueDate ? relativeDay(h.nextDueDate) : "—"}`}
-                  detail={centsToDisplay(h.amountCents, h.currency)}
+                  detail={amountOrTbd(h.amountCents, h.currency)}
                 />
               ))}
               {hosting.length === 0 && <ListRow title="No hosting fees" />}

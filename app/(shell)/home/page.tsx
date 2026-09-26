@@ -14,7 +14,7 @@ import { getPipelineSummary, listOpenFollowUps, openPipelineTotals } from "@/lib
 import { listTasks } from "@/lib/data/projects";
 import { listUpcomingMeetings } from "@/lib/data/meetings";
 import { isPartnerAdmin } from "@/lib/rbac";
-import { centsToDisplay, compactMoney } from "@/lib/money";
+import { amountOrTbd, compactMoney } from "@/lib/money";
 import { addDaysYmd, formatDate, formatTime, relativeDay, todayYmd, toYmd } from "@/lib/time";
 import { plural } from "@/lib/utils";
 
@@ -92,7 +92,7 @@ export default async function HomePage() {
                 href="/hosting"
                 title={`${h.clientName} — ${h.label ?? h.item} fee`}
                 subtitle={<span className={overdue ? "text-ios-red" : undefined}>{overdue ? `Overdue since ${formatDate(h.nextDueDate)}` : `Due ${relativeDay(h.nextDueDate!)}`}</span>}
-                detail={centsToDisplay(h.amountCents, h.currency)}
+                detail={amountOrTbd(h.amountCents, h.currency)}
               />
             ))}
             {alerts.renewalsWithin30Days.map((r) => (

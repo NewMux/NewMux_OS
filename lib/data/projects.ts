@@ -1,5 +1,6 @@
 import { query, tx } from "@/lib/db";
 import { many, one, must, buildUpdate, NotFoundError } from "./sql";
+import { assertNoFinancialRecords } from "./guards";
 import type { Project, ProjectStatus, Subtask, Task, TaskComment, TaskPriority, TaskStatus, TaskWithMeta } from "./types";
 
 // --- Projects ---
@@ -104,7 +105,9 @@ export async function updateProject(id: string, patch: Partial<ProjectInput>): P
   return must<Project>("Project", `update projects set ${set}, updated_at = now() where id = $1 returning *`, [id, ...values]);
 }
 
+/** Blocked while invoices, payments, expenses or hosting fees refer to it (item 20). */
 export async function deleteProject(id: string): Promise<void> {
+  await assertNoFinancialRecords("project", id);
   const rows = await query("delete from projects where id = $1 returning id", [id]);
   if (!rows.length) throw new NotFoundError("Project");
 }

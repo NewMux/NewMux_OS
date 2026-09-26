@@ -22,7 +22,7 @@ export function ClientSheet({ client, open, onOpenChange }: { client?: Client; o
   const { run } = useMutation();
   const router = useRouter();
   const confirm = useConfirm();
-  const blank = { name: "", industry: "", website: "", email: "", phone: "", billingAddress: "", notes: "" };
+  const blank = { name: "", shortName: "", industry: "", website: "", email: "", phone: "", billingAddress: "", notes: "" };
   const [f, setF] = useState(blank);
   const set = <K extends keyof typeof f>(k: K, v: string) => setF((p) => ({ ...p, [k]: v }));
 
@@ -32,6 +32,7 @@ export function ClientSheet({ client, open, onOpenChange }: { client?: Client; o
       client
         ? {
             name: client.name,
+            shortName: client.shortName ?? "",
             industry: client.industry ?? "",
             website: client.website ?? "",
             email: client.email ?? "",
@@ -53,7 +54,7 @@ export function ClientSheet({ client, open, onOpenChange }: { client?: Client; o
 
   const remove = async () => {
     if (!client) return;
-    if (await confirm({ title: `Delete ${client.name}?`, message: "Contacts, activities and hosting fees for this client are deleted too.", destructive: true, confirmLabel: "Delete Client" })) {
+    if (await confirm({ title: `Delete ${client.name}?`, message: "Only possible while no invoices, payments, expenses or hosting fees refer to it. Contacts and activities are deleted too.", destructive: true, confirmLabel: "Delete Client" })) {
       if (await run(`/api/clients/${client.id}`, { method: "DELETE", success: "Client deleted", refresh: false })) {
         onOpenChange(false);
         router.push("/clients");
@@ -66,6 +67,7 @@ export function ClientSheet({ client, open, onOpenChange }: { client?: Client; o
     <FormSheet open={open} onOpenChange={onOpenChange} title={client ? "Edit Client" : "New Client"} submitLabel={client ? "Done" : "Add"} canSubmit={!!f.name.trim()} onSubmit={submit}>
       <ListSection>
         <PlainRowInput placeholder="Company name" value={f.name} onChange={(e) => set("name", e.target.value)} autoFocus={!client} />
+        <PlainRowInput placeholder="Short name for lists (optional)" value={f.shortName} onChange={(e) => set("shortName", e.target.value)} />
         <PlainRowInput placeholder="Industry" value={f.industry} onChange={(e) => set("industry", e.target.value)} />
       </ListSection>
       <ListSection>

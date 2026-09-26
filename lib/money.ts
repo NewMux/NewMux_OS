@@ -32,6 +32,11 @@ export function formatAmount(amountMinorUnits: number, currency = "BHD"): string
   return new Intl.NumberFormat("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(amountMinorUnits / 10 ** digits);
 }
 
+/** An amount that may not be agreed yet (hosting fees, item 13). */
+export function amountOrTbd(amountMinorUnits: number | null, currency = "BHD"): string {
+  return amountMinorUnits === null ? "Amount TBD" : centsToDisplay(amountMinorUnits, currency);
+}
+
 export function dollarsToCents(dollars: number): number {
   return Math.round(dollars * 100);
 }

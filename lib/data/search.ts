@@ -49,7 +49,7 @@ export async function globalSearch(term: string, role: UserRole, limit = 6): Pro
     queries.unshift(
       many<SearchResult>(
         `select 'client' as kind, id, name as title, client_code as subtitle, '/clients/' || id as href
-         from clients where name ilike $1 or client_code ilike $1 or email ilike $1 order by name limit $2`,
+         from clients where name ilike $1 or short_name ilike $1 or client_code ilike $1 or email ilike $1 order by name limit $2`,
         [like, limit],
       ),
       many<SearchResult>(
@@ -66,9 +66,12 @@ export async function globalSearch(term: string, role: UserRole, limit = 6): Pro
         [like, limit],
       ),
       many<SearchResult>(
-        `select 'document' as kind, d.id, d.document_number as title, c.name || ' · ' || d.status as subtitle, '/documents/' || d.id as href
+        `select 'document' as kind, d.id,
+           d.document_number || coalesce(' (' || d.external_ref || ')', '') as title,
+           coalesce(c.short_name, c.name) || ' · ' || replace(d.status::text, '_', ' ') as subtitle, '/documents/' || d.id as href
          from documents d join clients c on c.id = d.client_id
-         where d.document_number ilike $1 or c.name ilike $1 order by d.created_at desc limit $2`,
+         where d.document_number ilike $1 or d.external_ref ilike $1 or c.name ilike $1 or c.short_name ilike $1
+         order by d.created_at desc limit $2`,
         [like, limit],
       ),
     );

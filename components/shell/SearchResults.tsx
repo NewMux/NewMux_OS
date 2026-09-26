@@ -10,7 +10,7 @@ export const RESULT_META: Record<SearchResult["kind"], { label: string; icon: Re
   deal: { label: "Deals", icon: Handshake, color: "purple" },
   project: { label: "Projects", icon: FolderKanban, color: "orange" },
   task: { label: "Tasks", icon: CheckCircle2, color: "blue" },
-  document: { label: "Invoices & Quotes", icon: FileText, color: "green" },
+  document: { label: "Documents", icon: FileText, color: "green" },
   page: { label: "Wiki", icon: BookOpen, color: "yellow" },
 };
 
