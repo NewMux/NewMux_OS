@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Rocket } from "lucide-react";
-import { Page, NavButton } from "@/components/ui/Page";
+import { Rocket } from "lucide-react";
+import { QuickAddMenu } from "@/components/shell/QuickAdd";
+import { Page } from "@/components/ui/Page";
 import { ListRow, ListSection } from "@/components/ui/List";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
@@ -17,9 +18,7 @@ export function VenturesScreen({ ventures }: { ventures: Venture[] }) {
       title="Ventures"
       subtitle="Products owned by the founders"
       actions={
-        <NavButton label="New venture" onClick={() => setCreating(true)}>
-          <Plus className="h-5 w-5" />
-        </NavButton>
+        <QuickAddMenu extra={[{ label: "New venture", onSelect: () => setCreating(true) }]} />
       }
     >
       <div className="mx-auto max-w-2xl">

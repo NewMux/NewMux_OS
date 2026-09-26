@@ -11,9 +11,10 @@ import { ListRow, ListSection } from "@/components/ui/List";
 import { Badge } from "@/components/ui/Badge";
 import { ActivityTimeline } from "@/components/crm/ActivityTimeline";
 import { DealHeaderActions, DealMenu, ActivityButtons } from "@/components/crm/DealActions";
-import { DOC_STATUS, DOC_TYPE } from "@/lib/labels";
+import { DOC_TYPE } from "@/lib/labels";
 import { centsToDisplay } from "@/lib/money";
 import { formatDate } from "@/lib/time";
+import { docBadge } from "@/components/documents/docStatus";
 
 export default async function DealPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -85,7 +86,7 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
                 title={d.documentNumber}
                 subtitle={DOC_TYPE[d.type]}
                 detail={centsToDisplay(d.totalCents, d.currency)}
-                trailing={<Badge color={DOC_STATUS[d.status].color}>{DOC_STATUS[d.status].label}</Badge>}
+                trailing={<Badge color={docBadge(d).color}>{docBadge(d).label}</Badge>}
               />
             ))}
           </ListSection>

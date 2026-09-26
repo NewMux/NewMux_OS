@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   DndContext,
@@ -36,6 +36,10 @@ export function PipelineBoard({ deals: initial }: { deals: DealListItem[] }) {
   const { run } = useMutation();
   useEffect(() => setDeals(initial), [initial]);
 
+  // A stable id keeps dnd-kit's accessibility ids the same on server and client (no hydration mismatch).
+
+  const dndId = useId();
+
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 280, tolerance: 8 } }),
@@ -68,7 +72,7 @@ export function PipelineBoard({ deals: initial }: { deals: DealListItem[] }) {
   };
 
   return (
-    <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setDragging(null)}>
+    <DndContext id={dndId} sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setDragging(null)}>
       <div className="no-scrollbar snap-x-mandatory -mx-4 flex gap-3 overflow-x-auto px-4 pb-4 md:-mx-8 md:px-8">
         {DEAL_STAGES.map((stage) => (
           <Column key={stage} stage={stage} deals={byStage.get(stage)!} onMove={move} />
@@ -106,7 +110,7 @@ function Column({ stage, deals, onMove }: { stage: DealStage; deals: DealListIte
         {shown.map((d) => (
           <DraggableCard key={d.id} deal={d} onMove={onMove} />
         ))}
-        {deals.length === 0 && <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-separator py-8 text-footnote text-label-3">Drop deals here</div>}
+        {deals.length === 0 && <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-separator py-8 text-footnote text-label-2">Drop deals here</div>}
       </div>
     </section>
   );

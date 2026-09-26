@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Award, Building2, Globe, Handshake, Trash2 } from "lucide-react";
+import { Award, Building2, Globe, Handshake, Trash2, FolderOpen } from "lucide-react";
 import { Page, NavButton } from "@/components/ui/Page";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -25,7 +25,7 @@ function renewal(date: string | null) {
   };
 }
 
-export function CompanyScreen({ profile }: { profile: CompanyProfile }) {
+export function CompanyScreen({ profile, files }: { profile: CompanyProfile; files?: { total: number; expiring: number } }) {
   const { run } = useMutation();
   const confirm = useConfirm();
   const [editing, setEditing] = useState(false);
@@ -65,6 +65,18 @@ export function CompanyScreen({ profile }: { profile: CompanyProfile }) {
           {profile.phone && <ListRow title="Phone" detail={profile.phone} />}
           {profile.address && <ListRow title="Address" subtitle={profile.address} multiline />}
         </ListSection>
+
+        {files && (
+          <ListSection header="Files" info="Contracts, the CR certificate, brand identity and other company documents, with expiry reminders.">
+            <ListRow
+              href="/files"
+              leading={<IconTile icon={FolderOpen} color="blue" />}
+              title="Company files"
+              subtitle={files.total ? `${files.total} file${files.total === 1 ? "" : "s"}` : "Upload the CR certificate, contracts and brand files"}
+              trailing={files.expiring > 0 ? <Badge color="orange">{files.expiring} expiring</Badge> : undefined}
+            />
+          </ListSection>
+        )}
 
         <ListSection header="Certifications" action={<button className="text-subhead text-accent" onClick={() => setCert("new")}>Add</button>} footer="Expiry dates within 30 days show up on Today.">
           {profile.certifications.map((c) => (

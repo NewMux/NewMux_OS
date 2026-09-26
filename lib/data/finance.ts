@@ -2,7 +2,6 @@ import { query, tx } from "@/lib/db";
 import { many, one, must, NotFoundError, ValidationError } from "./sql";
 import { logAudit } from "./audit";
 import { assertNoFinancialRecords } from "./guards";
-import { transitionDocumentStatus } from "./documents";
 import type {
   Currency,
   DeductionKind,

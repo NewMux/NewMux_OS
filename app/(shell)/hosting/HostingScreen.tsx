@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Globe, Plus, Server, Box } from "lucide-react";
-import { Page, NavButton } from "@/components/ui/Page";
+import { Globe, Server, Box } from "lucide-react";
+import { QuickAddMenu } from "@/components/shell/QuickAdd";
+import { Page } from "@/components/ui/Page";
 import { ListRow, ListSection, IconTile } from "@/components/ui/List";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -113,7 +114,18 @@ export function HostingScreen({
 
   const table = (rows: Row[]) => (
     <div className="mb-7 hidden overflow-hidden rounded-card bg-bg-elevated md:block">
-      <table className="w-full text-left text-subhead">
+      <table className="w-full table-fixed text-left text-subhead">
+        {/* Same widths in every section, so the columns line up down the page. */}
+        <colgroup>
+          <col className="w-[15%]" />
+          <col className="w-[23%]" />
+          <col className="w-[15%]" />
+          <col className="w-[11%]" />
+          <col className="w-[11%]" />
+          <col className="w-[10%]" />
+          <col className="w-[15%]" />
+          <col className="w-[104px]" />
+        </colgroup>
         <thead className="text-footnote text-label-2">
           <tr className="shadow-[inset_0_-0.5px_0_rgb(var(--separator))]">
             <th className="py-2.5 pl-4 font-medium">Client</th>
@@ -129,8 +141,8 @@ export function HostingScreen({
         <tbody>
           {rows.map(({ s, level }) => (
             <tr key={s.id} onClick={() => setEditing(s)} className="cursor-pointer shadow-[inset_0_-0.5px_0_rgb(var(--separator))] last:shadow-none hover:bg-fill/[0.06]">
-              <td className="py-2.5 pl-4 font-medium">{s.clientName}</td>
-              <td className="py-2.5 pr-3 text-label-2">
+              <td className="truncate py-2.5 pl-4 pr-2 font-medium">{s.clientName}</td>
+              <td className="truncate py-2.5 pr-3 text-label-2">
                 {s.label ?? s.item[0]!.toUpperCase() + s.item.slice(1)} · {CYCLE_LABEL[s.cycle]}
               </td>
               <td className={cn("whitespace-nowrap py-2.5 pr-3", level === "overdue" ? "text-ios-red" : level === "ok" ? "text-label-2" : "text-ios-orange")}>{due(s, level)}</td>
@@ -166,9 +178,7 @@ export function HostingScreen({
       title="Hosting Fees"
       back={{ href: "/finance", label: "Finance" }}
       actions={
-        <NavButton label="Add hosting fee" onClick={() => setEditing("new")}>
-          <Plus className="h-5 w-5" />
-        </NavButton>
+        <QuickAddMenu extra={[{ label: "Add hosting fee", onSelect: () => setEditing("new") }]} />
       }
     >
       <SummaryCard

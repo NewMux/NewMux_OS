@@ -13,6 +13,16 @@ const config: Config = {
   ],
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./lib/**/*.{ts,tsx}"],
   theme: {
+    // iPad/Mac layouts (sidebar, split views) need height as well as width, so
+    // an iPhone turned sideways — or the installed PWA in landscape — keeps
+    // the phone layout with its bottom tab bar (Improvements PRD item 38).
+    screens: {
+      sm: "640px",
+      md: { raw: "(min-width: 768px) and (min-height: 540px)" },
+      lg: { raw: "(min-width: 1024px) and (min-height: 540px)" },
+      xl: { raw: "(min-width: 1280px) and (min-height: 540px)" },
+      "2xl": { raw: "(min-width: 1536px) and (min-height: 540px)" },
+    },
     extend: {
       colors: {
         bg: token("bg"),

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ExternalLink, GitBranch, Globe, KeyRound, Pencil, Plus, Server, Layers, Archive } from "lucide-react";
-import { Page, NavButton } from "@/components/ui/Page";
+import { ExternalLink, GitBranch, Globe, KeyRound, Pencil, Server, Layers, Archive } from "lucide-react";
+import { QuickAddMenu } from "@/components/shell/QuickAdd";
+import { Page } from "@/components/ui/Page";
 import { Menu } from "@/components/ui/Menu";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { ListRow, ListSection, IconTile } from "@/components/ui/List";
@@ -14,13 +15,15 @@ import { NewTaskSheet, ProjectSheet } from "@/components/work/WorkSheets";
 import { NewLinkedPageButton } from "@/components/crm/DealActions";
 import type { Option } from "@/components/forms/Fields";
 import { useMutation } from "@/lib/useMutation";
-import { DOC_STATUS, DOC_TYPE, PROJECT_STATUS, TASK_STATUS } from "@/lib/labels";
+import { DOC_TYPE, PROJECT_STATUS, TASK_STATUS } from "@/lib/labels";
 import { centsToDisplay } from "@/lib/money";
 import { formatDate, formatTime } from "@/lib/time";
 import { asSysColor } from "@/lib/colors";
 import type { KbPageSummary, Project, TaskStatus, TaskWithMeta } from "@/lib/data/types";
 import type { DocumentListItem } from "@/lib/data/documents";
 import type { MeetingListItem } from "@/lib/data/meetings";
+import { ProjectMoneySummary, type ProjectMoney } from "@/components/finance/ProjectMoney";
+import { docBadge } from "@/components/documents/docStatus";
 
 type Tab = "board" | "list" | "details";
 
@@ -29,6 +32,8 @@ export function ProjectDetail(props: {
   clientName: string | null;
   tasks: TaskWithMeta[];
   documents: DocumentListItem[];
+  /** Partners only (item 36). */
+  money?: ProjectMoney | null;
   secretCount: number;
   pages: KbPageSummary[];
   meetings: MeetingListItem[];
@@ -36,7 +41,7 @@ export function ProjectDetail(props: {
   clients: Option[];
   admin: boolean;
 }) {
-  const { project, clientName, tasks, documents, secretCount, pages, meetings, users, clients, admin } = props;
+  const { project, clientName, tasks, documents, money, secretCount, pages, meetings, users, clients, admin } = props;
   const [tab, setTab] = useState<Tab>("board");
   const [editing, setEditing] = useState(false);
   const [adding, setAdding] = useState<TaskStatus | null>(null);
@@ -58,9 +63,12 @@ export function ProjectDetail(props: {
       }
       actions={
         <>
-          <NavButton label="New task" onClick={() => setAdding("todo")}>
-            <Plus className="h-5 w-5" />
-          </NavButton>
+          <QuickAddMenu
+            extra={[
+              { label: "Task in This Project", onSelect: () => setAdding("todo") },
+              ...(admin ? [{ label: "Invoice for This Project", href: `/documents/new?type=invoice&projectId=${project.id}${project.clientId ? `&clientId=${project.clientId}` : ""}` }] : []),
+            ]}
+          />
           <Menu
             items={[
               { label: "Project Info", icon: Pencil, onSelect: () => setEditing(true) },
@@ -105,6 +113,11 @@ export function ProjectDetail(props: {
 
       {tab === "details" && (
         <div className="mx-auto grid max-w-4xl gap-x-6 lg:grid-cols-2">
+          {money && (
+            <div className="lg:col-span-2">
+              <ProjectMoneySummary money={money} />
+            </div>
+          )}
           <div>
             {project.description && (
               <ListSection header="About">
@@ -156,7 +169,7 @@ export function ProjectDetail(props: {
                     title={d.documentNumber}
                     subtitle={DOC_TYPE[d.type]}
                     detail={centsToDisplay(d.totalCents, d.currency)}
-                    trailing={<Badge color={DOC_STATUS[d.status].color}>{DOC_STATUS[d.status].label}</Badge>}
+                    trailing={<Badge color={docBadge(d).color}>{docBadge(d).label}</Badge>}
                   />
                 ))}
                 {documents.length === 0 && <ListRow title="No documents yet" />}

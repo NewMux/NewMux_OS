@@ -28,8 +28,8 @@ export async function GET(req: NextRequest) {
   } else if (type === "partner-profit") {
     const data = await getProfitByPartnerReport();
     title = "Profit Distribution by Partner";
-    headers = ["Partner", "Total Share"];
-    rows = data.map((r) => [r.partyName, centsToDisplay(r.totalBhdCents, "BHD")]);
+    headers = ["Party", "Entitled", "Paid", "Remaining"];
+    rows = data.map((r) => [r.partyName, centsToDisplay(r.totalBhdCents, "BHD"), centsToDisplay(r.paidBhdCents, "BHD"), centsToDisplay(r.remainingBhdCents, "BHD")]);
     filename = "profit-by-partner.pdf";
   } else if (type === "invoice-status") {
     const r = await getInvoiceStatusReport();

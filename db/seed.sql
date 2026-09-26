@@ -284,6 +284,12 @@ insert into expenses (description, category, vendor, amount_cents, currency, spe
   ('Instagram ads — Newmux', 'marketing', 'Meta', 25000, 'BHD', current_date - 6, null, null, 'not_required', (select id from parties where kind = 'fund' order by created_at limit 1), '00000000-0000-4000-8000-000000000001');
 update expenses set linked_venture_id = '00000000-0000-4000-8000-000000000052' where description = 'Meta ads — MTDRB launch';
 
+-- Vendor costs for the margin column: Ox Roastery's server comes from the Indian vendor.
+update hosting_subscriptions set recurring_expense_id = '00000000-0000-4000-8000-000000000501'
+  where client_id = '00000000-0000-4000-8000-000000000023' and item = 'server';
+update hosting_subscriptions set cost_per_year_cents = 8500, cost_currency = 'BHD'
+  where client_id = '00000000-0000-4000-8000-000000000022' and item = 'domain';
+
 -- Every invoice billed for a hosting fee, and a service whose price isn't agreed yet.
 update documents d set hosting_subscription_id = h.id from hosting_subscriptions h where h.linked_invoice_id = d.id;
 insert into hosting_subscriptions (client_id, project_id, item, label, amount_cents, currency, cycle, next_due_date, status) values

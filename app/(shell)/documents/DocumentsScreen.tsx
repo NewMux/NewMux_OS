@@ -3,8 +3,9 @@
 import { useContext, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronDown, FileText, Plus, X } from "lucide-react";
-import { Page, NavButton } from "@/components/ui/Page";
+import { ChevronDown, FileText, X } from "lucide-react";
+import { QuickAddMenu } from "@/components/shell/QuickAdd";
+import { Page } from "@/components/ui/Page";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { SearchField } from "@/components/ui/SearchField";
 import { ListRow, ListSection } from "@/components/ui/List";
@@ -13,11 +14,11 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PaymentSheet } from "@/components/documents/PaymentSheet";
 import { SplitWideContext } from "@/components/shell/SplitView";
-import { DOC_TYPE, docStatusLabel } from "@/lib/labels";
+import { DOC_TYPE } from "@/lib/labels";
+import { docBadge, isClosed, isOverdue, outstanding } from "@/components/documents/docStatus";
 import { centsToDisplay, convertMinorUnits } from "@/lib/money";
 import { addDaysYmd, addMonthsYmd, formatDate, monthStartYmd, todayYmd, toYmd } from "@/lib/time";
 import { cn, plural } from "@/lib/utils";
-import type { SysColor } from "@/lib/colors";
 import type { DocumentListItem } from "@/lib/data/documents";
 import type { DocumentType } from "@/lib/data/types";
 
@@ -42,20 +43,6 @@ const DATE_LABEL: Record<DateFilter, string> = {
   "last-year": "Last year",
   custom: "Custom…",
 };
-
-const outstanding = (d: DocumentListItem) => (d.type === "invoice" && d.status === "sent" ? Math.max(d.totalCents - d.creditedCents - d.paidCents, 0) : 0);
-const isOverdue = (d: DocumentListItem) => outstanding(d) > 0 && !!d.dueAt && d.dueAt < todayYmd();
-const isClosed = (d: DocumentListItem) =>
-  ["paid", "archived", "void", "declined"].includes(d.status) || (d.type === "invoice" && d.status === "sent" && outstanding(d) === 0) || (d.type === "credit_note" && d.status === "sent");
-
-export function docBadge(d: DocumentListItem): { label: string; color: SysColor } {
-  if (d.status === "void") return { label: "Void", color: "gray" };
-  if (isOverdue(d)) return { label: "Overdue", color: "red" };
-  if (d.type === "invoice" && d.status === "sent" && d.paidCents > 0 && outstanding(d) > 0) return { label: "Partly paid", color: "orange" };
-  if (d.type === "invoice" && d.status === "sent" && outstanding(d) === 0) return { label: "Paid", color: "green" };
-  const colors: Record<string, SysColor> = { draft: "gray", sent: "blue", accepted: "indigo", declined: "red", signed: "purple", paid: "green", archived: "gray" };
-  return { label: docStatusLabel(d.type, d.status), color: colors[d.status] ?? "gray" };
-}
 
 function range(filter: DateFilter, custom: { from: string; to: string }): [string, string] | null {
   const month = monthStartYmd();
@@ -250,9 +237,12 @@ export function DocumentsScreen({ documents }: { documents: DocumentListItem[] }
       wide={wide}
       back={{ href: "/finance", label: "Finance" }}
       actions={
-        <NavButton label={`New ${DOC_TYPE[newType]}`} href={`/documents/new?type=${newType}`}>
-          <Plus className="h-5 w-5" />
-        </NavButton>
+        <QuickAddMenu
+          extra={(["invoice", "quote", "contract"] as const)
+            .slice()
+            .sort((a, b) => Number(b === newType) - Number(a === newType))
+            .map((t) => ({ label: `New ${DOC_TYPE[t]}`, href: `/documents/new?type=${t}` }))}
+        />
       }
       accessory={
         <div className="space-y-3">

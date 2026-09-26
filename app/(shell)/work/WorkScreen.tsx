@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { AlertCircle, CalendarDays, CalendarClock, CalendarRange, Inbox, Plus, FolderKanban } from "lucide-react";
-import { Page, NavButton } from "@/components/ui/Page";
+import { AlertCircle, CalendarDays, CalendarClock, CalendarRange, Inbox, FolderKanban } from "lucide-react";
+import { QuickAddMenu } from "@/components/shell/QuickAdd";
+import { Page } from "@/components/ui/Page";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -33,9 +34,7 @@ export function WorkScreen({ projects, counts, clients, canDelete }: { projects:
     <Page
       title="Work"
       actions={
-        <NavButton label="New project" onClick={() => setCreating(true)}>
-          <Plus className="h-5 w-5" />
-        </NavButton>
+        <QuickAddMenu extra={[{ label: "New project", onSelect: () => setCreating(true) }]} />
       }
     >
       <div className="grid gap-x-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] [&>*]:min-w-0">

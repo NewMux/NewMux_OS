@@ -4,7 +4,8 @@ import { auth } from "@/lib/auth";
 import { canAccessCrm } from "@/lib/rbac";
 import { getPipelineSummary, listDeals, listOpenFollowUps, openPipelineTotals } from "@/lib/data/crm";
 import { one } from "@/lib/data/sql";
-import { Page, NavButton } from "@/components/ui/Page";
+import { QuickAddMenu } from "@/components/shell/QuickAdd";
+import { Page } from "@/components/ui/Page";
 import { ListRow, ListSection, SectionLink } from "@/components/ui/List";
 import { SummaryCard } from "@/components/ui/Widget";
 import { FollowUpRow } from "@/components/crm/FollowUpRow";
@@ -13,7 +14,6 @@ import { OPEN_DEAL_STAGES } from "@/lib/data/types";
 import { compactMoney, convertMinorUnits } from "@/lib/money";
 import { formatDate } from "@/lib/time";
 import { plural } from "@/lib/utils";
-import { Plus } from "lucide-react";
 
 export const metadata = { title: "CRM" };
 
@@ -35,9 +35,7 @@ export default async function CrmPage() {
     <Page
       title="CRM"
       actions={
-        <NavButton label="New deal" href="/crm/pipeline?new=1">
-          <Plus className="h-5 w-5" />
-        </NavButton>
+        <QuickAddMenu extra={[{ label: "New Deal", href: "/crm/pipeline?new=1" }]} />
       }
     >
       <SummaryCard

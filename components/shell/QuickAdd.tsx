@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BookOpen, Building2, CircleCheckBig, FileSignature, FileText, Handshake, HandCoins, Plus, Receipt } from "lucide-react";
 import { Menu, type MenuItem } from "@/components/ui/Menu";
@@ -11,23 +11,44 @@ import { SearchField } from "@/components/ui/SearchField";
 import { PaymentSheet } from "@/components/documents/PaymentSheet";
 import { centsToDisplay } from "@/lib/money";
 import { formatDate } from "@/lib/time";
+import { cn } from "@/lib/utils";
 import type { DocumentListItem } from "@/lib/data/documents";
 import type { UserRole } from "@/lib/data/types";
 
-type Extra = { label: string; icon?: React.ComponentType<{ className?: string }>; onSelect: () => void };
+type Extra = { label: string; icon?: React.ComponentType<{ className?: string }>; onSelect?: () => void; href?: string };
+
+/** The signed-in role, so any screen's "+" knows which creates to offer. Set in the shell layout. */
+export const RoleContext = createContext<UserRole>("lead_dev");
+
+export function RoleProvider({ role, children }: { role: UserRole; children: React.ReactNode }) {
+  return <RoleContext.Provider value={role}>{children}</RoleContext.Provider>;
+}
 
 /**
  * The one "+" (item 24): the same five creates everywhere — Invoice,
  * Expense, Payment, Task, Client — with anything specific to the current
  * screen listed first.
  */
-export function QuickAddMenu({ role, extra = [], className }: { role: UserRole; extra?: Extra[]; className?: string }) {
+export function QuickAddMenu({
+  role: roleProp,
+  extra = [],
+  className,
+  persistent,
+}: {
+  role?: UserRole;
+  extra?: Extra[];
+  className?: string;
+  /** The sidebar's "+", always shown. A screen's "+" with nothing specific hides on iPad/Mac, where the sidebar has it. */
+  persistent?: boolean;
+}) {
   const router = useRouter();
+  const contextRole = useContext(RoleContext);
+  const role = roleProp ?? contextRole;
   const [paying, setPaying] = useState(false);
   const go = (href: string) => () => router.push(href);
   const admin = role === "partner_admin";
 
-  const items: MenuItem[] = [...extra];
+  const items: MenuItem[] = extra.map((e) => ({ label: e.label, icon: e.icon ?? Plus, onSelect: e.onSelect ?? (e.href ? go(e.href) : () => {}) }));
   if (extra.length) items.push("separator");
   if (admin) {
     items.push(
@@ -50,7 +71,7 @@ export function QuickAddMenu({ role, extra = [], className }: { role: UserRole; 
       <Menu
         label="Create"
         trigger={
-          <NavButton label="Create" className={className}>
+          <NavButton label="Create" className={cn(extra.length === 0 && !persistent && "md:hidden", className)}>
             <Plus className="h-5 w-5" />
           </NavButton>
         }

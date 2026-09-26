@@ -36,7 +36,7 @@ export function ActivityTimeline({ activities, showContext }: { activities: Acti
                 <span className="shrink-0 text-caption1 text-label-2">{pending && a.dueAt ? `due ${formatDate(a.dueAt, { day: "numeric", month: "short" })}` : timeAgo(a.completedAt ?? a.createdAt)}</span>
               </div>
               {a.body && <p className="mt-0.5 whitespace-pre-wrap text-subhead text-label-2">{a.body}</p>}
-              <p className="mt-0.5 text-caption1 text-label-3">
+              <p className="mt-0.5 text-caption1 text-label-2">
                 {[meta.label, a.createdByName, showContext ? (a.dealTitle ?? a.clientName) : null].filter(Boolean).join(" · ")}
               </p>
             </div>

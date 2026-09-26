@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { canAccessFinance } from "@/lib/rbac";
 import { getProfitByProjectReport, getProfitByPartnerReport, getInvoiceStatusReport, getMonthlyCashFlow } from "@/lib/data/reports";
 import { listExpenses } from "@/lib/data/expenses";
+import { listPayouts } from "@/lib/data/ledger";
 import { toCsv } from "@/lib/csv";
 import { centsToDisplay } from "@/lib/money";
 
@@ -25,8 +26,8 @@ export async function GET(req: NextRequest) {
   } else if (type === "partner-profit") {
     const rows = await getProfitByPartnerReport();
     csv = toCsv(
-      ["Partner", "Total Profit Share (BHD)"],
-      rows.map((r) => [r.partyName, centsToDisplay(r.totalBhdCents, "BHD")]),
+      ["Party", "Kind", "Entitled / set aside (BHD)", "Paid / spent (BHD)", "Remaining (BHD)"],
+      rows.map((r) => [r.partyName, r.kind, centsToDisplay(r.totalBhdCents, "BHD"), centsToDisplay(r.paidBhdCents, "BHD"), centsToDisplay(r.remainingBhdCents, "BHD")]),
     );
     filename = "profit-by-partner.csv";
   } else if (type === "invoice-status") {
@@ -51,10 +52,33 @@ export async function GET(req: NextRequest) {
   } else if (type === "expenses") {
     const rows = await listExpenses();
     csv = toCsv(
-      ["Date", "Description", "Category", "Vendor", "Amount", "Currency", "Client", "Project"],
-      rows.map((e) => [e.spentOn, e.description, e.category, e.vendor ?? "", centsToDisplay(e.amountCents, e.currency), e.currency, e.clientName ?? "", e.projectName ?? ""]),
+      ["Date", "Description", "Category", "Vendor", "Amount", "Currency", "Amount (BHD)", "Rate", "Client", "Project", "Venture", "Invoice", "Paid by", "Reimbursement", "Fund"],
+      rows.map((e) => [
+        e.spentOn,
+        e.description,
+        e.category,
+        e.vendor ?? "",
+        centsToDisplay(e.amountCents, e.currency),
+        e.currency,
+        centsToDisplay(e.amountBhdCents ?? 0, "BHD"),
+        e.fxRate ?? "",
+        e.clientName ?? "",
+        e.projectName ?? "",
+        e.ventureName ?? "",
+        e.documentNumber ?? "",
+        e.paidByName ?? e.accountName ?? "Company account",
+        e.reimbursementStatus === "not_required" ? "" : e.reimbursementStatus,
+        e.fundName ?? "",
+      ]),
     );
     filename = "expenses.csv";
+  } else if (type === "payouts") {
+    const rows = await listPayouts();
+    csv = toCsv(
+      ["Date", "Paid to", "Type", "Amount", "Currency", "Invoice", "Account", "Reference", "Notes"],
+      rows.map((p) => [p.paidOn, p.partyName, p.type, centsToDisplay(p.amountCents, p.currency), p.currency, p.documentNumber ?? "", p.accountName ?? "Default account", p.reference ?? "", p.notes ?? ""]),
+    );
+    filename = "partner-payouts.csv";
   } else {
     return NextResponse.json({ error: "unknown report type" }, { status: 400 });
   }

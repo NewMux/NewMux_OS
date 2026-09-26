@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Building2, Plus } from "lucide-react";
-import { Page, NavButton } from "@/components/ui/Page";
+import { Building2 } from "lucide-react";
+import { QuickAddMenu } from "@/components/shell/QuickAdd";
+import { Page } from "@/components/ui/Page";
 import { SearchField } from "@/components/ui/SearchField";
 import { ListRow, ListSection } from "@/components/ui/List";
 import { Avatar } from "@/components/ui/Avatar";
@@ -27,9 +28,7 @@ export function ClientsScreen({ clients }: { clients: ClientWithStats[] }) {
       title="Clients"
       back={{ href: "/crm", label: "CRM" }}
       actions={
-        <NavButton label="New client" onClick={() => setCreating(true)}>
-          <Plus className="h-5 w-5" />
-        </NavButton>
+        <QuickAddMenu extra={[{ label: "New client", onSelect: () => setCreating(true) }]} />
       }
       accessory={<SearchField value={q} onChange={setQ} placeholder={`Search ${clients.length} clients`} />}
     >

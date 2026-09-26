@@ -58,6 +58,7 @@ export function SettingsScreen({
     else document.documentElement.setAttribute("data-theme", t);
   };
 
+  const companyLinks = forRole(COMPANY_LINKS, user.role as UserRole).filter((l) => l.href !== "/vault");
   const scopeName = (r: ProfitSplitRule) => scopes.find((s) => s.scopeType === r.scopeType && s.scopeId === r.scopeId)?.name ?? "Unknown";
   const partyName = (id: string) => parties.find((p) => p.id === id)?.name ?? "?";
   const unconfigured = scopes.filter((s) => !rules.some((r) => r.scopeType === s.scopeType && r.scopeId === s.scopeId));
@@ -73,15 +74,27 @@ export function SettingsScreen({
           <ListRow leading={<Avatar name={user.name || user.email} size={56} />} title={<span className="text-title3 font-semibold">{user.name}</span>} subtitle={`${user.email} · ${user.role === "partner_admin" ? "Partner" : "Team member"}`} />
         </ListSection>
 
-        <ListSection>
-          {forRole(COMPANY_LINKS, user.role as UserRole).map((l) => (
-            <ListRow
-              key={l.href}
-              href={l.href}
-              leading={<IconTile icon={({ className }) => <NavIcon icon={l.icon} className={className} />} color={l.color} />}
-              title={l.label}
-            />
-          ))}
+        {companyLinks.length > 0 && (
+          <ListSection>
+            {companyLinks.map((l) => (
+              <ListRow
+                key={l.href}
+                href={l.href}
+                leading={<IconTile icon={({ className }) => <NavIcon icon={l.icon} className={className} />} color={l.color} />}
+                title={l.label}
+              />
+            ))}
+          </ListSection>
+        )}
+
+        <ListSection header="Security">
+          <ListRow
+            href="/vault"
+            leading={<IconTile icon={({ className }) => <NavIcon icon="vault" className={className} />} color="teal" />}
+            title="Credentials Vault"
+            subtitle="Server logins, API tokens and database passwords, encrypted (AES-256)"
+            multiline
+          />
         </ListSection>
 
         <ListSection header="Appearance">

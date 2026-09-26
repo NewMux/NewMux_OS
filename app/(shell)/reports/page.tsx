@@ -8,6 +8,7 @@ import { Widget, Metric } from "@/components/ui/Widget";
 import { MigrationChecklist, PipelineTracker } from "@/components/reports/ReportWidgets";
 import { getHostingFeeReport, getInvoiceStatusReport, getProfitByPartnerReport, getProfitByProjectReport } from "@/lib/data/reports";
 import { listAuditLog } from "@/lib/data/audit";
+import { listDocuments } from "@/lib/data/documents";
 import { listPipelineItems } from "@/lib/data/pipeline";
 import { getSetting } from "@/lib/data/settings";
 import { centsToDisplay, compactMoney } from "@/lib/money";
@@ -22,12 +23,13 @@ const EXPORTS = [
   { type: "invoice-status", label: "Invoice status", pdf: true },
   { type: "cash-flow", label: "Cash flow — 12 months", pdf: false },
   { type: "expenses", label: "All expenses", pdf: false },
+  { type: "payouts", label: "Partner payouts", pdf: false },
 ];
 
 export default async function ReportsPage() {
   const session = await auth();
   if (!canAccessFinance(session)) redirect("/home");
-  const [projects, partners, invoices, hosting, audit, pipeline, checklist] = await Promise.all([
+  const [projects, partners, invoices, hosting, audit, pipeline, checklist, unpaidPaid] = await Promise.all([
     getProfitByProjectReport(),
     getProfitByPartnerReport(),
     getInvoiceStatusReport(),
@@ -35,6 +37,7 @@ export default async function ReportsPage() {
     listAuditLog(25),
     listPipelineItems(),
     getSetting<string[]>("notion_migration_checklist", []),
+    listDocuments({ type: "invoice" }).then((docs) => docs.filter((d) => (d.status === "paid" || d.status === "archived") && d.paidCents < d.totalCents - d.creditedCents)),
   ]);
 
   return (
@@ -56,29 +59,55 @@ export default async function ReportsPage() {
 
       <div className="grid gap-x-6 lg:grid-cols-2 [&>*]:min-w-0">
         <div>
-          <ListSection header="Profit & Loss by Project">
+          {unpaidPaid.length > 0 && (
+            <ListSection
+              header="Check these invoices"
+              info="Marked paid before payments were required to cover the total. Record the missing payments (dated when the money arrived), or void the invoice if it wasn't real."
+            >
+              {unpaidPaid.map((d) => (
+                <ListRow
+                  key={d.id}
+                  href={`/documents/${d.id}`}
+                  title={`${d.documentNumber}${d.externalRef ? ` (${d.externalRef})` : ""}`}
+                  subtitle={`${d.clientName} · ${centsToDisplay(d.paidCents, d.currency)} of ${centsToDisplay(d.totalCents - d.creditedCents, d.currency)} recorded`}
+                  detail={<span className="text-ios-orange">Paid without payments</span>}
+                />
+              ))}
+            </ListSection>
+          )}
+          <ListSection
+            header="Profit & Loss by Project"
+            info="Revenue is invoiced (less credit notes). Costs are expenses linked to the project or its invoices, counted once, plus split-rule deductions that are costs. Money set aside for the reserve is part of profit."
+          >
             {projects.map((p) => (
               <ListRow
                 key={p.projectId}
                 href={`/projects/${p.projectId}`}
                 title={p.projectName}
-                subtitle={`Revenue ${centsToDisplay(p.revenueBhdCents, "BHD")} · Costs ${centsToDisplay(p.costsBhdCents, "BHD")}`}
+                subtitle={`Revenue ${centsToDisplay(p.revenueBhdCents, "BHD")} · Costs ${centsToDisplay(p.costsBhdCents, "BHD")}${p.reserveBhdCents ? ` · Reserve ${centsToDisplay(p.reserveBhdCents, "BHD")}` : ""}`}
+                multiline
                 detail={<span className={p.netProfitBhdCents < 0 ? "text-ios-red" : "text-label"}>{centsToDisplay(p.netProfitBhdCents, "BHD")}</span>}
               />
             ))}
             {projects.length === 0 && <ListRow title="No invoiced projects yet" />}
           </ListSection>
-          <ListSection header="Profit by Partner">
+          <ListSection header="Profit by Partner" info="Entitled on every issued invoice, what's been paid, and what remains. Funds show what was set aside, spent and left.">
             {partners.map((p) => (
-              <ListRow key={p.partyId} title={p.partyName} detail={centsToDisplay(p.totalBhdCents, "BHD")} />
+              <ListRow
+                key={p.partyId}
+                href={`/finance/partners/${p.partyId}`}
+                title={p.partyName}
+                subtitle={`${p.kind === "fund" ? "Set aside" : "Entitled"} ${centsToDisplay(p.totalBhdCents, "BHD")} · ${p.kind === "fund" ? "Spent" : "Paid"} ${centsToDisplay(p.paidBhdCents, "BHD")}`}
+                detail={centsToDisplay(p.remainingBhdCents, "BHD")}
+              />
             ))}
           </ListSection>
-          <ListSection header="Hosting Fees">
+          <ListSection header="Hosting Fees" info="Collected: payments this year on invoices billed for a hosting fee.">
             <ListRow title="Collected this year" detail={centsToDisplay(hosting.collectedBhdCents, "BHD")} />
             <ListRow title="Due this cycle" detail={centsToDisplay(hosting.dueBhdCents, "BHD")} />
             <ListRow title="Annualized" detail={centsToDisplay(hosting.annualizedBhdCents, "BHD")} />
           </ListSection>
-          <ListSection header="Export" footer="CSV opens in Numbers or Excel. PDF is formatted for sharing with the accountant.">
+          <ListSection header="Export" info="CSV opens in Numbers or Excel. PDF is formatted for sharing with the accountant.">
             {EXPORTS.map((e) => (
               <ListRow
                 key={e.type}
@@ -105,7 +134,7 @@ export default async function ReportsPage() {
         <div>
           <PipelineTracker items={pipeline} />
           <MigrationChecklist initial={checklist} />
-          <ListSection header="Audit Log" footer="Every change to invoices, payments, expenses, deals and split rules.">
+          <ListSection header="Audit Log" info="Every change to invoices, payments, payouts, accounts, expenses, deals and split rules.">
             {audit.map((a) => (
               <ListRow key={a.id} title={a.summary} subtitle={`${a.changedByName ?? "System"} · ${timeAgo(a.changedAt)}`} multiline />
             ))}

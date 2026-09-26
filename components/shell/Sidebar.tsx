@@ -4,12 +4,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { LogOut, Command, Settings } from "lucide-react";
+import { LogOut, Search, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isActive, type NavLink, type NavSection } from "@/lib/nav";
 import { NavIcon } from "./NavIcon";
 import { Avatar } from "@/components/ui/Avatar";
 import { Menu } from "@/components/ui/Menu";
+import { QuickAddMenu } from "./QuickAdd";
+import type { UserRole } from "@/lib/data/types";
 
 /**
  * Mail/Notes-style source list for iPad and desktop, as a floating Liquid
@@ -34,14 +36,19 @@ export function Sidebar({
       <div className="flex items-center gap-2.5 px-5 pb-4 pt-5">
         <Image src="/icons/icon.svg" alt="" width={32} height={32} unoptimized className="rounded-[22.5%]" />
         <span className="text-headline">NEWMUX</span>
+        {/* Item 24: one "+" that's always here, whatever the page. */}
+        <QuickAddMenu role={userRole as UserRole} persistent className="ml-auto h-9 min-w-9 px-2" />
+      </div>
+      <div className="px-3 pb-3">
         <button
           type="button"
           onClick={() => window.dispatchEvent(new CustomEvent("open-command-palette"))}
-          className="ml-auto flex items-center gap-0.5 rounded-md bg-fill/[0.12] px-1.5 py-1 text-caption2 text-label-2 hover:bg-fill/20"
-          aria-label="Search everything"
-          title="Search everything"
+          className="flex h-9 w-full items-center gap-2 rounded-[10px] bg-fill/[0.12] px-2.5 text-subhead text-label-2 hover:bg-fill/20"
+          aria-label="Search everything (Command K)"
         >
-          <Command className="h-3 w-3" />K
+          <Search className="h-4 w-4" />
+          <span className="flex-1 text-left">Search</span>
+          <kbd className="rounded-[5px] bg-bg-elevated/70 px-1.5 py-0.5 font-sans text-caption2 font-semibold text-label-2 shadow-[0_0.5px_0_rgb(0_0_0/0.15)]">⌘K</kbd>
         </button>
       </div>
 

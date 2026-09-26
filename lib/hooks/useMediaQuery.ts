@@ -14,7 +14,9 @@ export function useMediaQuery(query: string, serverFallback = false): boolean {
   );
 }
 
-/** iPad landscape / desktop: sheets become centred dialogs, the tab bar becomes a sidebar. */
+/** iPad / desktop (tailwind's `md`): sheets become centred dialogs, the tab bar becomes a sidebar. */
+export const DESKTOP_QUERY = "(min-width: 768px) and (min-height: 540px)";
+
 export function useIsDesktop() {
-  return useMediaQuery("(min-width: 768px)");
+  return useMediaQuery(DESKTOP_QUERY);
 }

@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, MapPin, NotebookPen, Plus, Repeat } from "lucide-react";
-import { Page, NavButton } from "@/components/ui/Page";
+import { CalendarDays, MapPin, NotebookPen, Repeat } from "lucide-react";
+import { QuickAddMenu } from "@/components/shell/QuickAdd";
+import { Page } from "@/components/ui/Page";
 import { ListSection } from "@/components/ui/List";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MeetingSheet } from "@/components/work/WorkSheets";
@@ -99,9 +100,7 @@ export function CalendarScreen({ meetings, projects, clients }: { meetings: Meet
       title="Calendar"
       back={{ href: "/work", label: "Work" }}
       actions={
-        <NavButton label="New event" onClick={() => setEditing("new")}>
-          <Plus className="h-5 w-5" />
-        </NavButton>
+        <QuickAddMenu extra={[{ label: "New event", onSelect: () => setEditing("new") }]} />
       }
       accessory={
         <div className="grid grid-cols-7 gap-1 rounded-card bg-bg-elevated p-2">

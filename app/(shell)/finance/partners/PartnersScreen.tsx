@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { HandCoins, Plus } from "lucide-react";
-import { Page, NavButton } from "@/components/ui/Page";
+import { HandCoins } from "lucide-react";
+import { QuickAddMenu } from "@/components/shell/QuickAdd";
+import { Page } from "@/components/ui/Page";
 import { ListRow, ListSection } from "@/components/ui/List";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FundRows, PartnerRows } from "@/components/finance/PartnerRows";
@@ -37,9 +38,7 @@ export function PartnersScreen({
       title="Partner Payouts"
       back={{ href: "/finance", label: "Finance" }}
       actions={
-        <NavButton label="Record payout" onClick={() => setEditing("new")}>
-          <Plus className="h-5 w-5" />
-        </NavButton>
+        <QuickAddMenu extra={[{ label: "Record payout", onSelect: () => setEditing("new") }]} />
       }
     >
       <div className="grid gap-x-6 lg:grid-cols-2 [&>*]:min-w-0">

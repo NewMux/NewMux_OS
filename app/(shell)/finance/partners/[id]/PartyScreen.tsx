@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
-import { Page, NavButton } from "@/components/ui/Page";
+import { QuickAddMenu } from "@/components/shell/QuickAdd";
+import { Page } from "@/components/ui/Page";
 import { ListRow, ListSection } from "@/components/ui/List";
 import { Button } from "@/components/ui/Button";
 import { SummaryCard } from "@/components/ui/Widget";
@@ -48,9 +48,7 @@ export function PartyScreen(props: {
       back={{ href: "/finance/partners", label: "Payouts" }}
       actions={
         isFund ? undefined : (
-          <NavButton label="Record payout" onClick={() => setEditing("new")}>
-            <Plus className="h-5 w-5" />
-          </NavButton>
+          <QuickAddMenu extra={[{ label: "Record payout", onSelect: () => setEditing("new") }]} />
         )
       }
     >

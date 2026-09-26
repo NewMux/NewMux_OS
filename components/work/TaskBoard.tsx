@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { DndContext, DragOverlay, KeyboardSensor, MouseSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { ListChecks, MessageCircle, Plus } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
@@ -21,6 +21,8 @@ export function TaskBoard({ tasks: initial, onAdd }: { tasks: TaskWithMeta[]; on
   useEffect(() => setTasks(initial), [initial]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const { run } = useMutation();
+  // A stable id keeps dnd-kit's accessibility ids the same on server and client (no hydration mismatch).
+  const dndId = useId();
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 280, tolerance: 8 } }),
@@ -48,7 +50,7 @@ export function TaskBoard({ tasks: initial, onAdd }: { tasks: TaskWithMeta[]; on
   const active = tasks.find((t) => t.id === activeId);
 
   return (
-    <DndContext sensors={sensors} onDragStart={(e) => setActiveId(String(e.active.id))} onDragEnd={onDragEnd} onDragCancel={() => setActiveId(null)}>
+    <DndContext id={dndId} sensors={sensors} onDragStart={(e) => setActiveId(String(e.active.id))} onDragEnd={onDragEnd} onDragCancel={() => setActiveId(null)}>
       <div className="no-scrollbar snap-x-mandatory -mx-4 flex gap-3 overflow-x-auto px-4 pb-4 md:-mx-8 md:px-8 xl:grid xl:grid-cols-4 xl:overflow-visible">
         {COLUMNS.map((status) => (
           <Column key={status} status={status} tasks={byStatus.get(status)!} onAdd={() => onAdd(status)} />

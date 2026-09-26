@@ -14,7 +14,7 @@ import { ActivityTimeline } from "@/components/crm/ActivityTimeline";
 import { ClientSheet, ContactSheet, DealSheet, type ContactOption } from "@/components/crm/CrmSheets";
 import { ActivityButtons, NewLinkedPageButton } from "@/components/crm/DealActions";
 import type { Option } from "@/components/forms/Fields";
-import { DEAL_STAGE, DOC_STATUS, DOC_TYPE, PROJECT_STATUS, CYCLE_LABEL } from "@/lib/labels";
+import { DEAL_STAGE, DOC_TYPE, PROJECT_STATUS, CYCLE_LABEL } from "@/lib/labels";
 import { amountOrTbd, centsToDisplay, convertMinorUnits } from "@/lib/money";
 import { formatDate, relativeDay } from "@/lib/time";
 import type { Client, HostingSubscription, KbPageSummary } from "@/lib/data/types";
@@ -22,6 +22,7 @@ import type { ActivityListItem, ContactListItem, DealListItem } from "@/lib/data
 import type { ProjectWithStats } from "@/lib/data/projects";
 import type { DocumentListItem } from "@/lib/data/documents";
 import type { ExpenseListItem } from "@/lib/data/expenses";
+import { docBadge } from "@/components/documents/docStatus";
 
 type Tab = "overview" | "deals" | "work" | "money" | "wiki";
 
@@ -174,7 +175,7 @@ export function ClientDetail(props: {
                   title={d.documentNumber}
                   subtitle={`${DOC_TYPE[d.type]} · ${formatDate(d.issuedAt ?? d.createdAt)}`}
                   detail={centsToDisplay(d.totalCents, d.currency)}
-                  trailing={<Badge color={DOC_STATUS[d.status].color}>{DOC_STATUS[d.status].label}</Badge>}
+                  trailing={<Badge color={docBadge(d).color}>{docBadge(d).label}</Badge>}
                 />
               ))}
               {documents.length === 0 && <ListRow title="No documents yet" />}

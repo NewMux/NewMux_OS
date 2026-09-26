@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Plus, Receipt, Repeat } from "lucide-react";
-import { Page, NavButton } from "@/components/ui/Page";
+import { Receipt, Repeat } from "lucide-react";
+import { QuickAddMenu } from "@/components/shell/QuickAdd";
+import { Page } from "@/components/ui/Page";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { ListRow, ListSection } from "@/components/ui/List";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -56,9 +57,7 @@ export function ExpensesScreen({ expenses, recurring, links }: { expenses: Expen
       title="Expenses"
       back={{ href: "/finance", label: "Finance" }}
       actions={
-        <NavButton label="Add expense" onClick={() => (tab === "spent" ? setEditing("new") : setEditingRecurring("new"))}>
-          <Plus className="h-5 w-5" />
-        </NavButton>
+        <QuickAddMenu extra={[{ label: "Add expense", onSelect: () => (tab === "spent" ? setEditing("new") : setEditingRecurring("new")) }]} />
       }
       accessory={
         <div className="space-y-3">

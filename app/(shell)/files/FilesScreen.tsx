@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { FileText, FolderOpen, Image as ImageIcon, Plus } from "lucide-react";
-import { Page, NavButton } from "@/components/ui/Page";
+import { FileText, FolderOpen, Image as ImageIcon } from "lucide-react";
+import { QuickAddMenu } from "@/components/shell/QuickAdd";
+import { Page } from "@/components/ui/Page";
 import { ListRow, ListSection, IconTile } from "@/components/ui/List";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -55,9 +56,7 @@ export function FilesScreen({ files, clients, projects, ventures }: { files: Fil
       title="Files"
       back={{ href: "/company", label: "Company" }}
       actions={
-        <NavButton label="Upload file" onClick={() => setEditing("new")}>
-          <Plus className="h-5 w-5" />
-        </NavButton>
+        <QuickAddMenu extra={[{ label: "Upload file", onSelect: () => setEditing("new") }]} />
       }
       accessory={<SearchField value={q} onChange={setQ} placeholder="Search files" />}
     >

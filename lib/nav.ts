@@ -20,6 +20,8 @@ export type NavIconName =
   | "reports"
   | "wiki"
   | "company"
+  | "files"
+  | "payouts"
   | "ventures"
   | "vault"
   | "growth"
@@ -94,17 +96,34 @@ export const SIDEBAR: NavSection[] = [
       { href: "/finance", label: "Overview", icon: "finance", color: "green", roles: ADMIN },
       { href: "/documents", label: "Documents", icon: "documents", color: "green", roles: ADMIN },
       { href: "/finance/expenses", label: "Expenses", icon: "expenses", color: "green", roles: ADMIN },
+      { href: "/finance/partners", label: "Partner Payouts", icon: "payouts", color: "green", roles: ADMIN },
       { href: "/hosting", label: "Hosting Fees", icon: "hosting", color: "green", roles: ADMIN },
       { href: "/reports", label: "Reports", icon: "reports", color: "green", roles: ADMIN },
     ],
   },
   { href: "/wiki", label: "Wiki", icon: "wiki", color: "yellow", roles: ALL },
+  // Item 22: company-level pages are in the sidebar, not only behind Settings.
+  {
+    href: "/company",
+    label: "Company",
+    icon: "company",
+    color: "gray",
+    roles: ADMIN,
+    match: ["/ventures", "/files", "/growth"],
+    children: [
+      { href: "/company", label: "Profile & Renewals", icon: "company", color: "gray", roles: ADMIN },
+      { href: "/ventures", label: "Ventures", icon: "ventures", color: "purple", roles: ADMIN },
+      { href: "/files", label: "Files", icon: "files", color: "blue", roles: ADMIN },
+      { href: "/growth", label: "Growth", icon: "growth", color: "pink", roles: ADMIN },
+    ],
+  },
 ];
 
 /** Company-level screens: in the account menu (sidebar) and at the top of Settings. */
 export const COMPANY_LINKS: NavLink[] = [
   { href: "/company", label: "Company", icon: "company", color: "gray", roles: ADMIN },
   { href: "/ventures", label: "Ventures", icon: "ventures", color: "purple", roles: ADMIN },
+  { href: "/files", label: "Files", icon: "files", color: "blue", roles: ADMIN },
   { href: "/vault", label: "Vault", icon: "vault", color: "teal", roles: ALL },
   { href: "/growth", label: "Growth", icon: "growth", color: "pink", roles: ADMIN },
 ];
@@ -119,7 +138,8 @@ export function sidebarFor(role: UserRole): NavSection[] {
 /** Every destination a role can open, for the command palette's "Go to". */
 export function allLinksFor(role: UserRole): NavLink[] {
   const pages = sidebarFor(role).flatMap((s) => (s.children?.length ? s.children.map((c) => (c.label === "Overview" ? { ...c, label: s.label } : c)) : [s]));
-  return [...pages, ...forRole(COMPANY_LINKS, role), SETTINGS_LINK];
+  const extra = forRole(COMPANY_LINKS, role).filter((l) => !pages.some((p) => p.href === l.href));
+  return [...pages, ...extra, SETTINGS_LINK];
 }
 
 export function forRole<T extends NavLink>(items: T[], role: UserRole): T[] {

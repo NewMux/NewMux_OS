@@ -15,8 +15,11 @@
     --bg-elevated: 255 255 255; /* secondarySystemGroupedBackground */
     --bg-elevated-2: 242 242 247; /* tertiarySystemGroupedBackground */
     --label: 0 0 0;
-    --label-2: 138 138 142; /* secondaryLabel on white */
-    --label-3: 196 196 198; /* tertiaryLabel on white */
+    /* Raised from Apple's defaults to meet WCAG AA (Improvements PRD item 39):
+       secondary text ≥ 4.5:1 on white and grouped grey, tertiary (icons,
+       placeholders) ≥ 3:1. */
+    --label-2: 108 108 113; /* 5.2:1 on white, 4.7:1 on systemGroupedBackground */
+    --label-3: 134 134 139; /* 3.6:1 on white */
     --separator: 198 198 200;
     --fill: 118 118 128; /* use with /12 → /24 alpha */
     --fill-2: 229 229 234; /* opaque fill for chips/inputs */
@@ -57,7 +60,7 @@
     --glass-shadow: 0 8px 28px rgb(0 0 0 / 0.1), 0 1px 3px rgb(0 0 0 / 0.06);
   }
 
-  @media (min-width: 768px) {
+  @media (min-width: 768px) and (min-height: 540px) {
     :root {
       --fs-large-title: 30px;
       --fs-title1: 26px;
@@ -78,8 +81,8 @@
       --bg-elevated: 28 28 30;
       --bg-elevated-2: 44 44 46;
       --label: 255 255 255;
-      --label-2: 141 141 147;
-      --label-3: 72 72 74;
+      --label-2: 168 168 175; /* 7.2:1 on elevated, 5.9:1 on elevated-2 */
+      --label-3: 118 118 124; /* 3.8:1 on elevated */
       --separator: 56 56 58;
       --fill: 118 118 128;
       --fill-2: 44 44 46;
@@ -110,8 +113,8 @@
     --bg-elevated: 28 28 30;
     --bg-elevated-2: 44 44 46;
     --label: 255 255 255;
-    --label-2: 141 141 147;
-    --label-3: 72 72 74;
+    --label-2: 168 168 175;
+    --label-3: 118 118 124;
     --separator: 56 56 58;
     --fill: 118 118 128;
     --fill-2: 44 44 46;

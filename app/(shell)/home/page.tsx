@@ -6,15 +6,15 @@ import { ListRow, ListSection, SectionLink } from "@/components/ui/List";
 import { SummaryCard } from "@/components/ui/Widget";
 import { Avatar } from "@/components/ui/Avatar";
 import { TaskRow } from "@/components/work/TaskRow";
-import { FollowUpRow } from "@/components/crm/FollowUpRow";
-import { NewMenu, type NewItemKind } from "@/components/shell/NewMenu";
-import { getDashboardAlerts } from "@/lib/data/alerts";
+import { QuickAddMenu } from "@/components/shell/QuickAdd";
+import { AttentionList } from "@/components/home/AttentionList";
+import { getAttentionItems } from "@/lib/data/attention";
 import { getErpDashboardSummary } from "@/lib/data/finance";
-import { getPipelineSummary, listOpenFollowUps, openPipelineTotals } from "@/lib/data/crm";
+import { getCompanyBalanceBhd, getPartyBalances, listBankAccounts } from "@/lib/data/ledger";
 import { listTasks } from "@/lib/data/projects";
 import { listUpcomingMeetings } from "@/lib/data/meetings";
 import { isPartnerAdmin } from "@/lib/rbac";
-import { amountOrTbd, compactMoney } from "@/lib/money";
+import { compactMoney } from "@/lib/money";
 import { addDaysYmd, formatDate, formatTime, relativeDay, todayYmd, toYmd } from "@/lib/time";
 import { plural } from "@/lib/utils";
 
@@ -27,40 +27,49 @@ export default async function HomePage() {
   const today = todayYmd();
   const tomorrow = addDaysYmd(today, 1);
 
-  const [alerts, myTasks, meetings, finance, pipeline, followUps] = await Promise.all([
-    getDashboardAlerts({ includeFinance: admin }),
+  const [attention, myTasks, meetings, finance, balance, parties, accounts] = await Promise.all([
+    getAttentionItems({ includeFinance: admin, includeCrm: admin }),
     listTasks({ assigneeId: session.user.id, openOnly: true }),
     listUpcomingMeetings(2),
     admin ? getErpDashboardSummary() : null,
-    admin ? getPipelineSummary() : null,
-    admin ? listOpenFollowUps() : [],
+    admin ? getCompanyBalanceBhd() : null,
+    admin ? getPartyBalances() : null,
+    admin ? listBankAccounts({ activeOnly: true }) : [],
   ]);
 
   const soonMeetings = meetings.filter((m) => toYmd(m.startsAt) <= tomorrow).slice(0, 3);
   const dueTasks = myTasks.filter((t) => t.dueAt && t.dueAt <= tomorrow).slice(0, 5);
-  const followUpsDue = followUps.filter((f) => f.dueAt && toYmd(f.dueAt) <= today);
-  const attentionCount = alerts.hostingAlerts.length + alerts.renewalsWithin30Days.length + followUpsDue.length;
-  const pipe = pipeline ? openPipelineTotals(pipeline) : null;
-  const net = finance ? finance.collectedThisMonthBhdCents - finance.spentThisMonthBhdCents : 0;
-  const createKinds: NewItemKind[] = admin ? ["deal", "task", "invoice", "expense", "page"] : ["task", "page"];
+  const owedToPartners = parties?.partners.reduce((s, p) => s + Math.max(p.remainingBhdCents, 0), 0) ?? 0;
+  const reserve = parties?.funds[0];
 
   return (
     <Page
       title="Today"
       eyebrow={formatDate(today, { weekday: "long", day: "numeric", month: "long" })}
-      actions={<NewMenu kinds={createKinds} />}
+      actions={<QuickAddMenu />}
       titleTrailing={
         <Link href="/settings" aria-label="Account and settings" className="press block md:hidden">
           <Avatar name={session.user.name ?? "?"} size={38} />
         </Link>
       }
     >
-      {finance && pipe && (
+      {/* Item 25: four figures that each mean one thing, and open where they come from. */}
+      {finance && parties && (
         <SummaryCard
           items={[
-            { label: "This month", value: compactMoney(net, "BHD"), caption: "net cash", href: "/finance", tone: net < 0 ? "negative" : undefined },
-            { label: "Receivables", value: compactMoney(finance.totalOutstandingBhdCents), caption: plural(finance.unpaidInvoiceCount + finance.partiallyPaidInvoiceCount, "invoice"), href: "/documents?type=invoice" },
-            { label: "Pipeline", value: compactMoney(pipe.weightedBhdCents), caption: plural(pipe.count, "deal"), href: "/crm/pipeline" },
+            balance
+              ? { label: "Account balance", value: compactMoney(balance.balanceBhdCents, "BHD"), caption: "in the bank", href: "/finance", tone: balance.balanceBhdCents < 0 ? "negative" : undefined }
+              : { label: "Account balance", value: "Set up", caption: "opening balance", href: "/finance" },
+            {
+              label: "Owed by clients",
+              value: compactMoney(finance.totalOutstandingBhdCents),
+              caption: plural(finance.unpaidInvoiceCount + finance.partiallyPaidInvoiceCount, "invoice"),
+              href: "/documents?type=invoice&status=unpaid",
+            },
+            { label: "Owed to partners", value: compactMoney(owedToPartners), caption: plural(parties.partners.filter((p) => p.remainingBhdCents > 0).length, "partner"), href: "/finance/partners" },
+            reserve
+              ? { label: reserve.party.name, value: compactMoney(reserve.balanceBhdCents), caption: "available", href: `/finance/partners/${reserve.party.id}` }
+              : { label: "Reserve", value: "—", caption: "no fund yet", href: "/settings#parties" },
           ]}
         />
       )}
@@ -84,30 +93,7 @@ export default async function HomePage() {
           )}
         </ListSection>
 
-        {attentionCount > 0 && (
-          <ListSection variant="prominent" header="Needs Attention">
-            {alerts.hostingAlerts.map(({ subscription: h, overdue }) => (
-              <ListRow
-                key={h.id}
-                href="/hosting"
-                title={`${h.clientName} — ${h.label ?? h.item} fee`}
-                subtitle={<span className={overdue ? "text-ios-red" : undefined}>{overdue ? `Overdue since ${formatDate(h.nextDueDate)}` : `Due ${relativeDay(h.nextDueDate!)}`}</span>}
-                detail={amountOrTbd(h.amountCents, h.currency)}
-              />
-            ))}
-            {alerts.renewalsWithin30Days.map((r) => (
-              <ListRow
-                key={r.label}
-                href={admin ? "/company" : undefined}
-                title={r.label}
-                subtitle={<span className={r.overdue ? "text-ios-red" : undefined}>{r.overdue ? `Expired ${formatDate(r.dueDate)}` : `Renews ${relativeDay(r.dueDate)}`}</span>}
-              />
-            ))}
-            {followUpsDue.map((a) => (
-              <FollowUpRow key={a.id} activity={a} />
-            ))}
-          </ListSection>
-        )}
+        <AttentionList items={attention} accounts={accounts} canAct={admin} />
       </div>
     </Page>
   );

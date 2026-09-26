@@ -85,6 +85,7 @@ export function DocumentActions({ doc, ctx, menuOnly }: { doc: DocumentRecord; c
       items.push({ label: "Issue Credit Note", icon: FileMinus, onSelect: () => router.push(`/documents/new?type=credit_note&creditFor=${doc.id}`) });
     }
     if (doc.type === "credit_note" && doc.status === "sent" && ctx.remainingCents > 0) items.push({ label: "Record Refund", icon: Undo2, onSelect: () => setPaying(true) });
+    if (open || (isQuote && doc.status === "sent")) items.push({ label: "Send Reminder", icon: Send, onSelect: () => setReminding(true) });
     if (doc.status === "sent" && !(isInvoice && ctx.paidCents > 0)) items.push({ label: "Back to Draft", icon: Undo2, onSelect: () => transition("draft", "Moved back to draft") });
     if (isQuote && doc.status === "declined") items.push({ label: "Reopen", icon: Undo2, onSelect: () => transition("sent", "Reopened") });
     if (["paid", "signed", "accepted", "declined"].includes(doc.status))

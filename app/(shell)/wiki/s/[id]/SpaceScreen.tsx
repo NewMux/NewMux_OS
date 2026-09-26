@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ChevronRight, FileText, Pencil, Plus } from "lucide-react";
-import { Page, NavButton } from "@/components/ui/Page";
+import { ChevronRight, FileText, Pencil } from "lucide-react";
+import { QuickAddMenu } from "@/components/shell/QuickAdd";
+import { Page } from "@/components/ui/Page";
 import { Menu } from "@/components/ui/Menu";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SpaceIcon } from "@/components/wiki/SpaceIcon";
@@ -61,9 +62,7 @@ export function SpaceScreen({ space, pages, spaces, templates, canDelete }: { sp
       subtitle={space.description}
       actions={
         <>
-          <NavButton label="New page" onClick={() => setCreating(true)}>
-            <Plus className="h-5 w-5" />
-          </NavButton>
+          <QuickAddMenu extra={[{ label: "New page", onSelect: () => setCreating(true) }]} />
           <Menu items={[{ label: "Edit Space", icon: Pencil, onSelect: () => setEditing(true) }]} />
         </>
       }

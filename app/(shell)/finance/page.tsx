@@ -39,7 +39,7 @@ export default async function FinancePage() {
   const reserve = parties.funds[0];
 
   return (
-    <Page title="Finance" actions={<QuickAddMenu role="partner_admin" />}>
+    <Page title="Finance" actions={<QuickAddMenu />}>
       <BalanceCard accounts={accounts} totalBhdCents={company?.balanceBhdCents ?? null} />
 
       <SummaryCard

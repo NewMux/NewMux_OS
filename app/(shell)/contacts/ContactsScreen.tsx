@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Contact as ContactIcon, Plus } from "lucide-react";
-import { Page, NavButton } from "@/components/ui/Page";
+import { Contact as ContactIcon } from "lucide-react";
+import { QuickAddMenu } from "@/components/shell/QuickAdd";
+import { Page } from "@/components/ui/Page";
 import { SearchField } from "@/components/ui/SearchField";
 import { ListRow, ListSection } from "@/components/ui/List";
 import { Avatar } from "@/components/ui/Avatar";
@@ -36,9 +37,7 @@ export function ContactsScreen({ contacts, clients }: { contacts: ContactListIte
       title="Contacts"
       back={{ href: "/crm", label: "CRM" }}
       actions={
-        <NavButton label="New contact" onClick={() => setCreating(true)}>
-          <Plus className="h-5 w-5" />
-        </NavButton>
+        <QuickAddMenu extra={[{ label: "New contact", onSelect: () => setCreating(true) }]} />
       }
       accessory={<SearchField value={q} onChange={setQ} placeholder="Search" />}
     >
