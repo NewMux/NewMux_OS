@@ -13,6 +13,7 @@ import { ListRow, ListSection } from "@/components/ui/List";
 import { Badge } from "@/components/ui/Badge";
 import { DocumentActions, PaymentRows } from "@/components/documents/DocumentActions";
 import { SplitRulePicker, type RuleOption } from "@/components/documents/SplitRulePicker";
+import { PdfDownloadLink } from "@/components/pdf/PdfDownloadLink";
 import { DOC_STATUS, DOC_TYPE, docStatusLabel } from "@/lib/labels";
 import { centsToDisplay } from "@/lib/money";
 import { formatDate, todayYmd } from "@/lib/time";
@@ -262,9 +263,9 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
           ))}
         </ListSection>
         <p className="text-center text-footnote text-label-2">
-          <a href={`/api/documents/generate-pdf?id=${doc.id}`} download className="text-accent">
+          <PdfDownloadLink dataUrl={`/api/documents/generate-pdf?id=${doc.id}`} className="text-accent">
             Download PDF
-          </a>
+          </PdfDownloadLink>
         </p>
       </div>
     </Page>

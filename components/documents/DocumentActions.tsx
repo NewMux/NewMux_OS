@@ -13,6 +13,7 @@ import { FieldRow, ListRow, ListSection, PlainRowInput, RowInput } from "@/compo
 import { Textarea } from "@/components/ui/Input";
 import { PaymentSheet } from "./PaymentSheet";
 import { useMutation } from "@/lib/useMutation";
+import { downloadPdf } from "@/lib/pdf/download";
 import { centsToDisplay } from "@/lib/money";
 import { DOC_TYPE, PAYMENT_METHOD } from "@/lib/labels";
 import { formatDate, todayYmd, toYmd } from "@/lib/time";
@@ -79,7 +80,11 @@ export function DocumentActions({ doc, ctx, menuOnly }: { doc: DocumentRecord; c
     const items: MenuItem[] = [];
     if (doc.status === "draft") items.push({ label: "Edit", icon: Pencil, onSelect: () => router.push(`/documents/${doc.id}/edit`) });
     else if (doc.status !== "void") items.push({ label: "Edit Details", icon: Pencil, onSelect: () => setEditingDetails(true) });
-    items.push({ label: "Download PDF", icon: Download, onSelect: () => (window.location.href = `/api/documents/generate-pdf?id=${doc.id}`) });
+    items.push({
+      label: "Download PDF",
+      icon: Download,
+      onSelect: () => downloadPdf(`/api/documents/generate-pdf?id=${doc.id}`).catch((e: Error) => toast.error(e.message)),
+    });
     if (isInvoice && doc.status !== "draft" && doc.status !== "void") {
       items.push({ label: "Profit Split", icon: PieChart, onSelect: () => document.getElementById("split")?.scrollIntoView({ behavior: "smooth" }) });
       items.push({ label: "Issue Credit Note", icon: FileMinus, onSelect: () => router.push(`/documents/new?type=credit_note&creditFor=${doc.id}`) });

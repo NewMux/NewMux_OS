@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { renderToBuffer } from "@react-pdf/renderer";
 import { auth } from "@/lib/auth";
 import { canAccessDocuments } from "@/lib/rbac";
 import { getDocumentById, getLineItems, getClientById } from "@/lib/data/documents";
-import { DocumentPdf } from "@/lib/pdf/templates/DocumentPdf";
+import type { DocumentPdfData } from "@/lib/pdf/download";
 
-export const runtime = "nodejs";
-
+/**
+ * Data for a document's PDF. The browser renders the PDF itself
+ * (lib/pdf/download.tsx): Cloudflare Workers can't run @react-pdf's
+ * WebAssembly layout engine, and rendering there would eat the CPU budget.
+ */
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -26,12 +28,6 @@ export async function GET(req: NextRequest) {
   if (!client) return NextResponse.json({ error: "client not found" }, { status: 404 });
   const creditFor = credited ? `${credited.documentNumber}${credited.externalRef ? ` (${credited.externalRef})` : ""}` : null;
 
-  const buffer = await renderToBuffer(<DocumentPdf document={document} lineItems={lineItems} client={client} creditFor={creditFor} />);
-
-  return new NextResponse(new Uint8Array(buffer), {
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${document.documentNumber}.pdf"`,
-    },
-  });
+  const data: DocumentPdfData = { kind: "document", filename: `${document.documentNumber}.pdf`, document, lineItems, client, creditFor };
+  return NextResponse.json(data);
 }

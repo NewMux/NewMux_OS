@@ -6,6 +6,7 @@ import { Page } from "@/components/ui/Page";
 import { ListRow, ListSection, IconTile } from "@/components/ui/List";
 import { Widget, Metric } from "@/components/ui/Widget";
 import { MigrationChecklist, PipelineTracker } from "@/components/reports/ReportWidgets";
+import { PdfDownloadLink } from "@/components/pdf/PdfDownloadLink";
 import { getHostingFeeReport, getInvoiceStatusReport, getProfitByPartnerReport, getProfitByProjectReport } from "@/lib/data/reports";
 import { listAuditLog } from "@/lib/data/audit";
 import { listDocuments } from "@/lib/data/documents";
@@ -120,10 +121,10 @@ export default async function ReportsPage() {
                       CSV
                     </a>
                     {e.pdf && (
-                      <a href={`/api/reports/pdf?type=${e.type}`} download className="flex items-center gap-1 text-accent">
+                      <PdfDownloadLink dataUrl={`/api/reports/pdf?type=${e.type}`} className="flex items-center gap-1 text-accent">
                         <Download className="h-3.5 w-3.5" />
                         PDF
-                      </a>
+                      </PdfDownloadLink>
                     )}
                   </span>
                 }
