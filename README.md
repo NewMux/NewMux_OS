@@ -125,6 +125,8 @@ The repo includes a one-command Docker setup (`docker-compose.yml`), with three 
 - moving it to `os.newmux.com` is a one-line change later;
 - nightly backups are included.
 
+**[docs/DEPLOY_CLOUDFLARE.md](docs/DEPLOY_CLOUDFLARE.md)** is the alternative for running it on Cloudflare Workers with a Supabase database (needs the $5/month Workers Paid plan; the free plan is too small). It doesn't change the Docker setup above.
+
 The app is internal and unlisted. Every response sends `noindex`, so search engines leave it out, and it lives on a subdomain that nothing links to. See [Keeping it private](docs/DEPLOY_ORACLE.md#keeping-it-private).
 
 ## Roles
