@@ -2,6 +2,9 @@ import { query, tx } from "@/lib/db";
 import { many, must, one, NotFoundError, ValidationError } from "./sql";
 import { logAudit } from "./audit";
 import { daysUntil, todayYmd } from "@/lib/time";
+import { MAX_FILE_BYTES, MAX_FILE_MB } from "@/lib/fileLimits";
+
+export { MAX_FILE_BYTES };
 
 /**
  * Company files (Improvements PRD item 18): contracts, the Commercial
@@ -12,7 +15,6 @@ import { daysUntil, todayYmd } from "@/lib/time";
 
 export const FILE_CATEGORIES = ["contract", "registration", "certificate", "brand", "legal", "finance", "receipt", "other"] as const;
 export type FileCategory = (typeof FILE_CATEGORIES)[number];
-export const MAX_FILE_BYTES = 15 * 1024 * 1024;
 
 export type StoredFile = {
   id: string;
@@ -80,7 +82,7 @@ export type FileMeta = {
 
 export async function createFile(meta: FileMeta, upload: { contentType: string; data: Buffer }, by: string): Promise<StoredFile> {
   if (upload.data.byteLength === 0) throw new ValidationError("The file is empty.");
-  if (upload.data.byteLength > MAX_FILE_BYTES) throw new ValidationError("Files can be up to 15 MB.");
+  if (upload.data.byteLength > MAX_FILE_BYTES) throw new ValidationError(`Files can be up to ${MAX_FILE_MB} MB.`);
   return tx(async () => {
     const file = await must<StoredFile>(
       "File",

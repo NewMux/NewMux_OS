@@ -1,0 +1,14 @@
+# Local Cloudflare preview (`npm run cf:preview`). Copy this file to .dev.vars,
+# which is git-ignored, and fill it in. Production values are set in the
+# Cloudflare dashboard instead (docs/DEPLOY_CLOUDFLARE.md).
+
+# A local Postgres, or leave out and add a "hyperdrive" binding with a
+# "localConnectionString" to wrangler.jsonc.
+DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/newmux
+
+# Any long random strings (32+ characters). Different values for each.
+AUTH_SECRET=change-me-to-a-long-random-string
+VAULT_SESSION_SECRET=change-me-to-another-long-random-string
+
+# Only if Paddle webhooks are connected.
+PADDLE_WEBHOOK_SECRET=

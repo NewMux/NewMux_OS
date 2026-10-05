@@ -33,18 +33,34 @@ const withPWA = withPWAInit({
   },
 });
 
+// Set by open-next.config.ts when building for Cloudflare Workers (npm run cf:build).
+const forCloudflare = process.env.NEWMUX_TARGET === "cloudflare";
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   // Self-contained server bundle for the Docker image (see Dockerfile).
   output: "standalone",
   // PGlite ships WASM + data files that must be loaded from node_modules at
   // runtime rather than bundled; postgres.js likewise stays external.
-  serverExternalPackages: ["@electric-sql/pglite", "postgres"],
+  serverExternalPackages: forCloudflare ? ["postgres"] : ["@electric-sql/pglite", "postgres"],
+  // Next treats @react-pdf/renderer as an external server package by default;
+  // for Cloudflare it is bundled instead (see the alias below).
+  transpilePackages: forCloudflare ? ["@react-pdf/renderer"] : [],
+  // Leave code out of the Worker that it never runs, which keeps it small and
+  // quick to start: the embedded PGlite dev database (Workers always use
+  // Postgres) and @react-pdf/renderer (PDFs are built in the browser, lib/pdf).
+  webpack: (config, { isServer }) => {
+    if (forCloudflare && isServer) {
+      config.resolve.alias = { ...config.resolve.alias, "@electric-sql/pglite": false, "@react-pdf/renderer": false };
+    }
+    return config;
+  },
+  // Icons are served as-is; Workers have no built-in image optimizer.
+  images: { unoptimized: forCloudflare },
   // Files read at runtime that the standalone tracer can't see: db/migrations +
-  // db/seed.sql (read with fs) and pdfkit's fonts (loaded via "#standard-fonts/*"
-  // package imports, used by the PDF exports).
+  // db/seed.sql (read with fs). PDFs are rendered in the browser (lib/pdf).
   outputFileTracingIncludes: {
-    "/**": ["./db/**/*.sql", "./node_modules/pdfkit/js/standard-fonts/**"],
+    "/**": ["./db/**/*.sql"],
   },
   // Internal app on an unlisted subdomain: keep every response (pages, the
   // login screen, PDF/CSV exports) out of search engines. No robots.txt

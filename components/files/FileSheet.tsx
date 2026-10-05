@@ -11,6 +11,7 @@ import { useConfirm } from "@/components/ui/Confirm";
 import { DeleteRow, type Option } from "@/components/forms/Fields";
 import { useMutation } from "@/lib/useMutation";
 import type { FileCategory, FileListItem } from "@/lib/data/files";
+import { MAX_FILE_MB } from "@/lib/fileLimits";
 
 export const CATEGORY_LABEL: Record<FileCategory, string> = {
   contract: "Contract",
@@ -99,7 +100,7 @@ export function FileSheet({
   return (
     <FormSheet open={open} onOpenChange={onOpenChange} title={file ? "File" : "Upload File"} submitLabel={file ? "Save" : "Upload"} canSubmit={!!f.name.trim() && (!!file || !!picked)} onSubmit={submit}>
       {!file && (
-        <ListSection footer="PDF, images or documents, up to 15 MB.">
+        <ListSection footer={`PDF, images or documents, up to ${MAX_FILE_MB} MB.`}>
           <input
             ref={input}
             type="file"
