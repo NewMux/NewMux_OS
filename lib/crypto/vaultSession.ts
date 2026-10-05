@@ -10,17 +10,26 @@ import { randomBytes, createCipheriv, createDecipheriv, scryptSync } from "crypt
 
 const VAULT_SESSION_TTL_MS = 15 * 60 * 1000;
 
+// scrypt is deliberately slow; derive the key once per server instance rather
+// than on every vault request (matters on Workers, which meter CPU time).
+let cachedSessionKey: { secret: string | undefined; key: Buffer } | undefined;
+
 function sessionSecretKey(): Buffer {
   const secret = process.env.VAULT_SESSION_SECRET;
+  if (cachedSessionKey && cachedSessionKey.secret === secret) return cachedSessionKey.key;
   if (!secret) {
+    // A missing secret must never silently fall back to a key that is in the source code.
+    if (process.env.NODE_ENV === "production") throw new Error("VAULT_SESSION_SECRET is not set.");
     // eslint-disable-next-line no-console
     console.warn("[NEWMUX OS] VAULT_SESSION_SECRET is not set — using an insecure dev-only fallback.");
   }
-  return scryptSync(secret ?? "dev-only-insecure-fallback-secret", "newmux-vault-session", 32, {
+  const key = scryptSync(secret ?? "dev-only-insecure-fallback-secret", "newmux-vault-session", 32, {
     N: 16384,
     r: 8,
     p: 1,
   });
+  cachedSessionKey = { secret, key };
+  return key;
 }
 
 export function packVaultSessionCookie(derivedKey: Buffer): string {

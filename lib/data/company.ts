@@ -1,12 +1,22 @@
 import { query } from "@/lib/db";
-import { many, must, buildUpdate, NotFoundError } from "./sql";
+import { many, must, one, buildUpdate, NotFoundError } from "./sql";
 import type { Certification, CertificationStatus, CompanyProfile, Partnership } from "./types";
 
 type ProfileRow = Omit<CompanyProfile, "certifications" | "partnerships">;
 
+/**
+ * The profile is a single row that only the demo seed creates; make it on first
+ * use so a database built from the migrations alone (no seed) still works.
+ */
+async function profileRow(): Promise<ProfileRow> {
+  const row = await one<ProfileRow>("select * from company_profile where id = 1");
+  if (row) return row;
+  return must<ProfileRow>("Company profile", "insert into company_profile (id) values (1) on conflict (id) do update set id = 1 returning *");
+}
+
 export async function getCompanyProfile(): Promise<CompanyProfile> {
   const [profile, certifications, partnerships] = await Promise.all([
-    must<ProfileRow>("Company profile", "select * from company_profile where id = 1"),
+    profileRow(),
     many<Certification>("select id, name, status, expiry_date from certifications order by name"),
     many<Partnership>("select id, name, description from partnerships order by name"),
   ]);
@@ -17,7 +27,10 @@ const PROFILE_FIELDS = ["legalName", "crNumber", "crRenewalDate", "mainDomain", 
 
 export async function updateCompanyProfile(patch: Partial<ProfileRow>): Promise<CompanyProfile> {
   const { set, values } = buildUpdate(patch, PROFILE_FIELDS);
-  if (set) await query(`update company_profile set ${set} where id = 1`, values);
+  if (set) {
+    await profileRow();
+    await query(`update company_profile set ${set} where id = 1`, values);
+  }
   return getCompanyProfile();
 }
 
