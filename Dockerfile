@@ -4,6 +4,8 @@
 FROM node:22-bookworm-slim AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
+# postinstall patches react-pdf's dependencies (scripts/patch-pdf-deps.cjs).
+COPY scripts/patch-pdf-deps.cjs ./scripts/
 RUN npm ci --no-audit --no-fund
 
 FROM node:22-bookworm-slim AS build

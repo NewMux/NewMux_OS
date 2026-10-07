@@ -25,6 +25,8 @@ type Backend = {
   /** Runs a multi-statement SQL script (migrations, seed). */
   exec(script: string): Promise<void>;
   transaction<T>(fn: (exec: Executor) => Promise<T>): Promise<T>;
+  /** Closes the connection (used for the per-call connections on Workers). */
+  end(): Promise<void>;
 };
 
 declare global {
@@ -34,15 +36,19 @@ declare global {
 
 const txStorage = new AsyncLocalStorage<Executor>();
 
+// Cloudflare Workers can't reuse a socket across requests, so there each
+// query()/tx() opens its own short-lived connection instead of sharing a pool.
+const isWorkers = typeof navigator !== "undefined" && navigator.userAgent === "Cloudflare-Workers";
+
 const MIGRATIONS_DIR = path.join(process.cwd(), "db", "migrations");
 const SEED_FILE = path.join(process.cwd(), "db", "seed.sql");
 
-async function createPostgresBackend(url: string): Promise<Backend> {
+async function createPostgresBackend(url: string, opts: { max: number } = { max: 5 }): Promise<Backend> {
   const { default: postgres } = await import("postgres");
   const passthrough = (x: string) => x;
   const sql = postgres(url, {
     prepare: false,
-    max: 5,
+    max: opts.max,
     // Skip "already exists, skipping" notices from idempotent migrations.
     onnotice: () => {},
     types: {
@@ -75,10 +81,11 @@ async function createPostgresBackend(url: string): Promise<Backend> {
       await sql.unsafe(script).simple();
     },
     transaction: (fn) => sql.begin((tx) => fn(exec(tx as unknown as typeof sql))) as never,
+    end: () => sql.end({ timeout: 5 }),
   };
   // Self-hosted (Docker) deployments migrate and seed on first connection,
   // exactly like the embedded database; hosted setups run `npm run seed`.
-  if (process.env.DB_AUTO_MIGRATE === "1") await migrate(backend, { seed: true });
+  if (process.env.DB_AUTO_MIGRATE === "1" && !isWorkers) await migrate(backend, { seed: true });
   return backend;
 }
 
@@ -107,6 +114,7 @@ async function createPgliteBackend(): Promise<Backend> {
       await db.exec(script);
     },
     transaction: (fn) => db.transaction((tx) => fn(exec(tx))),
+    end: () => db.close(),
   };
   await migrate(backend, { seed: true });
   return backend;
@@ -157,12 +165,36 @@ function getBackend(): Promise<Backend> {
   return global.__newmuxDb;
 }
 
+/**
+ * On Workers, prefers the HYPERDRIVE binding (pooled connections close to the
+ * Worker, see wrangler.jsonc) over a direct DATABASE_URL. OpenNext keeps the
+ * request's bindings under this global symbol.
+ */
+function workersConnectionString(): string | undefined {
+  const context = (globalThis as Record<symbol, { env?: { HYPERDRIVE?: { connectionString: string } } } | undefined>)[
+    Symbol.for("__cloudflare-context__")
+  ];
+  return context?.env?.HYPERDRIVE?.connectionString ?? process.env.DATABASE_URL;
+}
+
+/** Runs `fn` on the shared backend, or on Workers on a connection opened just for this call. */
+async function withBackend<T>(fn: (backend: Backend) => Promise<T>): Promise<T> {
+  if (!isWorkers) return fn(await getBackend());
+  const url = workersConnectionString();
+  if (!url) throw new Error("Set a HYPERDRIVE binding or DATABASE_URL when running on Cloudflare Workers");
+  const backend = await createPostgresBackend(url, { max: 1 });
+  try {
+    return await fn(backend);
+  } finally {
+    await backend.end();
+  }
+}
+
 /** Runs a parameterized query ($1, $2 …). Inside `tx()`, runs on that transaction. */
 export async function query<T = Row>(text: string, params: unknown[] = []): Promise<T[]> {
   const inTx = txStorage.getStore();
   if (inTx) return (await inTx(text, params)) as T[];
-  const backend = await getBackend();
-  return (await backend.query(text, params)) as T[];
+  return (await withBackend((backend) => backend.query(text, params))) as T[];
 }
 
 export async function queryOne<T = Row>(text: string, params: unknown[] = []): Promise<T | undefined> {
@@ -173,8 +205,12 @@ export async function queryOne<T = Row>(text: string, params: unknown[] = []): P
 /** Runs `fn` in a transaction; every `query()` call inside it joins the transaction. */
 export async function tx<T>(fn: () => Promise<T>): Promise<T> {
   if (txStorage.getStore()) return fn();
-  const backend = await getBackend();
-  return backend.transaction((exec) => txStorage.run(exec, fn));
+  return withBackend((backend) => backend.transaction((exec) => txStorage.run(exec, fn)));
+}
+
+/** Which backend `query()` uses: always Postgres on Workers, PGlite locally without DATABASE_URL. */
+export function databaseMode(): "postgres" | "pglite" {
+  return isWorkers || process.env.DATABASE_URL ? "postgres" : "pglite";
 }
 
 export async function pingDb(): Promise<boolean> {

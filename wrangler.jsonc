@@ -1,0 +1,24 @@
+{
+  "name": "newmux-os",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2025-09-01",
+  // nodejs_compat gives postgres.js, bcryptjs and next-auth the Node APIs they
+  // need; process.env is populated from vars and secrets.
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  // Optional but recommended: pool database connections with Hyperdrive.
+  // Create one with `npx wrangler hyperdrive create newmux-db
+  // --connection-string="<Supabase direct connection string>"`, then uncomment
+  // the next line with the returned id:
+  // "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "<hyperdrive id>" }],
+  "observability": { "enabled": true },
+  // Keep the variables set in the dashboard when deploying.
+  "keep_vars": true
+  // Secrets (`npx wrangler secret put NAME` or the dashboard): DATABASE_URL
+  // (unless Hyperdrive is bound), AUTH_SECRET, NEXTAUTH_SECRET,
+  // VAULT_SESSION_SECRET, PADDLE_API_KEY, PADDLE_WEBHOOK_SECRET.
+  // Vars: NEXTAUTH_URL, NEXT_PUBLIC_APP_URL (the Worker's public URL).
+}
