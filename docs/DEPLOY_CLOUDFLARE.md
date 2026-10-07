@@ -2,7 +2,7 @@
 
 The app runs on Cloudflare Workers through the OpenNext adapter
 (`@opennextjs/cloudflare`), with its data in Supabase Postgres. Every push to
-`main` migrates the database and deploys the Worker
+the default branch migrates the database and deploys the Worker
 (`.github/workflows/deploy-cloudflare.yml`).
 
 ## 1. Database (Supabase)
