@@ -1,5 +1,6 @@
 import { query } from "@/lib/db";
-import { many, one, must, buildUpdate, NotFoundError, ValidationError } from "./sql";
+import { many, one, must, buildUpdate, NotFoundError } from "./sql";
+import { assertNoFinancialRecords } from "./guards";
 import type { Client, Product } from "./types";
 
 export type ClientWithStats = Client & {
@@ -33,6 +34,7 @@ export async function getClientById(id: string): Promise<Client | undefined> {
 
 export type ClientInput = {
   name: string;
+  shortName?: string | null;
   industry?: string | null;
   website?: string | null;
   email?: string | null;
@@ -44,8 +46,8 @@ export type ClientInput = {
 export async function createClient(input: ClientInput): Promise<Client> {
   return must<Client>(
     "Client",
-    `insert into clients (name, industry, website, email, phone, billing_address, notes)
-     values ($1, $2, $3, $4, $5, $6, $7) returning *`,
+    `insert into clients (name, industry, website, email, phone, billing_address, notes, short_name)
+     values ($1, $2, $3, $4, $5, $6, $7, $8) returning *`,
     [
       input.name,
       input.industry ?? null,
@@ -54,11 +56,12 @@ export async function createClient(input: ClientInput): Promise<Client> {
       input.phone ?? null,
       input.billingAddress ?? null,
       input.notes ?? null,
+      input.shortName ?? null,
     ],
   );
 }
 
-const CLIENT_FIELDS = ["name", "industry", "website", "email", "phone", "billingAddress", "notes"] as const;
+const CLIENT_FIELDS = ["name", "shortName", "industry", "website", "email", "phone", "billingAddress", "notes"] as const;
 
 export async function updateClient(id: string, patch: Partial<ClientInput>): Promise<Client> {
   const { set, values } = buildUpdate(patch, CLIENT_FIELDS, 2);
@@ -66,24 +69,9 @@ export async function updateClient(id: string, patch: Partial<ClientInput>): Pro
   return must<Client>("Client", `update clients set ${set}, updated_at = now() where id = $1 returning *`, [id, ...values]);
 }
 
-/**
- * NFR: a client referenced by non-archived documents can't be deleted
- * (documents.client_id is also ON DELETE RESTRICT at the database level).
- */
+/** Blocked while any document, payment, expense or hosting fee refers to the client (item 20). */
 export async function deleteClient(id: string): Promise<void> {
-  const blocking = await query<{ document_number: string }>(
-    "select document_number from documents where client_id = $1 and status <> 'archived'",
-    [id],
-  );
-  if (blocking.length > 0) {
-    throw new ValidationError(
-      `This client has ${blocking.length} active document(s) (${blocking.map((d) => d.document_number).join(", ")}). Archive them first.`,
-    );
-  }
-  const archived = await query("select 1 from documents where client_id = $1 limit 1", [id]);
-  if (archived.length > 0) {
-    throw new ValidationError("This client has archived documents on record, so it is kept for bookkeeping.");
-  }
+  await assertNoFinancialRecords("client", id);
   const rows = await query("delete from clients where id = $1 returning id", [id]);
   if (rows.length === 0) throw new NotFoundError("Client");
 }

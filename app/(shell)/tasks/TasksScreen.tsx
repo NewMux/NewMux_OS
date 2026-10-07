@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { CircleCheckBig, Plus } from "lucide-react";
-import { Page, NavButton } from "@/components/ui/Page";
+import { CircleCheckBig } from "lucide-react";
+import { QuickAddMenu } from "@/components/shell/QuickAdd";
+import { Page } from "@/components/ui/Page";
 import { ListSection } from "@/components/ui/List";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -52,9 +53,7 @@ export function TasksScreen({ tasks, userId, projects, users }: { tasks: TaskWit
       title="My Tasks"
       back={{ href: "/work", label: "Work" }}
       actions={
-        <NavButton label="New task" onClick={() => setCreating(true)}>
-          <Plus className="h-5 w-5" />
-        </NavButton>
+        <QuickAddMenu extra={[{ label: "New task", onSelect: () => setCreating(true) }]} />
       }
       accessory={
         <SegmentedControl
@@ -74,7 +73,7 @@ export function TasksScreen({ tasks, userId, projects, users }: { tasks: TaskWit
         {groups.map(([label, items]) => (
           <ListSection key={label} header={<span className={label === "Overdue" ? "text-ios-red" : undefined}>{label}</span>}>
             {items.map((t) => (
-              <TaskRow key={t.id} task={t} />
+              <TaskRow key={t.id} task={t} hideAssignee />
             ))}
           </ListSection>
         ))}
@@ -86,7 +85,7 @@ export function TasksScreen({ tasks, userId, projects, users }: { tasks: TaskWit
             {showDone && (
               <ListSection>
                 {done.map((t) => (
-                  <TaskRow key={t.id} task={t} />
+                  <TaskRow key={t.id} task={t} hideAssignee />
                 ))}
               </ListSection>
             )}

@@ -2,37 +2,63 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { solidBg, type SysColor } from "@/lib/colors";
+import { RowLink } from "./RowLink";
+import { InfoTip } from "./InfoTip";
 
 /**
- * Inset grouped list, as in the iOS Settings app: an optional small header,
- * a rounded card of rows with inset hairline separators, an optional footer.
+ * Inset grouped list (iOS 26): a sentence-case header, a rounded card of rows
+ * with inset hairline separators, an optional footer. `prominent` gives the
+ * bold Health/Fitness-style section title used on dashboards.
  */
 export function ListSection({
   header,
   footer,
+  info,
   action,
   children,
   className,
   inset = true,
+  variant = "default",
 }: {
   header?: React.ReactNode;
   footer?: React.ReactNode;
+  /** Explanation behind an ⓘ beside the header, instead of a footer sentence. */
+  info?: React.ReactNode;
   action?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
   inset?: boolean;
+  variant?: "default" | "prominent";
 }) {
+  const prominent = variant === "prominent";
   return (
-    <section className={cn("mb-7", className)}>
+    <section className={cn(prominent ? "mb-8" : "mb-7", className)}>
       {(header || action) && (
-        <div className="mb-1.5 flex items-end justify-between px-4">
-          {header ? <h2 className="text-footnote uppercase text-label-2">{header}</h2> : <span />}
+        <div className={cn("flex items-end justify-between", prominent ? "mb-2.5 px-1" : "mb-1.5 px-4")}>
+          {header ? (
+            <h2 className={cn("flex items-center gap-1.5", prominent ? "text-title3 font-bold text-label" : "text-footnote font-medium text-label-2")}>
+              {header}
+              {info && <InfoTip>{info}</InfoTip>}
+            </h2>
+          ) : (
+            <span />
+          )}
           {action}
         </div>
       )}
-      <div className={cn("overflow-hidden bg-bg-elevated", inset && "rounded-[12px]")}>{children}</div>
+      <div className={cn("overflow-hidden bg-bg-elevated", inset && "rounded-card")}>{children}</div>
       {footer && <p className="mt-1.5 px-4 text-footnote text-label-2">{footer}</p>}
     </section>
+  );
+}
+
+/** "Show All ›" link for a section header. */
+export function SectionLink({ href, children = "Show All" }: { href: string; children?: React.ReactNode }) {
+  return (
+    <Link href={href} className="press -my-3 flex items-center gap-0.5 py-3 text-subhead font-medium text-accent">
+      {children}
+      <ChevronRight className="h-4 w-4" strokeWidth={2.4} aria-hidden />
+    </Link>
   );
 }
 
@@ -94,9 +120,9 @@ export function ListRow({ title, subtitle, detail, leading, trailing, href, onCl
   );
   if (href) {
     return (
-      <Link href={href} className={base}>
+      <RowLink href={href} className={base}>
         {content}
-      </Link>
+      </RowLink>
     );
   }
   if (onClick) {

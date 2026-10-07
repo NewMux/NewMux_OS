@@ -3,6 +3,7 @@ import type { SysColor } from "./colors";
 
 export type NavIconName =
   | "home"
+  | "today"
   | "search"
   | "crm"
   | "pipeline"
@@ -19,6 +20,8 @@ export type NavIconName =
   | "reports"
   | "wiki"
   | "company"
+  | "files"
+  | "payouts"
   | "ventures"
   | "vault"
   | "growth"
@@ -39,24 +42,29 @@ const ADMIN: UserRole[] = ["partner_admin"];
 
 /** Phone tab bar (iOS keeps it to five). */
 export const TABS: NavLink[] = [
-  { href: "/home", label: "Home", icon: "home", color: "blue", roles: ALL },
+  { href: "/home", label: "Today", icon: "today", color: "blue", roles: ALL },
   { href: "/crm", label: "CRM", icon: "crm", color: "indigo", roles: ADMIN, match: ["/clients", "/contacts"] },
   { href: "/work", label: "Work", icon: "work", color: "orange", roles: ALL, match: ["/projects", "/tasks", "/meetings"] },
   { href: "/finance", label: "Finance", icon: "finance", color: "green", roles: ADMIN, match: ["/documents", "/hosting", "/reports"] },
   { href: "/wiki", label: "Wiki", icon: "wiki", color: "yellow", roles: ALL },
 ];
 
-/** iPad/desktop sidebar, grouped like Mail/Notes. */
-export const SIDEBAR: { title?: string; items: NavLink[] }[] = [
+export type NavSection = NavLink & { children?: NavLink[] };
+
+/**
+ * iPad/desktop sidebar: the same five sections as the phone tab bar. The
+ * section you're in expands to show its pages; the rest stay collapsed.
+ */
+export const SIDEBAR: NavSection[] = [
+  { href: "/home", label: "Today", icon: "today", color: "blue", roles: ALL },
   {
-    items: [
-      { href: "/home", label: "Home", icon: "home", color: "blue", roles: ALL },
-      { href: "/search", label: "Search", icon: "search", color: "gray", roles: ALL },
-    ],
-  },
-  {
-    title: "CRM",
-    items: [
+    href: "/crm",
+    label: "CRM",
+    icon: "crm",
+    color: "indigo",
+    roles: ADMIN,
+    match: ["/clients", "/contacts"],
+    children: [
       { href: "/crm", label: "Overview", icon: "crm", color: "indigo", roles: ADMIN },
       { href: "/crm/pipeline", label: "Pipeline", icon: "pipeline", color: "indigo", roles: ADMIN },
       { href: "/clients", label: "Clients", icon: "clients", color: "indigo", roles: ADMIN },
@@ -65,49 +73,74 @@ export const SIDEBAR: { title?: string; items: NavLink[] }[] = [
     ],
   },
   {
-    title: "Work",
-    items: [
+    href: "/work",
+    label: "Work",
+    icon: "work",
+    color: "orange",
+    roles: ALL,
+    match: ["/projects", "/tasks", "/meetings"],
+    children: [
       { href: "/work", label: "Projects", icon: "work", color: "orange", roles: ALL, match: ["/projects"] },
       { href: "/tasks", label: "My Tasks", icon: "tasks", color: "orange", roles: ALL },
       { href: "/meetings", label: "Calendar", icon: "calendar", color: "red", roles: ALL },
     ],
   },
   {
-    title: "Finance",
-    items: [
+    href: "/finance",
+    label: "Finance",
+    icon: "finance",
+    color: "green",
+    roles: ADMIN,
+    match: ["/documents", "/hosting", "/reports"],
+    children: [
       { href: "/finance", label: "Overview", icon: "finance", color: "green", roles: ADMIN },
-      { href: "/documents", label: "Invoices & Quotes", icon: "documents", color: "green", roles: ADMIN },
+      { href: "/documents", label: "Documents", icon: "documents", color: "green", roles: ADMIN },
       { href: "/finance/expenses", label: "Expenses", icon: "expenses", color: "green", roles: ADMIN },
+      { href: "/finance/partners", label: "Partner Payouts", icon: "payouts", color: "green", roles: ADMIN },
       { href: "/hosting", label: "Hosting Fees", icon: "hosting", color: "green", roles: ADMIN },
       { href: "/reports", label: "Reports", icon: "reports", color: "green", roles: ADMIN },
     ],
   },
+  { href: "/wiki", label: "Wiki", icon: "wiki", color: "yellow", roles: ALL },
+  // Item 22: company-level pages are in the sidebar, not only behind Settings.
   {
-    title: "Knowledge",
-    items: [{ href: "/wiki", label: "Wiki", icon: "wiki", color: "yellow", roles: ALL }],
-  },
-  {
-    title: "Company",
-    items: [
-      { href: "/company", label: "Company", icon: "company", color: "gray", roles: ADMIN },
+    href: "/company",
+    label: "Company",
+    icon: "company",
+    color: "gray",
+    roles: ADMIN,
+    match: ["/ventures", "/files", "/growth"],
+    children: [
+      { href: "/company", label: "Profile & Renewals", icon: "company", color: "gray", roles: ADMIN },
       { href: "/ventures", label: "Ventures", icon: "ventures", color: "purple", roles: ADMIN },
-      { href: "/vault", label: "Vault", icon: "vault", color: "gray", roles: ALL },
+      { href: "/files", label: "Files", icon: "files", color: "blue", roles: ADMIN },
       { href: "/growth", label: "Growth", icon: "growth", color: "pink", roles: ADMIN },
-      { href: "/settings", label: "Settings", icon: "settings", color: "gray", roles: ALL },
     ],
   },
 ];
 
-/** Modules without a tab, surfaced in Home's "More" section on phones. */
-export const MORE_LINKS: NavLink[] = [
-  { href: "/meetings", label: "Calendar", icon: "calendar", color: "red", roles: ALL },
-  { href: "/reports", label: "Reports", icon: "reports", color: "green", roles: ADMIN },
+/** Company-level screens: in the account menu (sidebar) and at the top of Settings. */
+export const COMPANY_LINKS: NavLink[] = [
   { href: "/company", label: "Company", icon: "company", color: "gray", roles: ADMIN },
   { href: "/ventures", label: "Ventures", icon: "ventures", color: "purple", roles: ADMIN },
+  { href: "/files", label: "Files", icon: "files", color: "blue", roles: ADMIN },
   { href: "/vault", label: "Vault", icon: "vault", color: "teal", roles: ALL },
   { href: "/growth", label: "Growth", icon: "growth", color: "pink", roles: ADMIN },
-  { href: "/settings", label: "Settings", icon: "settings", color: "gray", roles: ALL },
 ];
+
+const SETTINGS_LINK: NavLink = { href: "/settings", label: "Settings", icon: "settings", color: "gray", roles: ALL };
+
+/** The sidebar tree filtered for a role (sections with no visible pages drop out). */
+export function sidebarFor(role: UserRole): NavSection[] {
+  return SIDEBAR.filter((s) => s.roles.includes(role)).map((s) => ({ ...s, children: s.children ? forRole(s.children, role) : undefined }));
+}
+
+/** Every destination a role can open, for the command palette's "Go to". */
+export function allLinksFor(role: UserRole): NavLink[] {
+  const pages = sidebarFor(role).flatMap((s) => (s.children?.length ? s.children.map((c) => (c.label === "Overview" ? { ...c, label: s.label } : c)) : [s]));
+  const extra = forRole(COMPANY_LINKS, role).filter((l) => !pages.some((p) => p.href === l.href));
+  return [...pages, ...extra, SETTINGS_LINK];
+}
 
 export function forRole<T extends NavLink>(items: T[], role: UserRole): T[] {
   return items.filter((i) => i.roles.includes(role));

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { databaseMode, pingDb } from "@/lib/db";
+import { dbMode, pingDb } from "@/lib/db";
 
 export async function GET() {
   const session = await auth();
@@ -9,7 +9,7 @@ export async function GET() {
   return NextResponse.json({
     status: db ? "ok" : "degraded",
     db: db ? "ok" : "down",
-    mode: databaseMode(),
+    mode: dbMode(),
     checkedAt: new Date().toISOString(),
   });
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { DndContext, DragOverlay, KeyboardSensor, MouseSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { ListChecks, MessageCircle, Plus } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
@@ -21,6 +21,8 @@ export function TaskBoard({ tasks: initial, onAdd }: { tasks: TaskWithMeta[]; on
   useEffect(() => setTasks(initial), [initial]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const { run } = useMutation();
+  // A stable id keeps dnd-kit's accessibility ids the same on server and client (no hydration mismatch).
+  const dndId = useId();
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 280, tolerance: 8 } }),
@@ -48,7 +50,7 @@ export function TaskBoard({ tasks: initial, onAdd }: { tasks: TaskWithMeta[]; on
   const active = tasks.find((t) => t.id === activeId);
 
   return (
-    <DndContext sensors={sensors} onDragStart={(e) => setActiveId(String(e.active.id))} onDragEnd={onDragEnd} onDragCancel={() => setActiveId(null)}>
+    <DndContext id={dndId} sensors={sensors} onDragStart={(e) => setActiveId(String(e.active.id))} onDragEnd={onDragEnd} onDragCancel={() => setActiveId(null)}>
       <div className="no-scrollbar snap-x-mandatory -mx-4 flex gap-3 overflow-x-auto px-4 pb-4 md:-mx-8 md:px-8 xl:grid xl:grid-cols-4 xl:overflow-visible">
         {COLUMNS.map((status) => (
           <Column key={status} status={status} tasks={byStatus.get(status)!} onAdd={() => onAdd(status)} />
@@ -65,7 +67,7 @@ function Column({ status, tasks, onAdd }: { status: TaskStatus; tasks: TaskWithM
   return (
     <section
       ref={setNodeRef}
-      className={cn("flex w-[82vw] max-w-[320px] shrink-0 snap-center flex-col rounded-[18px] p-2 transition-colors xl:w-auto xl:max-w-none", isOver ? "bg-accent/10 ring-2 ring-accent/40" : "bg-fill/[0.08]")}
+      className={cn("flex w-[82vw] max-w-[320px] shrink-0 snap-center flex-col rounded-card p-2 transition-colors xl:w-auto xl:max-w-none", isOver ? "bg-accent/10 ring-2 ring-accent/40" : "bg-fill/[0.08]")}
     >
       <header className="flex items-center gap-2 px-2 pb-2 pt-1">
         <span className={cn("h-2.5 w-2.5 rounded-full", solidBg[meta.color])} />
@@ -101,7 +103,7 @@ function Card({ task, lifted }: { task: TaskWithMeta; lifted?: boolean }) {
     <button
       type="button"
       onClick={() => openTask(task.id)}
-      className={cn("w-full rounded-[14px] bg-bg-elevated p-3 text-left shadow-widget dark:shadow-none", lifted && "rotate-[1.5deg] scale-[1.03] shadow-float")}
+      className={cn("w-full rounded-[16px] bg-bg-elevated p-3 text-left", lifted && "rotate-[1.5deg] scale-[1.03] shadow-float")}
     >
       <div className={cn("text-body leading-snug", task.status === "done" && "text-label-2 line-through")}>
         {p.marks && <span className={cn("mr-1 font-semibold", textColor[p.color])}>{p.marks}</span>}

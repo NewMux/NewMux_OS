@@ -5,7 +5,8 @@ export function ProgressRing({ value, size = 28, stroke = 3.5, color = "rgb(var(
   const v = Math.max(0, Math.min(1, value));
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0 -rotate-90" aria-hidden>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgb(var(--fill) / 0.2)" strokeWidth={stroke} />
+      {/* Fitness-style: the track is the ring's own colour, faded. */}
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeOpacity={0.18} strokeWidth={stroke} />
       <circle
         cx={size / 2}
         cy={size / 2}

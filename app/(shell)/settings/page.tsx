@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth";
+import { dbMode } from "@/lib/db";
 import { isPartnerAdmin } from "@/lib/rbac";
 import { listDeductionTypes, listParties, listProfitSplitRules, listVentures } from "@/lib/data/finance";
 import { listProjects } from "@/lib/data/projects";
@@ -23,7 +24,7 @@ export default async function SettingsPage() {
         ...projects.map((p) => ({ scopeType: "project" as const, scopeId: p.id, name: p.name })),
         ...ventures.map((v) => ({ scopeType: "venture" as const, scopeId: v.id, name: v.name })),
       ]}
-      dbMode={process.env.DATABASE_URL ? "Supabase Postgres" : "Local database (PGlite)"}
+      dbMode={dbMode() === "postgres" ? "Supabase Postgres" : "Local database (PGlite)"}
     />
   );
 }

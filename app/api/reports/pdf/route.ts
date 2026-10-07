@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { renderToBuffer } from "@react-pdf/renderer";
 import { auth } from "@/lib/auth";
 import { canAccessFinance } from "@/lib/rbac";
 import { getProfitByProjectReport, getProfitByPartnerReport, getInvoiceStatusReport } from "@/lib/data/reports";
-import { ReportPdf } from "@/lib/pdf/templates/ReportPdf";
 import { centsToDisplay } from "@/lib/money";
+import type { ReportPdfData } from "@/lib/pdf/download";
 
-export const runtime = "nodejs";
-
+/** Data for a report's PDF; the browser renders it (see lib/pdf/download.tsx). */
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -22,14 +20,14 @@ export async function GET(req: NextRequest) {
   if (type === "project-profit") {
     const data = await getProfitByProjectReport();
     title = "Profit & Loss by Project";
-    headers = ["Project", "Revenue", "Deductions", "Net Profit"];
-    rows = data.map((r) => [r.projectName, centsToDisplay(r.revenueBhdCents, "BHD"), centsToDisplay(r.deductionsBhdCents, "BHD"), centsToDisplay(r.netProfitBhdCents, "BHD")]);
+    headers = ["Project", "Revenue", "Costs", "Net Profit"];
+    rows = data.map((r) => [r.projectName, centsToDisplay(r.revenueBhdCents, "BHD"), centsToDisplay(r.costsBhdCents, "BHD"), centsToDisplay(r.netProfitBhdCents, "BHD")]);
     filename = "profit-by-project.pdf";
   } else if (type === "partner-profit") {
     const data = await getProfitByPartnerReport();
     title = "Profit Distribution by Partner";
-    headers = ["Partner", "Total Share"];
-    rows = data.map((r) => [r.partyName, centsToDisplay(r.totalBhdCents, "BHD")]);
+    headers = ["Party", "Entitled", "Paid", "Remaining"];
+    rows = data.map((r) => [r.partyName, centsToDisplay(r.totalBhdCents, "BHD"), centsToDisplay(r.paidBhdCents, "BHD"), centsToDisplay(r.remainingBhdCents, "BHD")]);
     filename = "profit-by-partner.pdf";
   } else if (type === "invoice-status") {
     const r = await getInvoiceStatusReport();
@@ -46,11 +44,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "unknown report type" }, { status: 400 });
   }
 
-  const buffer = await renderToBuffer(<ReportPdf title={title} headers={headers} rows={rows} />);
-  return new NextResponse(new Uint8Array(buffer), {
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${filename}"`,
-    },
-  });
+  const data: ReportPdfData = { kind: "report", filename, title, headers, rows };
+  return NextResponse.json(data);
 }

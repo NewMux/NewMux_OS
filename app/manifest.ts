@@ -12,6 +12,12 @@ export default function manifest(): MetadataRoute.Manifest {
     orientation: "any",
     background_color: "#f2f2f7",
     theme_color: "#f2f2f7",
+    // Long-press the home-screen icon (item 38).
+    shortcuts: [
+      { name: "Add Expense", short_name: "Expense", url: "/finance/expenses?new=1", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+      { name: "Record Payment", short_name: "Payment", url: "/documents?type=invoice&status=unpaid", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+      { name: "New Task", short_name: "Task", url: "/tasks?new=1", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+    ],
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },

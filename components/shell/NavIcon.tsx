@@ -7,6 +7,8 @@ import {
   CircleCheckBig,
   Contact,
   FileText,
+  FolderOpen,
+  HandCoins,
   Handshake,
   House,
   KeyRound,
@@ -17,6 +19,7 @@ import {
   Server,
   Settings,
   SquareKanban,
+  Sun,
   Users,
   Wallet,
   type LucideProps,
@@ -25,6 +28,7 @@ import type { NavIconName } from "@/lib/nav";
 
 const ICONS: Record<NavIconName, React.ComponentType<LucideProps>> = {
   home: House,
+  today: Sun,
   search: Search,
   crm: Handshake,
   pipeline: SquareKanban,
@@ -41,6 +45,8 @@ const ICONS: Record<NavIconName, React.ComponentType<LucideProps>> = {
   reports: BarChart3,
   wiki: BookOpen,
   company: Building2,
+  files: FolderOpen,
+  payouts: HandCoins,
   ventures: Rocket,
   vault: KeyRound,
   growth: Megaphone,

@@ -1,0 +1,4 @@
+# Cloudflare Workers static assets (ignored elsewhere): Next.js fingerprints
+# everything under /_next/static, so browsers can cache it forever.
+/_next/static/*
+  Cache-Control: public,max-age=31536000,immutable

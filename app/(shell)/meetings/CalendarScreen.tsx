@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, MapPin, NotebookPen, Plus, Repeat } from "lucide-react";
-import { Page, NavButton } from "@/components/ui/Page";
+import { CalendarDays, MapPin, NotebookPen, Repeat } from "lucide-react";
+import { QuickAddMenu } from "@/components/shell/QuickAdd";
+import { Page } from "@/components/ui/Page";
 import { ListSection } from "@/components/ui/List";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MeetingSheet } from "@/components/work/WorkSheets";
@@ -15,6 +16,13 @@ import { cn } from "@/lib/utils";
 import type { MeetingListItem } from "@/lib/data/meetings";
 
 /** Agenda view with a week strip, like Calendar's list mode. */
+/** "Today · 23 Sep", "Saturday · 26 Sep", or "Monday 5 Oct" further out. */
+function dayHeader(day: string) {
+  const rel = relativeDay(day);
+  const date = formatDate(day, { day: "numeric", month: "short" });
+  return rel === date ? formatDate(day, { weekday: "long", day: "numeric", month: "short" }) : `${rel} · ${date}`;
+}
+
 export function CalendarScreen({ meetings, projects, clients }: { meetings: MeetingListItem[]; projects: Option[]; clients: Option[] }) {
   const router = useRouter();
   const { run, pending } = useMutation();
@@ -50,7 +58,7 @@ export function CalendarScreen({ meetings, projects, clients }: { meetings: Meet
   };
 
   const dayGroup = (day: string) => (
-    <ListSection key={day} header={<span className={day === today ? "text-ios-red" : undefined}>{`${relativeDay(day)} · ${formatDate(day, { weekday: "short", day: "numeric", month: "short" })}`}</span>}>
+    <ListSection key={day} header={<span className={day === today ? "text-ios-red" : undefined}>{dayHeader(day)}</span>}>
       {byDay.get(day)!.map((m) => (
         <div key={m.id} className="flex items-stretch gap-3 pl-4 [&:last-child_.row-sep]:shadow-none">
           <span className="my-2.5 w-1 shrink-0 rounded-full bg-ios-red" />
@@ -92,12 +100,10 @@ export function CalendarScreen({ meetings, projects, clients }: { meetings: Meet
       title="Calendar"
       back={{ href: "/work", label: "Work" }}
       actions={
-        <NavButton label="New event" onClick={() => setEditing("new")}>
-          <Plus className="h-5 w-5" />
-        </NavButton>
+        <QuickAddMenu extra={[{ label: "New event", onSelect: () => setEditing("new") }]} />
       }
       accessory={
-        <div className="grid grid-cols-7 gap-1 rounded-[14px] bg-bg-elevated p-2">
+        <div className="grid grid-cols-7 gap-1 rounded-card bg-bg-elevated p-2">
           {week.map((d) => {
             const isSel = d === selected;
             const isToday = d === today;
