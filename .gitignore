@@ -20,3 +20,8 @@ public/swe-worker-*.js
 # Self-hosting (deploy/setup.sh)
 deploy/.env
 deploy/backups/
+.dev.vars*
+
+# Cloudflare (OpenNext / Wrangler)
+.open-next/
+.wrangler/

@@ -40,11 +40,15 @@ const nextConfig: NextConfig = {
   // PGlite ships WASM + data files that must be loaded from node_modules at
   // runtime rather than bundled; postgres.js likewise stays external.
   serverExternalPackages: ["@electric-sql/pglite", "postgres"],
-  // Files read at runtime that the standalone tracer can't see: db/migrations +
-  // db/seed.sql (read with fs) and pdfkit's fonts (loaded via "#standard-fonts/*"
-  // package imports, used by the PDF exports).
+  // Files the standalone tracer can't see: db/migrations + db/seed.sql (read
+  // with fs), pdfkit's fonts, and the Workers-only yoga-layout loader + .wasm
+  // added by scripts/patch-pdf-deps.cjs (used by the PDF exports).
   outputFileTracingIncludes: {
-    "/**": ["./db/**/*.sql", "./node_modules/pdfkit/js/standard-fonts/**"],
+    "/**": [
+      "./db/**/*.sql",
+      "./node_modules/pdfkit/js/standard-fonts/**",
+      "./node_modules/yoga-layout/dist/**",
+    ],
   },
 };
 

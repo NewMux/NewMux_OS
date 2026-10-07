@@ -99,6 +99,10 @@ The repo includes a one-command Docker setup (`docker-compose.yml`), with three 
 - your own domain is a one-line change later;
 - nightly backups are included.
 
+### Cloudflare Workers
+
+The app also runs on Cloudflare Workers, with its data in Supabase. **[docs/DEPLOY_CLOUDFLARE.md](docs/DEPLOY_CLOUDFLARE.md)** covers the setup; after that, every push to `main` deploys automatically.
+
 ## Roles
 
 - **Partner** (`partner_admin`): everything.
