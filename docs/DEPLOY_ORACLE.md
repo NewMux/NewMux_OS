@@ -61,7 +61,6 @@ sudo ./deploy/setup.sh
 ```
 
 - The repository is private, so `git clone` asks for your GitHub username and a **personal access token** in place of the password. Create one at GitHub → *Settings → Developer settings → Fine-grained tokens*, with read access to this repo's *Contents*.
-- Until the pull request is merged, run `git checkout claude/all-in-one-platform-audit-4svlva` after the `cd` to deploy the branch.
 
 `setup.sh` does the following:
 
@@ -81,14 +80,28 @@ The first build takes about 5 minutes.
 
 On iPhone, open the address in Safari, then *Share → Add to Home Screen* for the full-screen app.
 
-## Using your own domain later
+## Moving to os.newmux.com
 
-1. At your domain registrar, add a DNS record:
-   - type **A**, name `os` (for `os.yourdomain.com`), value = the server's public IP.
-2. On the server, edit `deploy/.env` (`nano deploy/.env`) and set `DOMAIN=os.yourdomain.com`.
+The public website (`www.newmux.com`, on Odoo) stays exactly as it is. NEWMUX OS gets its own subdomain next to it.
+
+1. Sign in wherever newmux.com's DNS is managed, which is the same place the `www` → Odoo record is set. Add one record:
+   - type **A**;
+   - name `os`;
+   - value: the server's public IP.
+
+   Leave the existing `www` and `@` records alone.
+2. On the server, edit `deploy/.env` (`nano deploy/.env`) and set `DOMAIN=os.newmux.com`.
 3. Run `./deploy/update.sh`.
 
-Caddy fetches the new certificate automatically. Log in again at the new address.
+Caddy fetches the new certificate automatically. DNS can take a few minutes to update. Log in again at **https://os.newmux.com**.
+
+### Keeping it private
+
+- **Only the login page is public.** Everything else needs a NEWMUX login, including the API. The one exception is the signed Paddle webhook.
+- **Search engines are told not to list it.** Every response carries `X-Robots-Tag: noindex` and every page has a `noindex` meta tag.
+- **Don't link to it** from the Odoo website, email signatures or social profiles.
+- **The name itself isn't secret.** HTTPS certificates are logged publicly, so anyone searching those logs can see that `os.newmux.com` exists. All they reach is the login page, which is why strong passwords matter.
+- **Change the seeded passwords** (step 5 above), and deactivate any login nobody uses.
 
 ## Day-to-day
 

@@ -17,6 +17,8 @@ export type Client = {
   id: string;
   clientCode: string;
   name: string;
+  /** Shown in lists instead of a long legal name. */
+  shortName: string | null;
   industry: string | null;
   website: string | null;
   email: string | null;
@@ -92,8 +94,11 @@ export type Product = {
   paddleProductId: string | null;
 };
 
-export type DocumentType = "quote" | "contract" | "invoice";
-export type DocumentStatus = "draft" | "sent" | "accepted" | "signed" | "paid" | "archived";
+export type DocumentType = "quote" | "contract" | "invoice" | "credit_note";
+/** Invoices: draft → sent → paid (derived from payments) → archived; void.
+ * Quotes: draft → sent → accepted | declined. Contracts: draft → sent → signed.
+ * Credit notes: draft → sent (issued). See lib/validators/document.ts. */
+export type DocumentStatus = "draft" | "sent" | "accepted" | "declined" | "signed" | "paid" | "archived" | "void";
 
 export type DocumentLineItem = {
   id: string;
@@ -119,6 +124,14 @@ export type DocumentRecord = {
   profitSplitRuleId: string | null;
   dealId: string | null;
   documentNumber: string;
+  /** The number it had before NEWMUX OS, e.g. "#00267" (item 8). */
+  externalRef: string | null;
+  /** Credit notes: the invoice they reduce. */
+  creditForId: string | null;
+  /** Invoices billed for a hosting fee (item 12). */
+  hostingSubscriptionId: string | null;
+  voidReason: string | null;
+  voidedAt: string | null;
   currency: Currency;
   subtotalCents: number;
   taxRateBps: number;
@@ -298,10 +311,14 @@ export type CampaignMetric = {
 
 // --- ERP: Finance (PRD sections 5, 6, 14) ---
 
-/** A payout party in a profit split — Jassim, Mohammed, or a future partner/referral. Not a login user. */
+export type PartyKind = "partner" | "fund";
+
+/** A payout party in a profit split — Jassim, Mohammed, or a future
+ * partner/referral — or a fund such as the Newmux reserve. Not a login user. */
 export type Party = {
   id: string;
   name: string;
+  kind: PartyKind;
 };
 
 export type DeductionKind = "fixed" | "percentage";
@@ -311,19 +328,29 @@ export type DeductionType = {
   id: string;
   name: string;
   kind: DeductionKind;
+  /** When set, the amount deducted is not a cost: it accrues to this fund (e.g. the Newmux reserve). */
+  fundPartyId: string | null;
 };
 
-export type ProfitSplitScope = "project" | "venture";
+/** "document" = an override for a single invoice (defaults to its project's rule). */
+export type ProfitSplitScope = "project" | "venture" | "document";
 
 export type ProfitSplitSplit = {
   partyId: string;
   percentageBps: number; // basis points, 5000 = 50.00%
 };
 
+/** What a percentage deduction is taken from: the invoice total, or what is
+ * left after pass-through costs and the deductions listed before it. */
+export type DeductionBase = "total" | "remaining";
+
+/** Applied in array order. */
 export type ProfitSplitDeduction = {
   deductionTypeId: string;
-  /** Fixed-kind: cents. Percentage-kind: basis points of the invoice total. */
+  /** Fixed-kind: BHD fils. Percentage-kind: basis points of the base. */
   value: number;
+  /** Rules saved before bases existed have none, which means "total". */
+  base?: DeductionBase;
 };
 
 /** Fully editable via Settings (PRD 5.3.1) — never hard-coded per company. */
@@ -352,6 +379,9 @@ export type RecurringExpense = {
   nextDueDate: string | null;
   linkedClientId: string | null;
   linkedProjectId: string | null;
+  linkedVentureId: string | null;
+  /** Charged to a partner's personal card rather than the company account. */
+  paidByPartyId: string | null;
   status: RecurringExpenseStatus;
 };
 
@@ -367,6 +397,12 @@ export type Expense = {
   linkedClientId: string | null;
   linkedProjectId: string | null;
   recurringExpenseId: string | null;
+  /** Pass-through cost of one invoice: deducted from that invoice before the split. */
+  documentId: string | null;
+  /** Bank account it was paid from (null → the default account). */
+  accountId: string | null;
+  /** Fund it is charged to (spends the reserve), if any. */
+  fundPartyId: string | null;
   notes: string | null;
   createdBy: string | null;
   createdAt: string;
@@ -384,7 +420,7 @@ export const EXPENSE_CATEGORIES = [
   "other",
 ] as const;
 
-export type PaymentMethod = "cash" | "transfer" | "card" | "cheque";
+export type PaymentMethod = "transfer" | "benefitpay" | "cash" | "card" | "paypal" | "upwork" | "cheque" | "other";
 
 /** A partial or full payment against an invoice. Never changes the invoice's
  * original value (PRD 5.5) — only the payment log grows. */
@@ -395,11 +431,54 @@ export type Payment = {
   paidOn: string;
   method: PaymentMethod;
   reference: string | null;
+  /** Bank account it landed in (null → the default account). */
+  accountId: string | null;
   recordedBy: string | null;
 };
 
+/** A company bank account. Balance = opening balance + movements on/after the opening date. */
+export type BankAccount = {
+  id: string;
+  name: string;
+  currency: Currency;
+  openingBalanceCents: number;
+  openingBalanceDate: string;
+  isDefault: boolean;
+  isActive: boolean;
+};
+
+export type BankReconciliation = {
+  id: string;
+  accountId: string;
+  statementDate: string;
+  statementBalanceCents: number;
+  computedBalanceCents: number;
+  adjustmentCents: number;
+  note: string | null;
+  createdBy: string | null;
+  createdAt: string;
+};
+
+export type PayoutType = "share" | "advance" | "withdrawal" | "reimbursement";
+
+/** Money actually paid to a party. Reduces the company balance. */
+export type Payout = {
+  id: string;
+  partyId: string;
+  type: PayoutType;
+  amountCents: number;
+  currency: Currency;
+  paidOn: string;
+  documentId: string | null;
+  accountId: string | null;
+  reference: string | null;
+  notes: string | null;
+  createdBy: string | null;
+  createdAt: string;
+};
+
 export type HostingItemType = "server" | "domain" | "other";
-export type HostingSubscriptionStatus = "active" | "overdue" | "paused";
+export type HostingSubscriptionStatus = "active" | "overdue" | "paused" | "not_started";
 
 export type HostingSubscription = {
   id: string;
@@ -407,13 +486,19 @@ export type HostingSubscription = {
   projectId: string | null;
   item: HostingItemType;
   label: string | null;
-  amountCents: number;
+  /** Null while the client price is to be decided ("amount TBD"). */
+  amountCents: number | null;
   currency: Currency;
   cycle: RecurringExpenseCycle;
   lastCollectedDate: string | null;
   nextDueDate: string | null;
   status: HostingSubscriptionStatus;
+  /** The latest invoice; every invoice carries documents.hosting_subscription_id. */
   linkedInvoiceId: string | null;
+  /** What it costs NEWMUX: a linked recurring expense, or a typed yearly cost (item 14). */
+  recurringExpenseId: string | null;
+  costPerYearCents: number | null;
+  costCurrency: Currency | null;
 };
 
 export type VentureLaunchStatus = "planning" | "in_development" | "launched" | "paused";
@@ -458,7 +543,10 @@ export type AuditEntityType =
   | "recurring_expense"
   | "expense"
   | "hosting_subscription"
-  | "deal";
+  | "deal"
+  | "bank_account"
+  | "payout"
+  | "file";
 
 export type AuditLogEntry = {
   id: string;

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
-import { Page, NavButton } from "@/components/ui/Page";
+import { QuickAddMenu } from "@/components/shell/QuickAdd";
+import { Page } from "@/components/ui/Page";
 import { PipelineBoard } from "@/components/crm/PipelineBoard";
 import { DealSheet, type ContactOption } from "@/components/crm/CrmSheets";
 import type { Option } from "@/components/forms/Fields";
@@ -32,13 +32,10 @@ export function PipelineScreen({
       back={{ href: "/crm", label: "CRM" }}
       subtitle={`${totals.count} open · ${compactMoney(totals.totalBhdCents)} total · ${compactMoney(totals.weightedBhdCents)} weighted`}
       actions={
-        <NavButton label="New deal" onClick={() => setCreating(true)}>
-          <Plus className="h-5 w-5" />
-        </NavButton>
+        <QuickAddMenu extra={[{ label: "New deal", onSelect: () => setCreating(true) }]} />
       }
     >
       <PipelineBoard deals={deals} />
-      <p className="mt-2 text-center text-footnote text-label-2 md:hidden">Touch and hold a deal to drag it to another stage.</p>
       <DealSheet open={creating} onOpenChange={setCreating} clients={clients} contacts={contacts} users={users} />
     </Page>
   );

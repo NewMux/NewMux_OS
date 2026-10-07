@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   DndContext,
@@ -17,7 +17,6 @@ import {
 } from "@dnd-kit/core";
 import { CalendarClock } from "lucide-react";
 import { Menu } from "@/components/ui/Menu";
-import { Avatar } from "@/components/ui/Avatar";
 import { useMutation } from "@/lib/useMutation";
 import { DEAL_STAGE } from "@/lib/labels";
 import { DEAL_STAGES, type DealStage } from "@/lib/data/types";
@@ -36,6 +35,10 @@ export function PipelineBoard({ deals: initial }: { deals: DealListItem[] }) {
   const [dragging, setDragging] = useState<DealListItem | null>(null);
   const { run } = useMutation();
   useEffect(() => setDeals(initial), [initial]);
+
+  // A stable id keeps dnd-kit's accessibility ids the same on server and client (no hydration mismatch).
+
+  const dndId = useId();
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
@@ -69,7 +72,7 @@ export function PipelineBoard({ deals: initial }: { deals: DealListItem[] }) {
   };
 
   return (
-    <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setDragging(null)}>
+    <DndContext id={dndId} sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setDragging(null)}>
       <div className="no-scrollbar snap-x-mandatory -mx-4 flex gap-3 overflow-x-auto px-4 pb-4 md:-mx-8 md:px-8">
         {DEAL_STAGES.map((stage) => (
           <Column key={stage} stage={stage} deals={byStage.get(stage)!} onMove={move} />
@@ -93,7 +96,7 @@ function Column({ stage, deals, onMove }: { stage: DealStage; deals: DealListIte
     <section
       ref={setNodeRef}
       className={cn(
-        "flex w-[82vw] max-w-[300px] shrink-0 snap-center flex-col rounded-[18px] p-2 transition-colors md:w-[272px]",
+        "flex w-[82vw] max-w-[300px] shrink-0 snap-center flex-col rounded-card p-2 transition-colors md:w-[272px]",
         isOver ? "bg-accent/10 ring-2 ring-accent/40" : "bg-fill/[0.08]",
       )}
     >
@@ -107,7 +110,7 @@ function Column({ stage, deals, onMove }: { stage: DealStage; deals: DealListIte
         {shown.map((d) => (
           <DraggableCard key={d.id} deal={d} onMove={onMove} />
         ))}
-        {deals.length === 0 && <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-separator py-8 text-footnote text-label-3">Drop deals here</div>}
+        {deals.length === 0 && <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-separator py-8 text-footnote text-label-2">Drop deals here</div>}
       </div>
     </section>
   );
@@ -126,8 +129,8 @@ function DealCard({ deal, lifted, onMove }: { deal: DealListItem; lifted?: boole
   const closeIn = deal.expectedClose ? daysUntil(deal.expectedClose) : null;
   const open = deal.stage !== "won" && deal.stage !== "lost";
   return (
-    <div className={cn("relative rounded-[14px] bg-bg-elevated p-3 shadow-widget transition-transform dark:shadow-none", lifted && "rotate-[1.5deg] scale-[1.03] shadow-float")}>
-      <Link href={`/crm/deals/${deal.id}`} className="block pr-7" draggable={false}>
+    <div className={cn("group relative rounded-[16px] bg-bg-elevated p-3 transition-transform", lifted && "rotate-[1.5deg] scale-[1.03] shadow-float")}>
+      <Link href={`/crm/deals/${deal.id}`} className="block md:pr-7" draggable={false}>
         <div className="text-body font-medium leading-snug">{deal.title}</div>
         <div className="mt-0.5 truncate text-subhead text-label-2">{deal.clientName ?? deal.contactName ?? "New prospect"}</div>
         <div className="mt-2.5 flex items-center gap-2">
@@ -138,11 +141,11 @@ function DealCard({ deal, lifted, onMove }: { deal: DealListItem; lifted?: boole
               {formatDate(deal.expectedClose, { day: "numeric", month: "short" })}
             </span>
           )}
-          {deal.ownerName && <Avatar name={deal.ownerName} size={20} className={cn(!(open && closeIn !== null) && "ml-auto")} />}
         </div>
       </Link>
       {onMove && (
-        <div className="absolute right-1.5 top-1.5" onPointerDown={(e) => e.stopPropagation()}>
+        // Keyboard / mouse alternative to dragging; appears on hover or focus (phones use the deal screen's stepper).
+        <div className="absolute right-1.5 top-1.5 hidden opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 md:block" onPointerDown={(e) => e.stopPropagation()}>
           <Menu
             label={`Move ${deal.title}`}
             trigger={

@@ -12,7 +12,7 @@ export default function NotFound() {
         message="It may have been deleted, or the link is wrong."
         action={
           <Link href="/home" className={buttonVariants()}>
-            Go Home
+            Go to Today
           </Link>
         }
       />

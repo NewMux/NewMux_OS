@@ -2,17 +2,39 @@ import { z } from "zod";
 import { currency, ref, text, ymd } from "./common";
 import type { DocumentStatus, DocumentType } from "@/lib/data/types";
 
-export const ALLOWED_TRANSITIONS: Record<DocumentStatus, DocumentStatus[]> = {
-  draft: ["sent"],
-  sent: ["accepted", "draft"],
-  accepted: ["paid", "signed"],
-  signed: ["paid"],
-  paid: ["archived"],
-  archived: [],
+/**
+ * Moves a person can make, per document type (Improvements PRD item 10).
+ * "paid" is never a manual target: an invoice becomes paid when its
+ * payments cover the total, and returns to sent if they no longer do.
+ * "void" (with a reason) replaces deleting anything that was sent.
+ */
+export const TRANSITIONS: Record<DocumentType, Partial<Record<DocumentStatus, DocumentStatus[]>>> = {
+  invoice: {
+    draft: ["sent"],
+    sent: ["draft", "void"],
+    paid: ["archived", "void"],
+  },
+  quote: {
+    draft: ["sent"],
+    sent: ["accepted", "declined", "draft", "void"],
+    accepted: ["archived", "void"],
+    declined: ["sent", "archived"],
+  },
+  contract: {
+    draft: ["sent"],
+    sent: ["signed", "draft", "void"],
+    // Contracts accepted before signing existed as a separate step.
+    accepted: ["signed", "void"],
+    signed: ["archived", "void"],
+  },
+  credit_note: {
+    draft: ["sent"],
+    sent: ["void"],
+  },
 };
 
-export function canTransition(from: DocumentStatus, to: DocumentStatus): boolean {
-  return ALLOWED_TRANSITIONS[from].includes(to);
+export function canTransition(type: DocumentType, from: DocumentStatus, to: DocumentStatus): boolean {
+  return TRANSITIONS[type][from]?.includes(to) ?? false;
 }
 
 export const lineItemSchema = z.object({
@@ -22,7 +44,7 @@ export const lineItemSchema = z.object({
 });
 
 export const createDocumentSchema = z.object({
-  type: z.enum(["quote", "contract", "invoice"]) satisfies z.ZodType<DocumentType>,
+  type: z.enum(["quote", "contract", "invoice", "credit_note"]) satisfies z.ZodType<DocumentType>,
   clientId: z.string().uuid(),
   productId: ref,
   projectId: ref,
@@ -32,6 +54,11 @@ export const createDocumentSchema = z.object({
   paymentTerms: text,
   notes: text,
   dueAt: ymd,
+  /** Defaults to today (item 7). */
+  issuedAt: ymd,
+  externalRef: text,
+  /** Credit notes: the invoice they reduce. */
+  creditForId: ref,
   lineItems: z.array(lineItemSchema).min(1),
 });
 
@@ -44,8 +71,12 @@ export const updateDocumentSchema = z.object({
   paymentTerms: text.optional(),
   notes: text.optional(),
   dueAt: ymd.optional(),
+  issuedAt: ymd.optional(),
+  externalRef: text.optional(),
 });
 
 export const transitionSchema = z.object({
-  to: z.enum(["draft", "sent", "accepted", "signed", "paid", "archived"]) satisfies z.ZodType<DocumentStatus>,
+  to: z.enum(["draft", "sent", "accepted", "declined", "signed", "archived", "void"]) satisfies z.ZodType<DocumentStatus>,
+  /** Required when voiding. */
+  reason: text,
 });

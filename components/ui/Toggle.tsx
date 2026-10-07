@@ -13,14 +13,14 @@ export function Toggle({ checked, onChange, disabled, label }: { checked: boolea
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(
-        "relative h-[31px] w-[51px] shrink-0 rounded-full transition-colors duration-200 disabled:opacity-40",
+        "group relative h-[31px] w-[51px] shrink-0 rounded-full transition-colors duration-200 disabled:opacity-40",
         checked ? "bg-ios-green" : "bg-fill/[0.16] dark:bg-fill/[0.32]",
       )}
     >
       <span
         className={cn(
-          "absolute left-[2px] top-[2px] h-[27px] w-[27px] rounded-full bg-white shadow-[0_3px_8px_rgb(0_0_0/0.15),0_3px_1px_rgb(0_0_0/0.06)] transition-transform duration-200 ease-ios",
-          checked && "translate-x-5",
+          "absolute top-[2px] h-[27px] w-[27px] rounded-full bg-white shadow-[inset_0_1px_0_rgb(255_255_255),0_3px_8px_rgb(0_0_0/0.16),0_1px_2px_rgb(0_0_0/0.08)] transition-all duration-300 ease-spring group-active:w-[33px]",
+          checked ? "left-[22px] group-active:left-[16px]" : "left-[2px]",
         )}
       />
     </button>

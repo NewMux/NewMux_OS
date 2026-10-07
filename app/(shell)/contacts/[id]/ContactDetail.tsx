@@ -32,9 +32,7 @@ export function ContactDetail({ contact, activities, deals, clients }: { contact
           <Avatar name={contact.fullName} size={96} />
           <div className="mt-3 text-subhead text-label-2">{[contact.title, contact.clientName].filter(Boolean).join(" · ")}</div>
         </div>
-        <div className="mb-6">
-          <ContactActions phone={contact.phone} whatsapp={contact.whatsapp} email={contact.email} />
-        </div>
+        <ContactActions phone={contact.phone} whatsapp={contact.whatsapp} email={contact.email} />
         <ListSection>
           {contact.phone && <ListRow title={<span className="text-footnote text-label-2">phone</span>} subtitle={<a href={`tel:${contact.phone}`} className="text-body text-accent">{contact.phone}</a>} />}
           {contact.whatsapp && <ListRow title={<span className="text-footnote text-label-2">whatsapp</span>} subtitle={<span className="text-body text-accent">{contact.whatsapp}</span>} />}

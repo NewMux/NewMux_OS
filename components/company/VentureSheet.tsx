@@ -69,7 +69,7 @@ export function VentureSheet({ venture, open, onOpenChange }: { venture?: Ventur
         <DeleteRow
           label="Delete Venture"
           onClick={async () => {
-            if (await confirm({ title: `Delete ${venture.name}?`, destructive: true, confirmLabel: "Delete Venture" })) {
+            if (await confirm({ title: `Delete ${venture.name}?`, message: "Ventures with expenses or invoices on record can’t be deleted.", destructive: true, confirmLabel: "Delete Venture" })) {
               if (await run(`/api/ventures/${venture.id}`, { method: "DELETE", success: "Deleted", refresh: false })) {
                 onOpenChange(false);
                 router.push("/ventures");

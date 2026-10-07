@@ -1,7 +1,13 @@
 import { cn } from "@/lib/utils";
 
 function initials(name: string) {
-  const parts = name.replace(/[—–-].*$/, "").trim().split(/\s+/).filter(Boolean);
+  const parts = name
+    .replace(/[—–-].*$/, "")
+    .replace(/\(.*?\)/g, "")
+    .trim()
+    .split(/\s+/)
+    .map((p) => p.replace(/[^\p{L}\p{N}]/gu, ""))
+    .filter(Boolean);
   const letters = parts.length > 1 ? parts[0]![0]! + parts[parts.length - 1]![0]! : (parts[0] ?? "?").slice(0, 2);
   return letters.toUpperCase();
 }

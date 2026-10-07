@@ -22,7 +22,7 @@ export function FollowUpRow({ activity }: { activity: ActivityListItem }) {
       <div className="pt-3">
         <CheckCircle
           checked={done}
-          color="bg-ios-orange border-ios-orange"
+          color="bg-accent border-accent"
           label={`Complete ${activity.subject}`}
           onChange={(v) =>
             start(async () => {

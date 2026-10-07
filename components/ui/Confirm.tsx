@@ -44,21 +44,19 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
       {children}
       <Dialog.Root open={!!opts} onOpenChange={(o) => !o && close(false)}>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-[70] bg-black/40 animate-fade-in" />
+          <Dialog.Overlay className="fixed inset-0 z-[70] bg-black/30 animate-fade-in" />
           {desktop ? (
             // macOS/iPad-style alert
-            <Dialog.Content className="fixed left-1/2 top-1/2 z-[71] w-[280px] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl bg-bg-elevated text-center shadow-float animate-scale-in focus:outline-none">
-              <div className="px-4 pb-4 pt-5">
-                <Dialog.Title className="text-headline">{opts?.title}</Dialog.Title>
-                {opts?.message && <Dialog.Description className="mt-1 text-footnote text-label-2">{opts.message}</Dialog.Description>}
-              </div>
-              <div className="grid grid-cols-2 hairline-t">
-                <button className="h-11 text-body text-accent active:bg-fill/20" onClick={() => close(false)}>
+            <Dialog.Content className="glass-thick fixed left-1/2 top-1/2 z-[71] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-[28px] p-5 text-center animate-pop-in focus:outline-none">
+              <Dialog.Title className="text-headline">{opts?.title}</Dialog.Title>
+              {opts?.message && <Dialog.Description className="mt-1 text-footnote text-label-2">{opts.message}</Dialog.Description>}
+              <div className="mt-5 grid grid-cols-2 gap-2">
+                <button className="press h-11 rounded-full bg-fill/[0.14] text-body font-medium text-label" onClick={() => close(false)}>
                   Cancel
                 </button>
                 <button
                   autoFocus
-                  className={cn("h-11 border-l-[0.5px] border-separator text-body font-semibold active:bg-fill/20", opts?.destructive ? "text-ios-red" : "text-accent")}
+                  className={cn("press h-11 rounded-full text-body font-semibold", opts?.destructive ? "bg-ios-red text-white" : "glass-prominent")}
                   onClick={() => close(true)}
                 >
                   {confirmLabel}
@@ -67,25 +65,20 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
             </Dialog.Content>
           ) : (
             // iPhone action sheet
-            <Dialog.Content className="fixed inset-x-2 bottom-2 z-[71] pb-[env(safe-area-inset-bottom)] animate-slide-up focus:outline-none">
-              <div className="overflow-hidden rounded-[14px] bg-bg-elevated/95 text-center backdrop-blur-xl">
-                <div className="px-4 py-3.5">
-                  <Dialog.Title className="text-footnote font-semibold text-label-2">{opts?.title}</Dialog.Title>
-                  {opts?.message && <Dialog.Description className="mt-0.5 text-footnote text-label-2">{opts.message}</Dialog.Description>}
-                </div>
+            <Dialog.Content className="glass-thick fixed inset-x-2 bottom-[max(8px,env(safe-area-inset-bottom))] z-[71] rounded-sheet p-4 text-center animate-slide-up focus:outline-none">
+              <Dialog.Title className="text-headline">{opts?.title}</Dialog.Title>
+              {opts?.message && <Dialog.Description className="mt-1 text-footnote text-label-2">{opts.message}</Dialog.Description>}
+              <div className="mt-4 grid gap-2">
                 <button
-                  className={cn("h-[57px] w-full text-title3 font-normal hairline-t active:bg-fill/20", opts?.destructive ? "text-ios-red" : "text-accent")}
+                  className={cn("press h-[52px] w-full rounded-full text-headline", opts?.destructive ? "bg-ios-red text-white" : "glass-prominent")}
                   onClick={() => close(true)}
                 >
                   {confirmLabel}
                 </button>
+                <button className="press h-[52px] w-full rounded-full bg-fill/[0.14] text-headline font-medium text-label" onClick={() => close(false)}>
+                  Cancel
+                </button>
               </div>
-              <button
-                className="mt-2 h-[57px] w-full rounded-[14px] bg-bg-elevated text-title3 font-semibold text-accent active:bg-fill/20"
-                onClick={() => close(false)}
-              >
-                Cancel
-              </button>
             </Dialog.Content>
           )}
         </Dialog.Portal>

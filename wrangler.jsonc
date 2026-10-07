@@ -1,24 +1,29 @@
+// Cloudflare Workers deployment. Step-by-step guide: docs/DEPLOY_CLOUDFLARE.md
+//
+// Secrets are NOT stored here. Set AUTH_SECRET, VAULT_SESSION_SECRET and
+// (optionally) PADDLE_WEBHOOK_SECRET in the Cloudflare dashboard under
+// Workers & Pages -> newmux-os -> Settings -> Variables and Secrets, as type Secret.
 {
+  "$schema": "node_modules/wrangler/config-schema.json",
   "name": "newmux-os",
-  "main": ".open-next/worker.js",
-  "compatibility_date": "2025-09-01",
-  // nodejs_compat gives postgres.js, bcryptjs and next-auth the Node APIs they
-  // need; process.env is populated from vars and secrets.
+  "main": "cloudflare-worker.mjs",
+  "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
-  // Optional but recommended: pool database connections with Hyperdrive.
-  // Create one with `npx wrangler hyperdrive create newmux-db
-  // --connection-string="<Supabase direct connection string>"`, then uncomment
-  // the next line with the returned id:
-  // "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "<hyperdrive id>" }],
-  "observability": { "enabled": true },
-  // Keep the variables set in the dashboard when deploying.
-  "keep_vars": true
-  // Secrets (`npx wrangler secret put NAME` or the dashboard): DATABASE_URL
-  // (unless Hyperdrive is bound), AUTH_SECRET, NEXTAUTH_SECRET,
-  // VAULT_SESSION_SECRET, PADDLE_API_KEY, PADDLE_WEBHOOK_SECRET.
-  // Vars: NEXTAUTH_URL, NEXT_PUBLIC_APP_URL (the Worker's public URL).
+  // Keep variables and secrets set in the dashboard when this file is deployed.
+  "keep_vars": true,
+  "observability": {
+    "enabled": true
+  }
+
+  // 1. The database. Create a Hyperdrive configuration for your Supabase project
+  //    (guide, step 4), then remove the slashes below and paste its id.
+  // "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "<hyperdrive-configuration-id>" }],
+
+  // 2. The address. Once newmux.com's DNS is on Cloudflare (guide, step 7), serve the
+  //    app from os.newmux.com. Until then it runs at newmux-os.<your-subdomain>.workers.dev.
+  // "routes": [{ "pattern": "os.newmux.com", "custom_domain": true }]
 }

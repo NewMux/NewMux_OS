@@ -75,7 +75,7 @@ export function ProjectSheet({ project, open, onOpenChange, clients, canDelete }
 
   const remove = async () => {
     if (!project) return;
-    if (await confirm({ title: `Delete “${project.name}”?`, message: "All of its tasks are deleted. Invoices keep their numbers but lose the project link. Consider archiving instead.", destructive: true, confirmLabel: "Delete Project" })) {
+    if (await confirm({ title: `Delete “${project.name}”?`, message: "All of its tasks are deleted. Projects with invoices, payments or expenses can’t be deleted: archive them instead.", destructive: true, confirmLabel: "Delete Project" })) {
       if (await run(`/api/projects/${project.id}`, { method: "DELETE", success: "Project deleted", refresh: false })) {
         onOpenChange(false);
         router.push("/work");

@@ -14,14 +14,15 @@ import { ActivityTimeline } from "@/components/crm/ActivityTimeline";
 import { ClientSheet, ContactSheet, DealSheet, type ContactOption } from "@/components/crm/CrmSheets";
 import { ActivityButtons, NewLinkedPageButton } from "@/components/crm/DealActions";
 import type { Option } from "@/components/forms/Fields";
-import { DEAL_STAGE, DOC_STATUS, DOC_TYPE, PROJECT_STATUS, CYCLE_LABEL } from "@/lib/labels";
-import { centsToDisplay, convertMinorUnits } from "@/lib/money";
+import { DEAL_STAGE, DOC_TYPE, PROJECT_STATUS, CYCLE_LABEL } from "@/lib/labels";
+import { amountOrTbd, centsToDisplay, convertMinorUnits } from "@/lib/money";
 import { formatDate, relativeDay } from "@/lib/time";
 import type { Client, HostingSubscription, KbPageSummary } from "@/lib/data/types";
 import type { ActivityListItem, ContactListItem, DealListItem } from "@/lib/data/crm";
 import type { ProjectWithStats } from "@/lib/data/projects";
 import type { DocumentListItem } from "@/lib/data/documents";
 import type { ExpenseListItem } from "@/lib/data/expenses";
+import { docBadge } from "@/components/documents/docStatus";
 
 type Tab = "overview" | "deals" | "work" | "money" | "wiki";
 
@@ -53,6 +54,7 @@ export function ClientDetail(props: {
   return (
     <Page
       title={client.name}
+      subtitle={[client.clientCode, client.industry].filter(Boolean).join(" · ") || undefined}
       back={{ href: "/clients", label: "Clients" }}
       actions={
         <Menu
@@ -65,13 +67,7 @@ export function ClientDetail(props: {
       }
     >
       <div className="mx-auto max-w-2xl">
-        <div className="mb-5 flex flex-col items-center text-center">
-          <Avatar name={client.name} size={84} square />
-          <div className="mt-3 text-subhead text-label-2">{[client.clientCode, client.industry].filter(Boolean).join(" · ")}</div>
-        </div>
-        <div className="mb-6">
-          <ContactActions phone={primary?.phone ?? client.phone} whatsapp={primary?.whatsapp} email={primary?.email ?? client.email} website={client.website} />
-        </div>
+        <ContactActions phone={primary?.phone ?? client.phone} whatsapp={primary?.whatsapp} email={primary?.email ?? client.email} website={client.website} />
 
         <SegmentedControl
           className="mb-6"
@@ -79,7 +75,7 @@ export function ClientDetail(props: {
           onChange={setTab}
           options={[
             { value: "overview", label: "Info" },
-            { value: "deals", label: `Deals${deals.length ? ` ${deals.length}` : ""}` },
+            { value: "deals", label: "Deals" },
             { value: "work", label: "Work" },
             { value: "money", label: "Money" },
             { value: "wiki", label: "Wiki" },
@@ -165,13 +161,13 @@ export function ClientDetail(props: {
                 { label: "Collected", value: collected },
                 { label: "Costs", value: spent },
               ].map((m) => (
-                <div key={m.label} className="rounded-[14px] bg-bg-elevated px-2 py-3">
+                <div key={m.label} className="rounded-[18px] bg-bg-elevated px-3 py-3">
                   <div className="text-caption1 text-label-2">{m.label}</div>
                   <div className="font-rounded text-headline tabular">{centsToDisplay(m.value, "BHD")}</div>
                 </div>
               ))}
             </div>
-            <ListSection header="Invoices & Quotes" action={<a href={`/documents/new?type=invoice&clientId=${client.id}`} className="text-subhead text-accent">New Invoice</a>}>
+            <ListSection header="Documents" action={<a href={`/documents/new?type=invoice&clientId=${client.id}`} className="text-subhead text-accent">New Invoice</a>}>
               {documents.map((d) => (
                 <ListRow
                   key={d.id}
@@ -179,7 +175,7 @@ export function ClientDetail(props: {
                   title={d.documentNumber}
                   subtitle={`${DOC_TYPE[d.type]} · ${formatDate(d.issuedAt ?? d.createdAt)}`}
                   detail={centsToDisplay(d.totalCents, d.currency)}
-                  trailing={<Badge color={DOC_STATUS[d.status].color}>{DOC_STATUS[d.status].label}</Badge>}
+                  trailing={<Badge color={docBadge(d).color}>{docBadge(d).label}</Badge>}
                 />
               ))}
               {documents.length === 0 && <ListRow title="No documents yet" />}
@@ -191,7 +187,7 @@ export function ClientDetail(props: {
                   href="/hosting"
                   title={h.label ?? h.item}
                   subtitle={`${CYCLE_LABEL[h.cycle]} · next ${h.nextDueDate ? relativeDay(h.nextDueDate) : "—"}`}
-                  detail={centsToDisplay(h.amountCents, h.currency)}
+                  detail={amountOrTbd(h.amountCents, h.currency)}
                 />
               ))}
               {hosting.length === 0 && <ListRow title="No hosting fees" />}

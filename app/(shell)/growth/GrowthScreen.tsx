@@ -51,16 +51,16 @@ export function GrowthScreen({
       }
     >
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Widget title="MRR" color="green">
+        <Widget title="MRR">
           <Metric value={compactMoney(mrr.mrrCents, "USD")} caption={`ARR ${compactMoney(mrr.arrCents, "USD")}`} />
         </Widget>
-        <Widget title="Subscribers" color="blue">
+        <Widget title="Subscribers">
           <Metric value={subs.paying} caption={`${subs.trialing} trialing · ${subs.pastDue} past due`} />
         </Widget>
-        <Widget title="Ad Spend" color="orange">
+        <Widget title="Ad Spend">
           <Metric value={compactMoney(rows.reduce((s, r) => s + r.spendCents, 0), "USD")} caption="all campaigns" />
         </Widget>
-        <Widget title="Conversions" color="purple">
+        <Widget title="Conversions">
           <Metric value={rows.reduce((s, r) => s + r.conversions, 0)} caption={`${rows.reduce((s, r) => s + r.leadsCaptured, 0)} leads`} />
         </Widget>
       </div>

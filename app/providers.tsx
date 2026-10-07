@@ -14,7 +14,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         toastOptions={{
           classNames: {
             toast:
-              "!rounded-full !border-0 !bg-bg-elevated/90 !px-5 !py-3 !text-subhead !font-medium !text-label !shadow-float backdrop-blur-xl",
+              "!rounded-full !border-0 !bg-[rgb(var(--glass-fill)/0.82)] !px-5 !py-3 !text-subhead !font-medium !text-label !shadow-[inset_0_1px_0_rgb(255_255_255/var(--glass-highlight)),0_10px_30px_rgb(0_0_0/0.14)] backdrop-blur-xl backdrop-saturate-[1.9]",
             icon: "!text-accent",
           },
         }}
