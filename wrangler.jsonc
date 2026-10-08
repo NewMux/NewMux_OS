@@ -17,11 +17,11 @@
   "keep_vars": true,
   "observability": {
     "enabled": true
-  }
+  },
 
   // 1. The database. Create a Hyperdrive configuration for your Supabase project
   //    (guide, step 4), then remove the slashes below and paste its id.
-  // "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "<hyperdrive-configuration-id>" }],
+  "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "2f0b379f8e4e4f349f7722b0f1223de8" }]
 
   // 2. The address. Once newmux.com's DNS is on Cloudflare (guide, step 7), serve the
   //    app from os.newmux.com. Until then it runs at newmux-os.<your-subdomain>.workers.dev.
