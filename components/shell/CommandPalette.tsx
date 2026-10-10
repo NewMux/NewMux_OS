@@ -4,12 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Command } from "cmdk";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Search } from "lucide-react";
+import { Search, Sparkles } from "lucide-react";
 import type { SearchResult } from "@/lib/data/search";
 import type { NavLink } from "@/lib/nav";
 import { NavIcon } from "./NavIcon";
 import { RESULT_META, groupResults } from "./SearchResults";
 import { IconTile } from "@/components/ui/List";
+import { openHaman } from "@/components/haman/HamanSheet";
 
 /** ⌘K spotlight: jump to any screen or search every module. Desktop/iPad keyboard. */
 export function CommandPalette({ links }: { links: NavLink[] }) {
@@ -93,6 +94,22 @@ export function CommandPalette({ links }: { links: NavLink[] }) {
                   ))}
                 </Command.Group>
               ))}
+              {/* Hand the question to Haman when it reads like one, not like a name to look up. */}
+              <Command.Group heading="Haman" className={GROUP}>
+                <Command.Item
+                  value="ask-haman"
+                  onSelect={() => {
+                    const question = q.trim();
+                    setOpen(false);
+                    setQ("");
+                    openHaman(question.length >= 3 ? question : undefined);
+                  }}
+                  className={ITEM}
+                >
+                  <IconTile icon={Sparkles} color="blue" size="sm" />
+                  <span className="truncate text-body">{q.trim().length >= 3 ? `Ask Haman: “${q.trim()}”` : "Ask Haman"}</span>
+                </Command.Item>
+              </Command.Group>
               <Command.Group heading="Go to" className={GROUP}>
                 {links
                   .filter((l) => !q || l.label.toLowerCase().includes(q.toLowerCase()))
