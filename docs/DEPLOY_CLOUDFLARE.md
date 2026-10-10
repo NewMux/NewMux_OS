@@ -86,6 +86,7 @@ A Worker can't open a secure connection straight to Supabase (Supabase uses its 
    - `AUTH_SECRET`: a random string of 32+ characters
    - `VAULT_SESSION_SECRET`: a different random string of 32+ characters
    - `PADDLE_WEBHOOK_SECRET`: only if Paddle webhooks are connected (from the Paddle dashboard)
+   - `ANTHROPIC_API_KEY`: only for **Ask Haman**. A Claude API key from the [Claude Console](https://platform.claude.com) (API keys → Create key)
 
    A password manager's "generate strong password" at 40 characters is fine. Don't reuse the two values, and keep them: changing `AUTH_SECRET` signs everyone out, and changing `VAULT_SESSION_SECRET` locks the vault until it is unlocked again.
 
@@ -118,6 +119,8 @@ If you'd rather not move DNS, keep using the `workers.dev` address.
 | `AUTH_SECRET` | Cloudflare secret | Yes | Signs the login cookie. |
 | `VAULT_SESSION_SECRET` | Cloudflare secret | Yes | Protects the vault's unlock cookie. The vault refuses to work without it. |
 | `PADDLE_WEBHOOK_SECRET` | Cloudflare secret | Only with Paddle | Checks webhook signatures at `/api/webhooks/paddle`. |
+| `ANTHROPIC_API_KEY` | Cloudflare secret | Only for Ask Haman | The Claude API key Haman answers with. Without it, Ask Haman says it isn't set up. |
+| `HAMAN_MODEL` | Cloudflare variable | No | The Claude model Haman uses. Default `claude-sonnet-5-5`. |
 | `DATABASE_URL` | `.dev.vars` (local preview only) | No | A direct connection, for running the Worker on your own computer. |
 | `NEXT_PUBLIC_MAX_FILE_MB` | Build variable | No | Upload limit. The Cloudflare build sets 4; other builds use 15. |
 

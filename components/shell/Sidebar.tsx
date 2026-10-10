@@ -4,13 +4,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { LogOut, Search, Settings } from "lucide-react";
+import { LogOut, Search, Settings, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isActive, type NavLink, type NavSection } from "@/lib/nav";
 import { NavIcon } from "./NavIcon";
 import { Avatar } from "@/components/ui/Avatar";
 import { Menu } from "@/components/ui/Menu";
 import { QuickAddMenu } from "./QuickAdd";
+import { openHaman } from "@/components/haman/HamanSheet";
 import type { UserRole } from "@/lib/data/types";
 
 /**
@@ -49,6 +50,14 @@ export function Sidebar({
           <Search className="h-4 w-4" />
           <span className="flex-1 text-left">Search</span>
           <kbd className="rounded-[5px] bg-bg-elevated/70 px-1.5 py-0.5 font-sans text-caption2 font-semibold text-label-2 shadow-[0_0.5px_0_rgb(0_0_0/0.15)]">⌘K</kbd>
+        </button>
+        <button
+          type="button"
+          onClick={() => openHaman()}
+          className="mt-1.5 flex h-9 w-full items-center gap-2 rounded-[10px] bg-accent/[0.12] px-2.5 text-subhead font-medium text-accent hover:bg-accent/[0.18]"
+        >
+          <Sparkles className="h-4 w-4" />
+          <span className="flex-1 text-left">Ask Haman</span>
         </button>
       </div>
 

@@ -21,6 +21,7 @@ Who can reach each `/api/*` endpoint, reviewed for Improvements PRD item 19
 | --- | --- | --- | --- |
 | `/api/health`, `/api/webhooks/paddle` (signature-verified) | ✓ | ✓ | ✓ |
 | `/api/me/password`, `/api/users` (id + name only), `/api/search` (results filtered by role) | 401 | ✓ | ✓ |
+| `/api/haman` (Ask Haman: read-only, and what he can look up follows the role, see below) | 401 | ✓ | ✓ |
 | `/api/tasks/**`, `/api/subtasks/**`, `/api/meetings/**` | 401 | ✓ | ✓ |
 | `/api/projects` (list, create, edit) | 401 | ✓ | ✓ |
 | `DELETE /api/projects/[id]` (also blocked while money is recorded, item 20) | 401 | 403 | ✓ |
@@ -46,5 +47,12 @@ Who can reach each `/api/*` endpoint, reviewed for Improvements PRD item 19
 - Uploaded files (`/api/files/[id]/content`) are partner-only, served with
   `X-Content-Type-Options: nosniff`, and only PDFs and images open inline;
   anything else (including SVG) downloads.
+
+- `/api/haman` answers questions by calling the read-only lookups in
+  `lib/haman/tools.ts`. A team member is offered only the project, task,
+  calendar and wiki lookups; the CRM, finance and company ones are refused in
+  `runTool()` even if named, and the shared ones (search, needs attention)
+  filter by role the way their screens do. No lookup reads the Vault, and none
+  writes. What a lookup returns is sent to the Claude API to write the answer.
 
 When adding an endpoint, wrap it in `route({ allow: … })` and add it to this table.
