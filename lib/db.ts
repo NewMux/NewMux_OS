@@ -58,6 +58,8 @@ async function createPostgresBackend(url: string): Promise<Backend> {
     max: onWorkers ? 4 : 5,
     // Each Worker request opens a fresh client: skip the extra type lookup
     // (the schema has no array columns) and fail fast if the database is down.
+    // Without the lookup, array parameters can't be sent: pass a comma list
+    // and use `= any(string_to_array($1, ','))` instead.
     ...(onWorkers ? { fetch_types: false, connect_timeout: 10 } : {}),
     // Skip "already exists, skipping" notices from idempotent migrations.
     onnotice: () => {},

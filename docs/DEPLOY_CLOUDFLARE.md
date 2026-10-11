@@ -78,7 +78,7 @@ A Worker can't open a secure connection straight to Supabase (Supabase uses its 
 1. Cloudflare dashboard → **Workers & Pages** → **Create** → **Import a repository**. Connect GitHub and allow access to `NewMux/NewMux_OS`.
 2. Set:
    - **Project name**: `newmux-os` (it must match `name` in `wrangler.jsonc`)
-   - **Production branch**: `claude/ecstatic-faraday-k4csd0` (the repository's default branch)
+   - **Production branch**: `main`. Pushing to `main` deploys; other branches get preview builds.
    - **Build command**: `npx opennextjs-cloudflare build`
    - **Deploy command**: `npx wrangler deploy`
 3. Save and deploy. The first build takes a few minutes.

@@ -6,6 +6,7 @@ import {
   CalendarDays,
   CalendarRange,
   CircleCheckBig,
+  Ellipsis,
   Contact,
   FileText,
   FolderOpen,
@@ -60,6 +61,7 @@ const ICONS: Record<NavIconName, React.ComponentType<LucideProps>> = {
   campaigns: Target,
   leads: Magnet,
   brand: Palette,
+  more: Ellipsis,
   settings: Settings,
 };
 

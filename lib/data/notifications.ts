@@ -38,8 +38,9 @@ export async function listPushSubscriptions(userIds: string[]): Promise<PushSubs
   if (!userIds.length) return [];
   return many<PushSubscriptionRow>(
     `select s.id, s.user_id, s.endpoint, s.p256dh, s.auth, s.device from push_subscriptions s
-     join users u on u.id = s.user_id where u.is_active and s.user_id::text = any($1)`,
-    [userIds],
+     join users u on u.id = s.user_id where u.is_active and s.user_id::text = any(string_to_array($1, ','))`,
+    // A comma list, not an array parameter: Workers can't send arrays (lib/db.ts).
+    [userIds.join(",")],
   );
 }
 

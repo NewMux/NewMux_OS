@@ -515,8 +515,9 @@ async function namesFor(ids: string[]): Promise<Map<string, string>> {
        union all select id, name from recurring_expenses
        union all select id, name from files
        union all select id, name from products
-     ) n where id::text = any($1)`,
-    [ids],
+     ) n where id::text = any(string_to_array($1, ','))`,
+    // A comma list, not an array parameter: Workers can't send arrays (lib/db.ts).
+    [ids.join(",")],
   );
   return new Map(rows.map((r) => [r.id, r.name]));
 }
