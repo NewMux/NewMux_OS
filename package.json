@@ -14,6 +14,8 @@
     "db:reset": "rm -rf .data/pglite && tsx scripts/db.ts seed",
     "test:prd": "tsx scripts/verify-prd.ts",
     "test:haman": "tsx scripts/test-haman.ts",
+    "test:push": "tsx scripts/test-push.ts",
+    "push:keys": "tsx scripts/push-keys.ts",
     "cf:build": "opennextjs-cloudflare build",
     "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
@@ -47,7 +49,8 @@
     "sonner": "^2.0.8",
     "tailwind-merge": "^2.5.2",
     "vaul": "^1.1.2",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "zod-to-json-schema": "^3.24.6"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

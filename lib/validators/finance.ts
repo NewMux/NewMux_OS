@@ -42,6 +42,9 @@ export const expenseSchema = z.object({
   notes: text,
 });
 
+/** Paying a partner back for an expense they covered. */
+export const reimburseExpenseSchema = z.object({ paidOn: ymd, accountId: ref });
+
 export const createDeductionTypeSchema = z.object({
   name: requiredText,
   kind: z.enum(["fixed", "percentage"]),

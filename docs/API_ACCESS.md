@@ -21,7 +21,12 @@ Who can reach each `/api/*` endpoint, reviewed for Improvements PRD item 19
 | --- | --- | --- | --- |
 | `/api/health`, `/api/webhooks/paddle` (signature-verified) | ✓ | ✓ | ✓ |
 | `/api/me/password`, `/api/users` (id + name only), `/api/search` (results filtered by role) | 401 | ✓ | ✓ |
-| `/api/haman` (Ask Haman: read-only, and what he can look up follows the role, see below) | 401 | ✓ | ✓ |
+| `POST /api/users/[id]/password` (Settings → Team: a partner sets a new password for someone else, never their own; audit-logged) | 401 | 403 | ✓ |
+| `/api/push`, `/api/push/subscribe`, `/api/push/test` (your own devices only) | 401 | ✓ | ✓ |
+| `/api/reminders` (yours, or ones you set), `DELETE /api/reminders/[id]` | 401 | ✓ | ✓ |
+| `POST /api/reminders` for someone else (`userId`) | 401 | 409 | ✓ |
+| `POST /api/cron/notifications` (no session: `Authorization: Bearer $CRON_SECRET`; refused if unset) | 403 | 403 | 403 |
+| `/api/haman` (Ask Haman: lookups and prepared changes follow the role, see below) | 401 | ✓ | ✓ |
 | `/api/tasks/**`, `/api/subtasks/**`, `/api/meetings/**` | 401 | ✓ | ✓ |
 | `/api/projects` (list, create, edit) | 401 | ✓ | ✓ |
 | `DELETE /api/projects/[id]` (also blocked while money is recorded, item 20) | 401 | 403 | ✓ |
@@ -52,7 +57,14 @@ Who can reach each `/api/*` endpoint, reviewed for Improvements PRD item 19
   `lib/haman/tools.ts`. A team member is offered only the project, task,
   calendar and wiki lookups; the CRM, finance and company ones are refused in
   `runTool()` even if named, and the shared ones (search, needs attention)
-  filter by role the way their screens do. No lookup reads the Vault, and none
-  writes. What a lookup returns is sent to the Claude API to write the answer.
+  filter by role the way their screens do. No lookup reads Vault values. What
+  a lookup returns is sent to the Claude API to write the answer.
+- `/api/haman` itself writes nothing. A change Haman prepares
+  (`lib/haman/actions.ts`) is checked against the target route's schema and
+  role rule, then sent to the browser as a card. Only the user's Confirm calls
+  the route, with their own session, so the matrix above applies unchanged.
+  The request path is built from the action's route, never from model text,
+  and ids must be uuids. A revealed Vault value goes from
+  `/api/vault/[id]/reveal` to the card and is never sent back to the model.
 
 When adding an endpoint, wrap it in `route({ allow: … })` and add it to this table.

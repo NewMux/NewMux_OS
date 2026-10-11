@@ -462,3 +462,11 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Ask Haman's side panel (iPad/Mac): on windows wide enough, the page moves over
+   to make room for it rather than sitting underneath. 400px panel + 12px margin. */
+@media (min-width: 1180px) and (min-height: 540px) {
+  html[data-haman] main {
+    padding-right: 412px;
+  }
+}

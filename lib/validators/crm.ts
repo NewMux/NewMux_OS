@@ -50,4 +50,6 @@ export const activitySchema = z.object({
     .transform((v) => (v ? new Date(v).toISOString() : null)),
 });
 
+export const activityCompletedSchema = z.object({ completed: z.boolean() });
+
 export { amount };

@@ -1,12 +1,12 @@
-import { z } from "zod";
 import { route, body } from "@/lib/api";
 import { canAccessCrm } from "@/lib/rbac";
 import { deleteActivity, setActivityCompleted } from "@/lib/data/crm";
+import { activityCompletedSchema } from "@/lib/validators/crm";
 
 type P = { id: string };
 
 export const PATCH = route<P>({ allow: canAccessCrm }, async ({ req, params }) => {
-  const { completed } = await body(req, z.object({ completed: z.boolean() }));
+  const { completed } = await body(req, activityCompletedSchema);
   return { activity: await setActivityCompleted(params.id, completed) };
 });
 

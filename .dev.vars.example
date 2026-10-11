@@ -15,3 +15,8 @@ ANTHROPIC_API_KEY=
 
 # Only if Paddle webhooks are connected.
 PADDLE_WEBHOOK_SECRET=
+
+# Only for push notifications: `npm run push:keys` prints all three.
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+CRON_SECRET=

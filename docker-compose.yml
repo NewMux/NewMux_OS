@@ -37,6 +37,10 @@ services:
       # "Ask Haman" (optional): a Claude API key, and the model to use.
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       HAMAN_MODEL: ${HAMAN_MODEL:-}
+      # Push notifications (optional): from `npm run push:keys`.
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
     expose:
       - "3000"
 

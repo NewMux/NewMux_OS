@@ -2,22 +2,24 @@ import type { UserRole } from "@/lib/data/types";
 import { getAttentionItems } from "@/lib/data/attention";
 import { getClientById, listClientsWithStats } from "@/lib/data/clients";
 import { getPipelineSummary, listActivities, listContacts, listDeals, listOpenFollowUps, openPipelineTotals } from "@/lib/data/crm";
-import { listDocuments, type DocumentListItem } from "@/lib/data/documents";
+import { getLineItems, listDocuments, type DocumentListItem } from "@/lib/data/documents";
 import { listExpenses } from "@/lib/data/expenses";
-import { getErpDashboardSummary, listRecurringExpenses } from "@/lib/data/finance";
+import { getErpDashboardSummary, listPaymentsForDocument, listRecurringExpenses } from "@/lib/data/finance";
 import { listHostingSubscriptions, listHostingSubscriptionsForClient, type HostingListItem } from "@/lib/data/hosting";
 import { getPageById, searchPages } from "@/lib/data/kb";
 import { getCompanyBalanceBhd, getPartyBalances } from "@/lib/data/ledger";
 import { listUpcomingMeetings } from "@/lib/data/meetings";
-import { getProjectById, listProjectsWithStats, listTasks, listTasksByProject } from "@/lib/data/projects";
+import { getProjectById, listProjectsWithStats, listSubtasks, listTaskComments, listTasks, listTasksByProject } from "@/lib/data/projects";
 import { getArAging, getCashFlowForecast, getHostingFeeReport, getInvoiceStatusReport, getMonthlyCashFlow, getProfitByProjectReport } from "@/lib/data/reports";
 import { globalSearch } from "@/lib/data/search";
 import { DOC_TYPE, docStatusLabel } from "@/lib/labels";
-import { centsToDisplay, convertMinorUnits } from "@/lib/money";
+import { centsToDisplay, convertMinorUnits, minorUnitDigits } from "@/lib/money";
+import { many, one } from "@/lib/data/sql";
+import { listUpcomingReminders } from "@/lib/data/notifications";
 import { daysUntil, formatDate, formatTime, todayYmd, toYmd } from "@/lib/time";
 
 /**
- * What Haman can look up. Every tool is read-only and wraps the same
+ * What Haman can look up. Every tool here is read-only and wraps the same
  * lib/data functions the screens use, so his answers match the app.
  *
  * Three rules hold for every tool here:
@@ -27,7 +29,10 @@ import { daysUntil, formatDate, formatTime, todayYmd, toYmd } from "@/lib/time";
  *   worked out by the finance code. Amounts are stored in minor units with
  *   three decimals for BHD and two for USD, so a model must never be handed
  *   raw integers to add up or convert.
- * - Nothing reads the Vault. Credentials are never sent to the model.
+ * - Nothing reads Vault values. Credentials are never sent to the model;
+ *   list_records gives secrets' names only.
+ *
+ * Changes are separate: see ./actions.ts.
  */
 
 export type HamanContext = { userId: string; userName: string; role: UserRole };
@@ -108,6 +113,7 @@ function documentRow(d: DocumentListItem) {
   const open = outstandingCents(d);
   const overdueDays = open > 0 && d.dueAt ? -daysUntil(toYmd(d.dueAt)) : 0;
   return {
+    id: d.id,
     number: d.documentNumber,
     originalNumber: d.externalRef,
     type: DOC_TYPE[d.type],
@@ -126,6 +132,7 @@ function documentRow(d: DocumentListItem) {
 
 function hostingRow(h: HostingListItem) {
   return {
+    id: h.id,
     client: h.clientName,
     item: h.label ?? h.item,
     fee: h.amountCents === null ? "Amount to be decided" : money(h.amountCents, h.currency),
@@ -138,6 +145,94 @@ function hostingRow(h: HostingListItem) {
     yearlyCost: h.annualCostBhdCents === null ? null : bhd(h.annualCostBhdCents),
     href: "/hosting",
   };
+}
+
+
+// --- Record lookups for changes ---
+
+const LIST_KINDS_EVERYONE = ["team", "wiki_spaces", "meetings", "reminders"] as const;
+const LIST_KINDS_PARTNER = [
+  "bank_accounts",
+  "parties",
+  "deduction_types",
+  "split_rules",
+  "ventures",
+  "products",
+  "recurring_expenses",
+  "payouts",
+  "contacts",
+  "deals",
+  "certifications",
+  "partnerships",
+  "product_pipeline",
+  "files",
+  "vault_items",
+] as const;
+
+const LIST_SQL: Record<(typeof LIST_KINDS_EVERYONE)[number] | (typeof LIST_KINDS_PARTNER)[number], string> = {
+  team: "select id, full_name as name, role from users where is_active order by full_name",
+  wiki_spaces: "select id, name, description from kb_spaces order by sort_order, name",
+  // Filled in per user in list_records.
+  reminders: "",
+  meetings: "select id, title, starts_at from meetings where starts_at between now() - interval '30 days' and now() + interval '60 days' order by starts_at limit 80",
+  bank_accounts: "select id, name, currency, is_default, is_active from bank_accounts order by is_default desc, name",
+  parties: "select id, name, kind from parties order by kind, name",
+  deduction_types: "select id, name, kind, fund_party_id from deduction_types order by name",
+  split_rules: `select r.id, r.scope_type, r.scope_id, coalesce(p.name, v.name, d.document_number) as scope_name from profit_split_rules r
+    left join projects p on r.scope_type = 'project' and p.id = r.scope_id
+    left join ventures v on r.scope_type = 'venture' and v.id = r.scope_id
+    left join documents d on r.scope_type = 'document' and d.id = r.scope_id`,
+  ventures: "select id, name, launch_status from ventures order by name",
+  products: "select id, name from products order by name",
+  recurring_expenses: "select id, name, category, status, next_due_date from recurring_expenses order by name",
+  payouts: `select po.id, pa.name as party, po.type, po.paid_on, po.amount_cents, po.currency from payouts po join parties pa on pa.id = po.party_id order by po.paid_on desc limit 60`,
+  contacts: "select ct.id, ct.full_name as name, c.name as client from contacts ct left join clients c on c.id = ct.client_id order by ct.full_name",
+  deals: "select d.id, d.title, d.stage, c.name as client from deals d left join clients c on c.id = d.client_id order by d.updated_at desc limit 80",
+  certifications: "select id, name, status, expiry_date from certifications order by name",
+  partnerships: "select id, name from partnerships order by name",
+  product_pipeline: "select id, name, stage from pipeline_items order by created_at",
+  files: "select id, name, category, expiry_date from files where category <> 'receipt' order by name",
+  vault_items: "select s.id, s.label, s.secret_type, c.name as client, p.name as project from secrets_vault s left join clients c on c.id = s.client_id left join projects p on p.id = s.project_id order by s.label",
+};
+
+/** Tables get_record reads. `partner`: closed to team members, as in lib/rbac.ts. */
+const RECORD_TABLES = {
+  task: { table: "tasks", partner: false },
+  project: { table: "projects", partner: false },
+  meeting: { table: "meetings", partner: false },
+  wiki_space: { table: "kb_spaces", partner: false },
+  client: { table: "clients", partner: true },
+  contact: { table: "contacts", partner: true },
+  deal: { table: "deals", partner: true },
+  activity: { table: "activities", partner: true },
+  document: { table: "documents", partner: true },
+  expense: { table: "expenses", partner: true },
+  recurring_expense: { table: "recurring_expenses", partner: true },
+  payout: { table: "payouts", partner: true },
+  bank_account: { table: "bank_accounts", partner: true },
+  hosting_fee: { table: "hosting_subscriptions", partner: true },
+  venture: { table: "ventures", partner: true },
+  certification: { table: "certifications", partner: true },
+  file: { table: "files", partner: true },
+  profit_split_rule: { table: "profit_split_rules", partner: true },
+  company_profile: { table: "company_profile", partner: true },
+} as const;
+
+/** Never handed to the model, whatever the table. */
+const HIDDEN_FIELDS = new Set(["passwordHash", "ciphertext", "iv", "authTag", "maskedPreview", "data", "content"]);
+
+/** A row (already camelCase) as the model sees it: secrets left out, and every …Cents amount also in major units. */
+function withMajorUnits(row: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(row)) {
+    if (HIDDEN_FIELDS.has(key)) continue;
+    out[key] = value instanceof Date ? value.toISOString() : value;
+    if (key.endsWith("Cents") && typeof value === "number") {
+      const cur = key.startsWith("amountBhd") ? "BHD" : key.startsWith("cost") ? String(row.costCurrency ?? "BHD") : String(row.currency ?? "BHD");
+      out[key.replace(/Cents$/, "Major")] = value / 10 ** minorUnitDigits(cur);
+    }
+  }
+  return out;
 }
 
 const NO_INPUT = { type: "object" as const, properties: {} };
@@ -174,6 +269,7 @@ export const HAMAN_TOOLS: HamanTool[] = [
         overdueCount: tasks.filter((t) => t.dueAt && toYmd(t.dueAt) < today).length,
         dueTodayCount: tasks.filter((t) => t.dueAt && toYmd(t.dueAt) === today).length,
         tasks: rows.map((t) => ({
+          id: t.id,
           title: t.title,
           project: t.projectName,
           status: t.status,
@@ -233,6 +329,7 @@ export const HAMAN_TOOLS: HamanTool[] = [
         github: project.githubUrl,
         href: `/projects/${project.id}`,
         tasks: rows.map((t) => ({
+          id: t.id,
           title: t.title,
           status: t.status,
           priority: t.priority,
@@ -255,6 +352,7 @@ export const HAMAN_TOOLS: HamanTool[] = [
       const meetings = await listUpcomingMeetings(int(input, "days", 7, 1, 60));
       return {
         meetings: meetings.map((m) => ({
+          id: m.id,
           title: m.title,
           date: formatDate(m.startsAt, { weekday: "short", day: "numeric", month: "short", year: "numeric" }),
           time: formatTime(m.startsAt),
@@ -459,6 +557,7 @@ export const HAMAN_TOOLS: HamanTool[] = [
         count: expenses.length,
         total: bhd(expenses.reduce((sum, e) => sum + inBhd(e), 0)),
         expenses: rows.map((e) => ({
+          id: e.id,
           date: day(e.spentOn),
           description: e.description,
           category: e.category,
@@ -471,7 +570,7 @@ export const HAMAN_TOOLS: HamanTool[] = [
         notShown,
         recurring: recurring
           .filter((r) => r.status === "active")
-          .map((r) => ({ name: r.name, amount: money(r.amountCents, r.currency), cycle: r.cycle, nextDue: day(r.nextDueDate) })),
+          .map((r) => ({ id: r.id, name: r.name, amount: money(r.amountCents, r.currency), cycle: r.cycle, nextDue: day(r.nextDueDate) })),
         href: "/finance/expenses",
       };
     },
@@ -548,14 +647,15 @@ export const HAMAN_TOOLS: HamanTool[] = [
         phone: client.phone,
         notes: client.notes?.slice(0, 1500) ?? null,
         href: `/clients/${client.id}`,
-        contacts: contacts.map((c) => ({ name: c.fullName, title: c.title, email: c.email, phone: c.phone, primary: c.isPrimary, href: `/contacts/${c.id}` })),
-        deals: deals.map((d) => ({ title: d.title, stage: d.stage, value: money(d.valueCents, d.currency), probability: `${d.probability}%`, expectedClose: day(d.expectedClose), href: `/crm/deals/${d.id}` })),
+        contacts: contacts.map((c) => ({ id: c.id, name: c.fullName, title: c.title, email: c.email, phone: c.phone, primary: c.isPrimary, href: `/contacts/${c.id}` })),
+        deals: deals.map((d) => ({ id: d.id, title: d.title, stage: d.stage, value: money(d.valueCents, d.currency), probability: `${d.probability}%`, expectedClose: day(d.expectedClose), href: `/crm/deals/${d.id}` })),
         projects: projects.map((p) => ({ id: p.id, name: p.name, status: p.status, openTasks: p.openCount, overdueTasks: p.overdueCount, href: `/projects/${p.id}` })),
         owes: bhd(documents.reduce((sum, d) => sum + convertMinorUnits(outstandingCents(d), d.currency, "BHD"), 0)),
         documents: documents.slice(0, 12).map(documentRow),
         documentsNotShown: Math.max(documents.length - 12, 0),
         hostingFees: hosting.map(hostingRow),
         recentActivity: activities.map((a) => ({
+          id: a.id,
           kind: a.kind,
           subject: a.subject,
           note: a.body?.slice(0, 300) ?? null,
@@ -580,6 +680,7 @@ export const HAMAN_TOOLS: HamanTool[] = [
         open: { deals: open.count, total: bhd(open.totalBhdCents), weighted: bhd(open.weightedBhdCents) },
         byStage: summary.map((s) => ({ stage: s.stage, deals: s.count, total: bhd(s.totalBhdCents), weighted: bhd(s.weightedBhdCents) })),
         deals: deals.map((d) => ({
+          id: d.id,
           title: d.title,
           client: d.clientName,
           contact: d.contactName,
@@ -608,6 +709,7 @@ export const HAMAN_TOOLS: HamanTool[] = [
         followUps: rows.map((a) => {
           const due = a.dueAt ? toYmd(a.dueAt) : null;
           return {
+            id: a.id,
             subject: a.subject,
             kind: a.kind,
             about: a.dealTitle ?? a.clientName ?? a.contactName,
@@ -618,6 +720,70 @@ export const HAMAN_TOOLS: HamanTool[] = [
         }),
         notShown,
       };
+    },
+  },
+
+
+  // --- Ids and full records, for preparing changes (lib/haman/actions.ts) ---
+
+  {
+    name: "list_records",
+    status: "Looking up records",
+    description:
+      "Ids and names of things search_os doesn't cover, to use in a change: team (people to assign), wiki_spaces, meetings (last 30 and next 60 days), reminders (the user's, not sent yet), and for partners bank_accounts, parties (partners and funds), deduction_types, split_rules, ventures, products, recurring_expenses, payouts, contacts, deals (open and closed), certifications, partnerships, product_pipeline, files and vault_items (names only, never values).",
+    input_schema: { type: "object", properties: { kind: { type: "string", enum: [...LIST_KINDS_EVERYONE, ...LIST_KINDS_PARTNER] } }, required: ["kind"] },
+    access: "everyone",
+    run: async (input, ctx) => {
+      const kind = oneOf(input, "kind", [...LIST_KINDS_EVERYONE, ...LIST_KINDS_PARTNER] as const);
+      if (!kind) throw new ToolInputError('"kind" must be one of the listed kinds.');
+      if ((LIST_KINDS_PARTNER as readonly string[]).includes(kind) && ctx.role !== "partner_admin") return { error: "That part of NEWMUX OS isn't open to this account." };
+      if (kind === "reminders") {
+        const reminders = await listUpcomingReminders(ctx.userId);
+        return { kind, records: reminders.map((r) => ({ id: r.id, title: r.title, when: `${formatDate(r.remindAt, { weekday: "short", day: "numeric", month: "short" })} ${formatTime(r.remindAt)}`, for: r.userName })) };
+      }
+      const records = await many<Record<string, unknown>>(LIST_SQL[kind]);
+      if (kind === "payouts") {
+        return { kind, records: records.map(({ amountCents, currency, ...r }) => ({ ...r, amount: money(Number(amountCents), String(currency)) })) };
+      }
+      return { kind, records };
+    },
+  },
+  {
+    name: "get_record",
+    status: "Reading the record",
+    description:
+      "Every field of one record, by kind and id, to prepare a change (several changes replace the whole record, so start from what's there). A task comes with its subtasks and comments, a document with its line items (unitPriceCents in minor units) and payments. Amounts come as minor units (…Cents) and in major units (…Major) for sending back. company_profile needs no id.",
+    input_schema: {
+      type: "object",
+      properties: { kind: { type: "string", enum: Object.keys(RECORD_TABLES) }, id: { type: "string" } },
+      required: ["kind"],
+    },
+    access: "everyone",
+    run: async (input, ctx) => {
+      const kind = oneOf(input, "kind", Object.keys(RECORD_TABLES) as (keyof typeof RECORD_TABLES)[]);
+      if (!kind) throw new ToolInputError('"kind" must be one of the listed kinds.');
+      const def = RECORD_TABLES[kind];
+      if (def.partner && ctx.role !== "partner_admin") return { error: "That part of NEWMUX OS isn't open to this account." };
+      const row =
+        kind === "company_profile"
+          ? await one<Record<string, unknown>>("select * from company_profile limit 1")
+          : await one<Record<string, unknown>>(`select * from ${def.table} where id = $1`, [id(input, "id")]);
+      if (!row) return { error: `No ${kind.replace(/_/g, " ")} has that id.` };
+      const record = withMajorUnits(row);
+      if (kind === "task") {
+        const [subtasks, comments] = await Promise.all([listSubtasks(String(row.id)), listTaskComments(String(row.id))]);
+        return { record, subtasks: subtasks.map((st) => ({ id: st.id, title: st.title, done: st.done })), comments: comments.slice(-10).map((c) => ({ by: c.authorName, body: c.body.slice(0, 500), at: day(c.createdAt) })) };
+      }
+      if (kind === "document") {
+        const [lineItems, payments] = await Promise.all([getLineItems(String(row.id)), listPaymentsForDocument(String(row.id))]);
+        const cur = String(row.currency ?? "BHD");
+        return {
+          record,
+          lineItems: lineItems.map((li) => ({ description: li.description, quantity: li.quantity, unitPriceCents: li.unitPriceCents, unitPrice: money(li.unitPriceCents, cur) })),
+          payments: payments.map((pm) => ({ id: pm.id, amount: money(pm.amountCents, cur), paidOn: day(pm.paidOn), method: pm.method, reference: pm.reference })),
+        };
+      }
+      return { record };
     },
   },
 ];

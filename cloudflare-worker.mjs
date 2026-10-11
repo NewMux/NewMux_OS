@@ -19,4 +19,22 @@ export default {
     headers.set("x-forwarded-host", url.host);
     return handler.fetch(new Request(request, { headers }), env, ctx);
   },
+
+  /**
+   * The cron trigger in wrangler.jsonc (every 5 minutes): sends due
+   * notifications through the app's own /api/cron/notifications, which checks
+   * CRON_SECRET. The request never leaves the Worker.
+   */
+  async scheduled(_event, env, ctx) {
+    if (!env.CRON_SECRET) {
+      console.log("[cron] CRON_SECRET is not set; skipping notifications");
+      return;
+    }
+    const request = new Request("https://cron.internal/api/cron/notifications", {
+      method: "POST",
+      headers: { authorization: `Bearer ${env.CRON_SECRET}`, "x-forwarded-proto": "https", "x-forwarded-host": "cron.internal" },
+    });
+    const res = await handler.fetch(request, env, ctx);
+    console.log(`[cron] notifications ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  },
 };
