@@ -121,10 +121,31 @@ If you'd rather not move DNS, keep using the `workers.dev` address.
 | `PADDLE_WEBHOOK_SECRET` | Cloudflare secret | Only with Paddle | Checks webhook signatures at `/api/webhooks/paddle`. |
 | `ANTHROPIC_API_KEY` | Cloudflare secret | Only for Ask Haman | The Claude API key Haman answers with. Without it, Ask Haman says it isn't set up. |
 | `HAMAN_MODEL` | Cloudflare variable | No | The Claude model Haman uses. Default `claude-sonnet-5-5`. |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | Cloudflare secrets | Only for notifications | The key pair push notifications are signed with. See [Push notifications](#push-notifications). |
+| `CRON_SECRET` | Cloudflare secret | Only for notifications | Lets the 5-minute cron trigger run the notification check. |
+| `VAPID_SUBJECT` | Cloudflare variable | No | A contact for the push services. Default `mailto:info@newmux.com`. |
 | `DATABASE_URL` | `.dev.vars` (local preview only) | No | A direct connection, for running the Worker on your own computer. |
 | `NEXT_PUBLIC_MAX_FILE_MB` | Build variable | No | Upload limit. The Cloudflare build sets 4; other builds use 15. |
 
 Not used on Cloudflare: `AUTH_URL`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `DB_AUTO_MIGRATE`, `POSTGRES_PASSWORD`, `DOMAIN` (those are for the Oracle setup).
+
+## Push notifications
+
+The app can send notifications to your phone's lock screen and to Mac and desktop browsers: reminders set through Haman, CRM follow-ups, tasks due today, meetings 15 minutes before, and (for partners) renewals and hosting fees. A cron trigger in `wrangler.jsonc` checks every 5 minutes. It's included in Workers Paid; no other service or account is needed.
+
+To turn it on, once:
+
+1. **Add the tables.** Supabase → **SQL Editor** → **New query**. Open [`db/migrations/0015_notifications.sql`](../db/migrations/0015_notifications.sql) on GitHub, tap **Raw**, copy everything and paste it in. Add this line at the end, then **Run**:
+   ```sql
+   insert into schema_migrations (name) values ('0015_notifications.sql');
+   ```
+   (A brand-new database set up from `db/supabase-setup.sql` already has them.)
+2. **Make the keys.** On a computer with this repository: `npm run push:keys`. It prints three lines.
+3. **Add them as secrets.** Worker → **Settings** → **Variables and Secrets** → add `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `CRON_SECRET` as type **Secret**, with the values printed. Keep a copy in your password manager: new keys mean everyone has to turn notifications on again.
+4. **Deploy** (push to the production branch). Worker → **Settings** → **Triggers** should then list the cron `*/5 * * * *`.
+5. **On each device:** open NEWMUX OS → **Settings** → **Notifications** → turn on **Notifications on this device**, allow them, and tap **Send a Test**. On iPhone and iPad, first add the app to the Home Screen (Safari → Share → Add to Home Screen) and open it from there: iOS only delivers web notifications to Home Screen apps (iOS 16.4 or later).
+
+If nothing arrives: Worker → **Logs** shows a `[cron] notifications` line every 5 minutes with what was sent; "CRON_SECRET is not set" or "VAPID keys are not set" says which secret is missing.
 
 ## Why the free plan doesn't work
 
@@ -179,3 +200,4 @@ For whoever maintains this later. The Docker/Oracle build ignores all of it.
 - `open-next.config.ts` / `next.config.ts`: Cloudflare-only build settings (no PGlite, 4 MB uploads).
 - `lib/data/company.ts`: creates the single company-profile row when it's missing, so a database without the demo seed works.
 - `lib/crypto/vaultSession.ts`: refuses to run in production without `VAULT_SESSION_SECRET`, instead of falling back to a built-in key.
+- `cloudflare-worker.mjs` `scheduled()` + `"triggers"` in `wrangler.jsonc`: the 5-minute notification check, run through `/api/cron/notifications` with `CRON_SECRET`. On Docker, `instrumentation.ts` runs the same check on a timer.

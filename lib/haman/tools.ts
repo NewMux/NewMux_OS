@@ -15,6 +15,7 @@ import { globalSearch } from "@/lib/data/search";
 import { DOC_TYPE, docStatusLabel } from "@/lib/labels";
 import { centsToDisplay, convertMinorUnits, minorUnitDigits } from "@/lib/money";
 import { many, one } from "@/lib/data/sql";
+import { listUpcomingReminders } from "@/lib/data/notifications";
 import { daysUntil, formatDate, formatTime, todayYmd, toYmd } from "@/lib/time";
 
 /**
@@ -149,7 +150,7 @@ function hostingRow(h: HostingListItem) {
 
 // --- Record lookups for changes ---
 
-const LIST_KINDS_EVERYONE = ["team", "wiki_spaces", "meetings"] as const;
+const LIST_KINDS_EVERYONE = ["team", "wiki_spaces", "meetings", "reminders"] as const;
 const LIST_KINDS_PARTNER = [
   "bank_accounts",
   "parties",
@@ -171,6 +172,8 @@ const LIST_KINDS_PARTNER = [
 const LIST_SQL: Record<(typeof LIST_KINDS_EVERYONE)[number] | (typeof LIST_KINDS_PARTNER)[number], string> = {
   team: "select id, full_name as name, role from users where is_active order by full_name",
   wiki_spaces: "select id, name, description from kb_spaces order by sort_order, name",
+  // Filled in per user in list_records.
+  reminders: "",
   meetings: "select id, title, starts_at from meetings where starts_at between now() - interval '30 days' and now() + interval '60 days' order by starts_at limit 80",
   bank_accounts: "select id, name, currency, is_default, is_active from bank_accounts order by is_default desc, name",
   parties: "select id, name, kind from parties order by kind, name",
@@ -727,13 +730,17 @@ export const HAMAN_TOOLS: HamanTool[] = [
     name: "list_records",
     status: "Looking up records",
     description:
-      "Ids and names of things search_os doesn't cover, to use in a change: team (people to assign), wiki_spaces, meetings (last 30 and next 60 days), and for partners bank_accounts, parties (partners and funds), deduction_types, split_rules, ventures, products, recurring_expenses, payouts, contacts, deals (open and closed), certifications, partnerships, product_pipeline, files and vault_items (names only, never values).",
+      "Ids and names of things search_os doesn't cover, to use in a change: team (people to assign), wiki_spaces, meetings (last 30 and next 60 days), reminders (the user's, not sent yet), and for partners bank_accounts, parties (partners and funds), deduction_types, split_rules, ventures, products, recurring_expenses, payouts, contacts, deals (open and closed), certifications, partnerships, product_pipeline, files and vault_items (names only, never values).",
     input_schema: { type: "object", properties: { kind: { type: "string", enum: [...LIST_KINDS_EVERYONE, ...LIST_KINDS_PARTNER] } }, required: ["kind"] },
     access: "everyone",
     run: async (input, ctx) => {
       const kind = oneOf(input, "kind", [...LIST_KINDS_EVERYONE, ...LIST_KINDS_PARTNER] as const);
       if (!kind) throw new ToolInputError('"kind" must be one of the listed kinds.');
       if ((LIST_KINDS_PARTNER as readonly string[]).includes(kind) && ctx.role !== "partner_admin") return { error: "That part of NEWMUX OS isn't open to this account." };
+      if (kind === "reminders") {
+        const reminders = await listUpcomingReminders(ctx.userId);
+        return { kind, records: reminders.map((r) => ({ id: r.id, title: r.title, when: `${formatDate(r.remindAt, { weekday: "short", day: "numeric", month: "short" })} ${formatTime(r.remindAt)}`, for: r.userName })) };
+      }
       const records = await many<Record<string, unknown>>(LIST_SQL[kind]);
       if (kind === "payouts") {
         return { kind, records: records.map(({ amountCents, currency, ...r }) => ({ ...r, amount: money(Number(amountCents), String(currency)) })) };

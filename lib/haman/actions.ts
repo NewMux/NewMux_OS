@@ -39,6 +39,7 @@ import {
 import { collectHostingSchema, hostingSubscriptionSchema, linkHostingInvoiceSchema } from "@/lib/validators/hosting";
 import { createPageSchema, spaceSchema, updatePageSchema } from "@/lib/validators/kb";
 import { meetingSchema } from "@/lib/validators/meeting";
+import { reminderSchema } from "@/lib/validators/notifications";
 import { createPipelineItemSchema } from "@/lib/validators/pipeline";
 import { projectSchema, updateProjectSchema } from "@/lib/validators/project";
 import { commentSchema, createTaskSchema, subtaskSchema, updateSubtaskSchema, updateTaskSchema } from "@/lib/validators/task";
@@ -102,6 +103,18 @@ const ACTIONS: ActionDef[] = [
   { name: "update_meeting", title: "Change a meeting", description: "Move or edit a meeting." + FULL, method: "PATCH", path: "/api/meetings/{id}", schema: meetingSchema, access: canAccessWork },
   { name: "delete_meeting", title: "Delete a meeting", description: "Remove a meeting from the calendar.", method: "DELETE", path: "/api/meetings/{id}", access: canAccessWork, kind: "delete" },
   { name: "create_meeting_notes", title: "Start meeting notes", description: "Create the wiki page of notes for a meeting (id = the meeting).", method: "POST", path: "/api/meetings/{id}/notes", access: canAccessWork },
+
+  {
+    name: "create_reminder",
+    title: "Set a reminder",
+    description:
+      "Send a push notification at a set time: 'remind me to call Ox on Thursday at 10'. remindAt is a Bahrain date and time with its offset, like 2026-10-15T10:00:00+03:00; when the user gives a day but no time, use 09:00. href is a screen to open when it's tapped (an href from a lookup). userId is who gets it, from list_records kind team; leave it out for the user themselves (only partners can remind someone else). It reaches the devices where they've turned notifications on in Settings.",
+    method: "POST",
+    path: "/api/reminders",
+    schema: reminderSchema,
+    access: canAccessWork,
+  },
+  { name: "delete_reminder", title: "Cancel a reminder", description: "Cancel a reminder that hasn't gone yet (id from list_records kind reminders).", method: "DELETE", path: "/api/reminders/{id}", access: canAccessWork, kind: "delete" },
 
   // --- Wiki ---
   { name: "create_wiki_space", title: "Create a wiki space", description: "Add a wiki space.", method: "POST", path: "/api/kb/spaces", schema: spaceSchema, access: canAccessKb },
@@ -365,6 +378,9 @@ const LABELS: Record<string, string> = {
   paidByPartyId: "Paid by",
   fundPartyId: "Goes to fund",
   scopeId: "For",
+  remindAt: "When",
+  userId: "For",
+  href: "Opens",
 };
 
 function label(key: string): string {
@@ -388,7 +404,7 @@ function show(key: string, value: unknown, body: Record<string, unknown>, names:
     const cur = key === "amountBhd" ? "BHD" : key === "costPerYear" ? String(body.costCurrency ?? "BHD") : String(body.currency ?? "BHD");
     return centsToDisplay(majorToMinorUnits(Number(value), cur), cur);
   }
-  if (key === "startsAt" && typeof value === "string" && !Number.isNaN(Date.parse(value))) {
+  if ((key === "startsAt" || key === "remindAt") && typeof value === "string" && !Number.isNaN(Date.parse(value))) {
     return new Date(value).toLocaleString("en-GB", { timeZone: "Asia/Bahrain", weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
   }
   if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) return formatDate(value);

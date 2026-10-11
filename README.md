@@ -30,6 +30,7 @@ One app for running NEWMUX: **CRM, project management, finance and a knowledge b
   - pages can be linked to clients, projects and deals.
 - **Company**: registration and renewals, certifications, partnerships, ventures with their own profit split and spending, **Files** (contracts, the CR, brand identity) with expiry reminders, the credentials **Vault** (AES-256-GCM) and **Growth** (campaign attribution, MRR).
 - **Haman**, the AI project manager: ask "who owes us money?" or "what needs me today?" and he answers from the live records, with links to open; ask him to add a task, record a payment or move a deal and he prepares it for you to confirm. See [Ask Haman](#ask-haman).
+- **Notifications**: push to the lock screen (iPhone/iPad from the Home Screen app, Mac and desktop browsers) for reminders you or Haman set, CRM follow-ups, tasks due today, meetings 15 minutes before, and, for partners, renewals and hosting fees a week ahead and on the day. Turn it on per device in Settings → Notifications. See [Notifications](#notifications).
 - **Everywhere**:
   - global search (the Search tab, or ⌘K on iPad/Mac);
   - light/dark appearance that follows the system, with an override in Settings;
@@ -104,6 +105,7 @@ npm run seed         # migrate + load db/seed.sql if the database is empty
 npm run db:reset     # wipe local PGlite and reseed
 npm run typecheck && npm run lint
 npm run test:prd     # the Improvements PRD's worked examples, on a throwaway empty database
+npm run test:push    # push encryption and signing, and the scheduled notification check on the demo data
 npm run test:haman   # Haman's lookups and actions on the demo data, and his conversation loop against a stand-in for the Claude API
 ```
 
@@ -138,13 +140,25 @@ The app is internal and unlisted. Every response sends `noindex`, so search engi
 
 [docs/API_ACCESS.md](docs/API_ACCESS.md) lists who can reach every `/api/*` endpoint. Deleted or deactivated users lose access within 5 minutes.
 
+## Notifications
+
+Standard Web Push, with no third-party service: `lib/push/webpush.ts` encrypts each message for the device (RFC 8291) and signs it with the app's VAPID key (RFC 8292) using Web Crypto, so it runs the same on Cloudflare and Docker. The browser's own push service (Apple, Google, Mozilla) delivers it, and the service worker (`worker/index.ts`, bundled into `sw.js`) shows it and opens the right screen when tapped.
+
+- **Setting it up:** `npm run push:keys`, then set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and (Cloudflare) `CRON_SECRET`. Steps: [docs/DEPLOY_CLOUDFLARE.md](docs/DEPLOY_CLOUDFLARE.md#push-notifications). Without the keys nothing is sent and Settings says so.
+- **When it checks:** every 5 minutes: a Cloudflare cron trigger (`cloudflare-worker.mjs` → `/api/cron/notifications`), or a timer in `instrumentation.ts` on a server. `lib/push/notify.ts` decides what's due; `notification_log` makes sure each notice goes once.
+- **What it sends:** exact-time reminders (`reminders` table; Haman's "remind me…", or for a teammate if you're a partner); follow-ups when due, to whoever set them (a day without a time goes at 9:00); tasks due today at 9:00, to the assignee; meetings 15 minutes before, to everyone; renewals, expiring files and hosting fees to collect, to partners, a week before and on the day at 9:00 (snoozed ones are skipped).
+- **Devices:** Settings → Notifications turns it on for that device and sends a test; it lists upcoming reminders to cancel. Devices the push service reports gone are removed.
+- **iPhone/iPad:** only the Home Screen app can get notifications (iOS 16.4+).
+
+`npm run test:push` checks the encryption against an independent decryption, the VAPID signature, and every kind of notice on the demo data.
+
 ## Ask Haman
 
 Haman is a Claude model that answers questions about the business by looking things up in NEWMUX OS, and makes changes in it once you confirm them. Open him from **Ask Haman** in the sidebar, from ⌘K (type a question, then choose "Ask Haman"), or on iPhone from the ✦ button on Today and from Search. On iPad and Mac he opens in a panel on the right, so the page stays usable beside him (on wide windows it moves over to make room); on iPhone he opens as a sheet.
 
 - **Setting him up:** add a Claude API key as `ANTHROPIC_API_KEY` (a Cloudflare secret, or in `deploy/.env` for Docker). Without it the rest of the app is unchanged and Ask Haman says it isn't set up. `HAMAN_MODEL` picks the model; the default is `claude-sonnet-5-5`.
 - **What he can look up** (`lib/haman/tools.ts`): tasks, projects, the calendar, the wiki and Needs Attention for everyone; for partners also the finance overview, invoices and documents, cash flow and forecast, profit by project, expenses, hosting fees, clients, the pipeline and follow-ups. Each lookup calls the same `lib/data` function as the screen it mirrors.
-- **What he can change** (`lib/haman/actions.ts`): nearly everything a person can, each through the same `/api` route as its screen: tasks, subtasks and comments, projects, meetings, the wiki (spaces, pages and their text), clients, contacts, deals and activities, documents (create, edit, send, void, invoice a quote), payments, expenses and reimbursements, recurring expenses, payouts, bank accounts and reconciliation, hosting fees, the company profile, certifications, partnerships, the product pipeline, ventures, file details, payout parties, deduction types and profit-split rules, including deleting. He can also show you a Vault secret.
+- **What he can change** (`lib/haman/actions.ts`): nearly everything a person can, each through the same `/api` route as its screen: tasks, subtasks and comments, projects, meetings, the wiki (spaces, pages and their text), clients, contacts, deals and activities, documents (create, edit, send, void, invoice a quote), payments, expenses and reimbursements, recurring expenses, payouts, bank accounts and reconciliation, hosting fees, the company profile, certifications, partnerships, the product pipeline, ventures, file details, payout parties, deduction types and profit-split rules, including deleting. He can also set reminders (push notifications at a set time) and show you a Vault secret.
 - **Confirm first:** Haman never changes anything himself. Each change he prepares appears in the chat as a card listing what will be saved, with Confirm and Cancel (Delete for a delete); only Confirm sends the request, from your browser, with your session. So the route's role check, validation, business rules and audit log all apply as if you'd made the change yourself. He's told the outcome of each card with your next message.
 - **Vault:** "Show" on a Vault card fetches the secret straight to your screen (the Vault must be unlocked in that browser). The value is never sent to Haman or the Claude API; he only knows secrets' names.
 - **What he can't do:** reset passwords, set up or unlock the Vault, add Vault secrets (the value would pass through the model) or upload files.

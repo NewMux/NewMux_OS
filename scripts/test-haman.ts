@@ -103,7 +103,7 @@ async function main() {
   check("A name where an id belongs is explained, not run", byName.isError && /search_os/.test(byName.content));
   check("A lookup that doesn't exist is refused", (await runTool("reveal_secret", {}, partner)).isError);
   check("No lookup touches the Vault", !HAMAN_TOOLS.some((t) => /vault|secret|password|credential/i.test(t.name)));
-  const kinds = ["team", "wiki_spaces", "meetings", "bank_accounts", "parties", "deduction_types", "split_rules", "ventures", "products", "recurring_expenses", "payouts", "contacts", "deals", "certifications", "partnerships", "product_pipeline", "files", "vault_items"];
+  const kinds = ["team", "wiki_spaces", "meetings", "reminders", "bank_accounts", "parties", "deduction_types", "split_rules", "ventures", "products", "recurring_expenses", "payouts", "contacts", "deals", "certifications", "partnerships", "product_pipeline", "files", "vault_items"];
   const listed = await Promise.all(kinds.map((kind) => runTool("list_records", { kind }, partner)));
   check("list_records runs for every kind", listed.every((r) => !r.isError && !/"error"/.test(r.content)), listed.find((r) => r.isError || /"error"/.test(r.content))?.content);
   check("list_records gives Vault names, never values or previews", !/ciphertext|masked|maskedPreview|authTag/i.test(listed[kinds.indexOf("vault_items")]!.content));

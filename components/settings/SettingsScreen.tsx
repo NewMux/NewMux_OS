@@ -11,6 +11,7 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { FormSheet } from "@/components/ui/FormSheet";
 import { useConfirm } from "@/components/ui/Confirm";
 import { ProfitSplitRuleSheet, type Scope } from "./ProfitSplitRuleSheet";
+import { NotificationsSection } from "./NotificationsSection";
 import { useMutation } from "@/lib/useMutation";
 import { COMPANY_LINKS, forRole } from "@/lib/nav";
 import { NavIcon } from "@/components/shell/NavIcon";
@@ -97,6 +98,8 @@ export function SettingsScreen({
           />
           {admin && <ListRow href="/settings/team" leading={<IconTile icon={Users} color="blue" />} title="Team" subtitle="Who can sign in, and new passwords for anyone locked out" multiline />}
         </ListSection>
+
+        <NotificationsSection />
 
         <ListSection header="Appearance">
           <div className="p-3">

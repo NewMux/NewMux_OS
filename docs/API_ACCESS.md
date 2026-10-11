@@ -22,6 +22,10 @@ Who can reach each `/api/*` endpoint, reviewed for Improvements PRD item 19
 | `/api/health`, `/api/webhooks/paddle` (signature-verified) | ✓ | ✓ | ✓ |
 | `/api/me/password`, `/api/users` (id + name only), `/api/search` (results filtered by role) | 401 | ✓ | ✓ |
 | `POST /api/users/[id]/password` (Settings → Team: a partner sets a new password for someone else, never their own; audit-logged) | 401 | 403 | ✓ |
+| `/api/push`, `/api/push/subscribe`, `/api/push/test` (your own devices only) | 401 | ✓ | ✓ |
+| `/api/reminders` (yours, or ones you set), `DELETE /api/reminders/[id]` | 401 | ✓ | ✓ |
+| `POST /api/reminders` for someone else (`userId`) | 401 | 409 | ✓ |
+| `POST /api/cron/notifications` (no session: `Authorization: Bearer $CRON_SECRET`; refused if unset) | 403 | 403 | 403 |
 | `/api/haman` (Ask Haman: lookups and prepared changes follow the role, see below) | 401 | ✓ | ✓ |
 | `/api/tasks/**`, `/api/subtasks/**`, `/api/meetings/**` | 401 | ✓ | ✓ |
 | `/api/projects` (list, create, edit) | 401 | ✓ | ✓ |
