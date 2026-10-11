@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { COMPANY_LINKS, TABS, allLinksFor, forRole, sidebarFor } from "@/lib/nav";
+import { cookies } from "next/headers";
+import { COMPANY_LINKS, allLinksFor, forRole, phoneTabs, sidebarFor } from "@/lib/nav";
 import { TabBar } from "@/components/shell/TabBar";
+import { NativeGestures } from "@/components/shell/NativeGestures";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { CommandPalette } from "@/components/shell/CommandPalette";
 import { RoleProvider } from "@/components/shell/QuickAdd";
@@ -27,7 +29,8 @@ export default async function ShellLayout({ children }: { children: React.ReactN
         userRole={role}
       />
       <main className="min-h-dvh md:pl-[272px]">{children}</main>
-      <TabBar tabs={forRole(TABS, role)} />
+      <TabBar tabs={phoneTabs(role, (await cookies()).get("tabs")?.value)} />
+      <NativeGestures />
       <CommandPalette links={allLinksFor(role)} />
       <HamanSheet />
       <Suspense>

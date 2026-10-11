@@ -30,6 +30,7 @@ export type NavIconName =
   | "campaigns"
   | "leads"
   | "brand"
+  | "more"
   | "settings";
 
 export type NavLink = {
@@ -48,16 +49,45 @@ const ADMIN: UserRole[] = ["partner_admin"];
 const BUSINESS: UserRole[] = ["partner_admin", "marketing"];
 const MARKETING_ONLY: UserRole[] = ["marketing"];
 
-/** Phone tab bar (iOS keeps it to five). */
+/**
+ * Sections a phone can put in its tab bar. iOS keeps a tab bar to five: Today
+ * is always first, the person picks three more (More → Edit, saved in the
+ * `tabs` cookie), and the fifth is More, which lists everything else.
+ */
 export const TABS: NavLink[] = [
   { href: "/home", label: "Today", icon: "today", color: "blue", roles: ALL },
   { href: "/crm", label: "CRM", icon: "crm", color: "indigo", roles: BUSINESS, match: ["/clients", "/contacts"] },
-  // Marketing's phone has Marketing where partners have Finance (partners reach Marketing from CRM and Search).
-  { href: "/marketing", label: "Marketing", icon: "marketing", color: "pink", roles: MARKETING_ONLY },
+  { href: "/marketing", label: "Marketing", icon: "marketing", color: "pink", roles: BUSINESS },
   { href: "/work", label: "Work", icon: "work", color: "orange", roles: ALL, match: ["/projects", "/tasks", "/meetings"] },
   { href: "/finance", label: "Finance", icon: "finance", color: "green", roles: ADMIN, match: ["/documents", "/hosting", "/reports"] },
   { href: "/wiki", label: "Wiki", icon: "wiki", color: "yellow", roles: ALL },
+  { href: "/company", label: "Company", icon: "company", color: "gray", roles: BUSINESS, match: ["/ventures", "/files", "/growth"] },
 ];
+
+export const MORE_TAB: NavLink = { href: "/more", label: "More", icon: "more", color: "gray", roles: ALL };
+
+/** How many tabs a person chooses (Today and More are always there). */
+export const CHOSEN_TABS = 3;
+
+const DEFAULT_TABS: Record<UserRole, string[]> = {
+  partner_admin: ["/crm", "/work", "/finance"],
+  marketing: ["/crm", "/marketing", "/work"],
+  lead_dev: ["/work", "/wiki"],
+};
+
+/** The phone's tab bar for a role: Today, the chosen sections (from the cookie, else the defaults), More. */
+export function phoneTabs(role: UserRole, saved?: string | null): NavLink[] {
+  const available = forRole(TABS, role).filter((t) => t.href !== "/home");
+  const wanted = (saved ? saved.split(",") : DEFAULT_TABS[role]).filter((h, i, all) => all.indexOf(h) === i);
+  let chosen = wanted.map((h) => available.find((t) => t.href === h)).filter((t): t is NavLink => !!t);
+  if (!chosen.length) chosen = DEFAULT_TABS[role].map((h) => available.find((t) => t.href === h)!).filter(Boolean);
+  return [TABS[0]!, ...chosen.slice(0, CHOSEN_TABS), MORE_TAB];
+}
+
+/** Sections a role can choose for its tab bar (everything but Today). */
+export function tabChoices(role: UserRole): NavLink[] {
+  return forRole(TABS, role).filter((t) => t.href !== "/home");
+}
 
 export type NavSection = NavLink & { children?: NavLink[] };
 

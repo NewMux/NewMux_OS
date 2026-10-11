@@ -68,7 +68,8 @@ NEWMUX OS follows **iOS 26 Liquid Glass**.
   - `ListSection info="…"` puts a section's explanation behind an ⓘ (`InfoTip`) instead of a sentence under every card;
   - also `SegmentedControl`, `Toggle`, `CheckCircle`, `Badge`, `Avatar`, `SummaryCard`/`Widget`, `ProgressRing`, `Menu` and `SearchField`.
 - **Navigation:**
-  - iPhone (portrait or landscape): a floating glass tab bar (Today, CRM, Work, Finance, Wiki) with a sliding lens and a separate search button. The iPad/Mac layout needs at least 768 × 540 px, so a sideways phone keeps the tab bar;
+  - iPhone (portrait or landscape): a floating glass tab bar with a sliding lens and a separate search button. Like iOS, it holds five: Today, three sections you choose (More → Edit; partners start with CRM, Work and Finance, Marketing with CRM, Marketing and Work) and **More**, which lists every other section and its pages. Tapping the tab you're on scrolls to the top;
+  - from the Home Screen: swipe from the left edge to go back and pull down to refresh, as in a native app, and long-pressing a link doesn't open Safari's menu (`components/shell/NativeGestures.tsx`). The iPad/Mac layout needs at least 768 × 540 px, so a sideways phone keeps the tab bar;
   - iPad/Mac: a floating glass sidebar with those sections plus Company (profile, Ventures, Files, Growth); the section you're in expands to show its pages. The sidebar also holds the **+** and a Search ⌘K field. The Vault is in the account menu and under Settings → Security;
   - iPad (landscape)/Mac: Clients, Contacts, Documents and the Wiki use Mail/Notes-style split views (`components/shell/SplitView.tsx`); Documents shows a full-width table until one is opened;
   - ⌘K opens a Spotlight-style search.

@@ -470,3 +470,13 @@
     padding-right: 412px;
   }
 }
+
+/* Home Screen app: long-pressing a link or button doesn't bring up Safari's
+   link preview and "Open in Safari" menu. Text in fields can still be selected. */
+@media (display-mode: standalone) {
+  a,
+  button,
+  [role="button"] {
+    -webkit-touch-callout: none;
+  }
+}

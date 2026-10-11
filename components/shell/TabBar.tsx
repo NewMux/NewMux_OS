@@ -13,11 +13,14 @@ import { NavIcon } from "./NavIcon";
  * Liquid Glass capsule with a lens that slides to the selected tab, and a
  * separate search button. Scrolling down minimizes it to the selected tab;
  * scrolling up (or tapping it) brings it back. Content fades out under it.
+ * Today, three sections the person picks, and More (lib/nav.ts phoneTabs).
  */
 export function TabBar({ tabs }: { tabs: NavLink[] }) {
   const pathname = usePathname();
   const searchActive = pathname.startsWith("/search");
-  const activeIndex = searchActive ? -1 : tabs.findIndex((t) => isActive(pathname, t));
+  const matched = tabs.findIndex((t) => isActive(pathname, t));
+  // Like iOS: a screen whose section isn't in the bar belongs to More (the last tab).
+  const activeIndex = searchActive ? -1 : matched >= 0 ? matched : tabs[tabs.length - 1]?.href === "/more" ? tabs.length - 1 : -1;
   const [minimized, setMinimized] = useState(false);
 
   useEffect(() => {
@@ -70,6 +73,13 @@ export function TabBar({ tabs }: { tabs: NavLink[] }) {
                   key={tab.href}
                   href={tab.href}
                   aria-current={on ? "page" : undefined}
+                  onClick={(e) => {
+                    // Like iOS: tapping the tab you're on, at its first screen, scrolls back to the top.
+                    if (on && pathname === tab.href) {
+                      e.preventDefault();
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }
+                  }}
                   className={cn("press relative z-10 flex flex-1 flex-col items-center justify-center gap-[3px] rounded-full", on ? "text-accent" : "text-label")}
                 >
                   <NavIcon icon={tab.icon} filled={on} className="h-[22px] w-[22px]" strokeWidth={on ? 2.2 : 1.8} />
