@@ -30,7 +30,7 @@ function check(name: string, ok: boolean, detail = "") {
 }
 const section = (title: string) => console.log(`\n${title}`);
 
-type Call = { url: string; headers: Record<string, string>; body: { model: string; system: { text: string; cache_control?: unknown }[]; tools: { name: string; cache_control?: unknown }[]; tool_choice?: { type: string }; messages: { role: string; content: unknown }[] } };
+type Call = { url: string; headers: Record<string, string>; body: { model: string; output_config?: { effort?: string }; fallbacks?: unknown; system: { text: string; cache_control?: unknown }[]; tools: { name: string; cache_control?: unknown }[]; tool_choice?: { type: string }; messages: { role: string; content: unknown }[] } };
 
 /** Replaces fetch with a scripted Claude API and records what was sent. */
 function mockClaude(script: (call: Call, n: number) => { status?: number; json: unknown }): Call[] {
@@ -130,7 +130,9 @@ async function main() {
   const first = calls[0]!.body;
   check("Returns the model's final text", reply === "Clients owe **BHD 1.000**.");
   check("Calls the Messages API with the key and version headers", calls[0]!.url === "https://api.anthropic.com/v1/messages" && calls[0]!.headers["x-api-key"] === "test-key" && calls[0]!.headers["anthropic-version"] === "2023-06-01");
-  check("Uses the default model and offers a partner every lookup and action", first.model === "claude-sonnet-5-5" && first.tools.length === HAMAN_TOOLS.length + actionToolsFor("partner_admin").length);
+  check("Uses the default model and offers a partner every lookup and action", first.model === "claude-opus-5-5" && first.tools.length === HAMAN_TOOLS.length + actionToolsFor("partner_admin").length);
+  check("Asks for balanced effort by default", first.output_config?.effort === "medium");
+  check("Opts into Anthropic's safety fallback on models that have one", first.fallbacks === "default" && calls[0]!.headers["anthropic-beta"] === "server-side-fallback-2026-07-01");
   check("Caches the lookups and persona, not the dated line", !!first.tools.at(-1)!.cache_control && !!first.system[0]!.cache_control && !first.system[1]!.cache_control);
   check("Tells the model who is asking, their role and the date", first.system[1]!.text.includes(`${partner.userName}, a partner`) && /Bahrain time/.test(first.system[1]!.text));
   const followUp = calls[1]!.body.messages;
@@ -159,6 +161,7 @@ async function main() {
   calls = mockClaude(() => ({ status: 401, json: { error: { message: "invalid x-api-key sk-ant-secret" } } }));
   const failure = await askHaman([{ role: "user", content: "hi" }], partner, () => {}).catch((e: unknown) => e);
   check("HAMAN_MODEL picks the model", calls[0]!.body.model === "claude-haiku-4-5-20251001");
+  check("A model outside the list gets no effort or fallback it may not accept", calls[0]!.body.output_config === undefined && calls[0]!.body.fallbacks === undefined);
   check("A rejected key gives a safe message that doesn't repeat the API's text", failure instanceof HamanError && /API key was rejected/.test(failure.message) && !/sk-ant/.test(failure.message));
   mockClaude(() => ({ status: 529, json: {} }));
   const busy = await askHaman([{ role: "user", content: "hi" }], partner, () => {}).catch((e: unknown) => e);
@@ -217,6 +220,25 @@ async function main() {
   check("An invalid action comes back to him as an error to fix", actionResults[1]!.is_error === true && /Required/.test(actionResults[1]!.content));
   check("The status line says he's preparing a change", actionEvents.some((e) => e.type === "status" && /Preparing the change/.test(e.text)));
   check("Still nothing changed in the database", (await query<{ n: number }>("select count(*)::int as n from tasks"))[0]!.n === before);
+
+  section("Model and depth — chosen in Settings");
+  const { setSetting } = await import("../lib/data/settings");
+  const { normalizeSettings } = await import("../lib/haman/models");
+  await setSetting("haman", { model: "claude-haiku-5-5", effort: "low" });
+  calls = mockClaude(() => says("Hi."));
+  await askHaman([{ role: "user", content: "hi" }], partner, () => {});
+  check("A saved choice picks the model and effort", calls[0]!.body.model === "claude-haiku-5-5" && calls[0]!.body.output_config?.effort === "low");
+  check("No fallback is asked for on Haiku (it has none)", calls[0]!.body.fallbacks === undefined && !calls[0]!.headers["anthropic-beta"]);
+  process.env.HAMAN_MODEL = "claude-sonnet-5-5";
+  calls = mockClaude(() => says("Hi."));
+  await askHaman([{ role: "user", content: "hi" }], partner, () => {});
+  check("A saved choice wins over HAMAN_MODEL", calls[0]!.body.model === "claude-haiku-5-5");
+  delete process.env.HAMAN_MODEL;
+  check("An unknown saved model or effort falls back to the defaults", JSON.stringify(normalizeSettings({ model: "gpt-9", effort: "max" as never })) === JSON.stringify({ model: "claude-opus-5-5", effort: "medium" }));
+  await query("delete from app_settings where key = 'haman'");
+  calls = mockClaude(() => ({ json: { stop_reason: "refusal", content: [] } }));
+  const declined = await askHaman([{ role: "user", content: "something declined" }], partner, () => {});
+  check("A declined request gets a plain answer, not an error", /can't help with that/.test(declined));
 
   section("Replies — formatting");
   const blocks = toBlocks("Clients owe **BHD 315.000**.\n\n- [Ox Roastery](/clients/1): BHD 15.000\n- Voya: BHD 300.000\n\n## Next\n1. Call Ox\n2) Email Voya");

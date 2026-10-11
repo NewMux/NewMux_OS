@@ -120,7 +120,7 @@ If you'd rather not move DNS, keep using the `workers.dev` address.
 | `VAULT_SESSION_SECRET` | Cloudflare secret | Yes | Protects the vault's unlock cookie. The vault refuses to work without it. |
 | `PADDLE_WEBHOOK_SECRET` | Cloudflare secret | Only with Paddle | Checks webhook signatures at `/api/webhooks/paddle`. |
 | `ANTHROPIC_API_KEY` | Cloudflare secret | Only for Ask Haman | The Claude API key Haman answers with. Without it, Ask Haman says it isn't set up. |
-| `HAMAN_MODEL` | Cloudflare variable | No | The Claude model Haman uses. Default `claude-sonnet-5-5`. |
+| `HAMAN_MODEL` | Cloudflare variable | No | The Claude model Haman uses until a partner picks one in **Settings → Haman**. Default `claude-opus-5-5`. |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | Cloudflare secrets | Only for notifications | The key pair push notifications are signed with. See [Push notifications](#push-notifications). |
 | `CRON_SECRET` | Cloudflare secret | Only for notifications | Lets the 5-minute cron trigger run the notification check. |
 | `VAPID_SUBJECT` | Cloudflare variable | No | A contact for the push services. Default `mailto:info@newmux.com`. |
