@@ -4,13 +4,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
-import { ArrowUp, Check, Copy, Eye, EyeOff, Sparkles } from "lucide-react";
+import { ArrowUp, Check, ChevronDown, Copy, Eye, EyeOff, RotateCcw, Sparkles, Square } from "lucide-react";
+import { Menu, type MenuItem } from "@/components/ui/Menu";
 import { NavButton } from "@/components/ui/Page";
 import { Sheet, SheetButton, SheetIconButton } from "@/components/ui/Sheet";
 import { RoleContext } from "@/components/shell/QuickAdd";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useIsDesktop } from "@/lib/hooks/useMediaQuery";
+import { useIsDesktop, useMediaQuery } from "@/lib/hooks/useMediaQuery";
+import { HAMAN_EFFORTS, HAMAN_MODELS, modelLabel, type HamanSettings } from "@/lib/haman/models";
 import type { UserRole } from "@/lib/data/types";
 import { toBlocks, toSpans } from "@/lib/haman/markdown";
 import type { ProposedAction } from "@/lib/haman/actions";
@@ -45,11 +47,33 @@ const SUGGESTIONS: Record<UserRole, string[]> = {
 /** How many earlier turns go with each question. */
 const HISTORY = 16;
 
+const STORE_KEY = "haman-conversation";
+
+/** The conversation for this tab, without any revealed Vault value. */
+function saveTurns(turns: Turn[]) {
+  try {
+    const safe = turns.map((t) => (t.actions ? { ...t, actions: t.actions.map(({ secret: _secret, ...a }) => (a.state === "running" ? { ...a, state: "waiting" as const } : a)) } : t));
+    sessionStorage.setItem(STORE_KEY, JSON.stringify(safe.slice(-60)));
+  } catch {
+    // Private mode or full storage: the chat just won't survive a reload.
+  }
+}
+
+function loadTurns(): Turn[] {
+  try {
+    const raw = sessionStorage.getItem(STORE_KEY);
+    return raw ? (JSON.parse(raw) as Turn[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Ask Haman: a chat with NEWMUX's AI project manager. He answers from the
  * live records through /api/haman, and prepares changes as cards that only
- * take effect when the user confirms them. The conversation is kept only
- * while the app stays open.
+ * take effect when the user confirms them. The conversation is kept in this
+ * browser tab (sessionStorage) so a reload doesn't lose it; it's never stored
+ * on the server.
  */
 export function HamanSheet() {
   const role = useContext(RoleContext);
@@ -60,13 +84,28 @@ export function HamanSheet() {
   /** What Haman is doing right now; null when he's idle. */
   const [status, setStatus] = useState<string | null>(null);
   const [configured, setConfigured] = useState<boolean | null>(null);
+  const [settings, setSettings] = useState<HamanSettings | null>(null);
+  const [canChangeModel, setCanChangeModel] = useState(false);
   const turnsRef = useRef<Turn[]>([]);
   const busyRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  // Phones and tablets: Return makes a new line and the arrow sends, as in Messages. With a keyboard, Return sends.
+  const touch = useMediaQuery("(pointer: coarse)");
 
   const update = useCallback((next: Turn[]) => {
     turnsRef.current = next;
     setTurns(next);
+    saveTurns(next);
+  }, []);
+
+  useEffect(() => {
+    const saved = loadTurns();
+    if (saved.length) {
+      turnsRef.current = saved;
+      setTurns(saved);
+    }
   }, []);
 
   const send = useCallback(
@@ -78,6 +117,8 @@ export function HamanSheet() {
       update(asked);
       setDraft("");
       setStatus("Thinking");
+      const controller = new AbortController();
+      abortRef.current = controller;
 
       const proposed: Card[] = [];
       const finish = (answer: Turn) => update([...asked, proposed.length ? { ...answer, actions: proposed } : answer]);
@@ -87,6 +128,7 @@ export function HamanSheet() {
         while (history[0]?.role === "assistant") history.shift();
         const res = await fetch("/api/haman", {
           method: "POST",
+          signal: controller.signal,
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ messages: history.map((t) => ({ role: t.role, content: withOutcomes(t).slice(-4000) })) }),
         });
@@ -128,14 +170,38 @@ export function HamanSheet() {
         handle(buffer);
         if (!answered) finish({ role: "assistant", content: "The answer was cut off. Please ask again.", failed: true });
       } catch {
-        finish({ role: "assistant", content: "You appear to be offline. Check your connection and try again.", failed: true });
+        if (controller.signal.aborted) finish({ role: "assistant", content: "Stopped.", failed: true });
+        else finish({ role: "assistant", content: "You appear to be offline. Check your connection and try again.", failed: true });
       } finally {
         busyRef.current = false;
+        abortRef.current = null;
         setStatus(null);
       }
     },
     [update],
   );
+
+  const stop = useCallback(() => abortRef.current?.abort(), []);
+
+  /** Ask the question behind a failed answer again. */
+  const retry = useCallback(
+    (index: number) => {
+      const question = turnsRef.current[index - 1];
+      if (!question || question.role !== "user" || busyRef.current) return;
+      update(turnsRef.current.slice(0, index - 1));
+      void send(question.content);
+    },
+    [send, update],
+  );
+
+  const changeSettings = useCallback(async (patch: Partial<HamanSettings>) => {
+    const res = await fetch("/api/haman/settings", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) });
+    const json = (await res.json().catch(() => ({}))) as { settings?: HamanSettings; error?: string };
+    if (res.ok && json.settings) {
+      setSettings(json.settings);
+      toast.success(`Haman now uses ${modelLabel(json.settings.model)} · ${HAMAN_EFFORTS.find((e) => e.id === json.settings!.effort)?.label}`);
+    } else toast.error(json.error ?? "Couldn't change it.");
+  }, []);
 
   const router = useRouter();
   const setCard = useCallback(
@@ -177,14 +243,29 @@ export function HamanSheet() {
     return () => window.removeEventListener(OPEN_EVENT, onOpen);
   }, [send]);
 
-  // Ask once whether the Claude API key is in place, so the sheet can say what's missing.
+  // Ask once whether the Claude API key is in place, so the sheet can say what's missing, and which model is in use.
   useEffect(() => {
     if (!open || configured !== null) return;
     fetch("/api/haman")
       .then((r) => r.json())
       .then((d: { configured?: boolean }) => setConfigured(d.configured !== false))
       .catch(() => setConfigured(true));
+    fetch("/api/haman/settings")
+      .then((r) => r.json())
+      .then((d: { settings?: HamanSettings; canChange?: boolean }) => {
+        if (d.settings) setSettings(d.settings);
+        setCanChangeModel(!!d.canChange);
+      })
+      .catch(() => {});
   }, [open, configured]);
+
+  // The composer grows with what's typed, up to about six lines (Safari has no field-sizing).
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+  }, [draft, open]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
@@ -200,6 +281,7 @@ export function HamanSheet() {
         New
       </SheetButton>
     ) : undefined;
+  const modelChip = settings ? <ModelChip settings={settings} canChange={canChangeModel && !busy} onChange={(p) => void changeSettings(p)} /> : null;
   // On iPad and Mac a link only navigates the page beside the panel; on phones the sheet covers it, so it closes.
   const onNavigate = () => {
     if (!desktop) setOpen(false);
@@ -248,6 +330,17 @@ export function HamanSheet() {
                   {turn.actions?.map((card) => (
                     <ActionCard key={card.id} card={card} onConfirm={() => void confirmCard(card)} onCancel={() => setCard(card.id, { state: "cancelled" })} />
                   ))}
+                  <div className="-mb-1 mt-1 flex justify-end gap-1">
+                    {turn.failed ? (
+                      i === turns.length - 1 && (
+                        <button type="button" disabled={busy} onClick={() => retry(i)} className="press flex items-center gap-1 rounded-full px-2 py-1 text-footnote font-medium text-accent disabled:opacity-40">
+                          <RotateCcw className="h-3.5 w-3.5" /> Try Again
+                        </button>
+                      )
+                    ) : (
+                      <CopyButton text={turn.content} />
+                    )}
+                  </div>
                 </div>
               </div>
             ),
@@ -279,42 +372,50 @@ export function HamanSheet() {
               maxLength={4000}
               disabled={unavailable}
               onChange={(e) => setDraft(e.target.value)}
+              ref={inputRef}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && !touch) {
                   e.preventDefault();
                   void send(draft);
                 }
               }}
               placeholder="Ask about clients, money, projects…"
               aria-label="Ask Haman"
-              enterKeyHint="send"
+              enterKeyHint={touch ? "enter" : "send"}
               // 16px or more, so iOS doesn't zoom in on focus.
-              className="max-h-32 min-h-[32px] flex-1 resize-none self-center bg-transparent py-1 text-[17px] leading-[22px] text-label placeholder:text-label-3 focus:outline-none disabled:opacity-50"
-              style={{ fieldSizing: "content" } as React.CSSProperties}
+              className="min-h-[32px] flex-1 resize-none self-center overflow-y-auto bg-transparent py-1 text-[17px] leading-[22px] text-label placeholder:text-label-3 focus:outline-none disabled:opacity-50"
             />
-            <button
-              type="submit"
-              aria-label="Send"
-              disabled={busy || unavailable || !draft.trim()}
-              className="press glass-prominent flex h-8 w-8 shrink-0 items-center justify-center rounded-full disabled:opacity-40"
-            >
-              <ArrowUp className="h-[18px] w-[18px]" strokeWidth={2.6} />
-            </button>
+            {busy ? (
+              <button type="button" aria-label="Stop" onClick={stop} className="press flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-label text-bg">
+                <Square className="h-3 w-3" fill="currentColor" strokeWidth={0} />
+              </button>
+            ) : (
+              <button
+                type="submit"
+                aria-label="Send"
+                disabled={unavailable || !draft.trim()}
+                className="press glass-prominent flex h-8 w-8 shrink-0 items-center justify-center rounded-full disabled:opacity-40"
+              >
+                <ArrowUp className="h-[18px] w-[18px]" strokeWidth={2.6} />
+              </button>
+            )}
           </div>
-          <p className="px-2 pt-1.5 text-center text-caption2 text-label-2">Haman changes nothing until you confirm. Check figures that matter.</p>
+          <p className="px-2 pt-1.5 text-center text-caption2 text-label-2">
+            {touch ? "Haman changes nothing until you confirm." : "Return to send, Shift-Return for a new line. Haman changes nothing until you confirm."}
+          </p>
         </form>
       </div>
   );
 
   if (desktop) {
     return (
-      <SidePanel open={open} onOpenChange={setOpen} left={close} right={newChat}>
+      <SidePanel open={open} onOpenChange={setOpen} left={close} right={newChat} subtitle={modelChip}>
         {body}
       </SidePanel>
     );
   }
   return (
-    <Sheet open={open} onOpenChange={setOpen} title="Haman" left={close} right={newChat}>
+    <Sheet open={open} onOpenChange={setOpen} title="Haman" subtitle={modelChip} left={close} right={newChat}>
       {body}
     </Sheet>
   );
@@ -325,7 +426,21 @@ export function HamanSheet() {
  * instead of a dialog over the screen. The app beside it stays usable, and
  * on wide windows the page makes room for it (`html[data-haman]` in globals.css).
  */
-function SidePanel({ open, onOpenChange, left, right, children }: { open: boolean; onOpenChange: (o: boolean) => void; left: React.ReactNode; right?: React.ReactNode; children: React.ReactNode }) {
+function SidePanel({
+  open,
+  onOpenChange,
+  left,
+  right,
+  subtitle,
+  children,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  left: React.ReactNode;
+  right?: React.ReactNode;
+  subtitle?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   useEffect(() => {
     if (!open) return;
     document.documentElement.dataset.haman = "open";
@@ -345,13 +460,62 @@ function SidePanel({ open, onOpenChange, left, right, children }: { open: boolea
         >
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 pb-2 pt-3.5">
             <div className="flex justify-start">{left}</div>
-            <Dialog.Title className="text-center text-headline">Haman</Dialog.Title>
+            <div className="flex flex-col items-center">
+              <Dialog.Title className="text-center text-headline">Haman</Dialog.Title>
+              {subtitle}
+            </div>
             <div className="flex justify-end">{right}</div>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3 pt-2">{children}</div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+  );
+}
+
+// --- Header and message controls ---
+
+/** "Opus 5.5 · Balanced" under the title; partners tap it to switch model or depth. */
+function ModelChip({ settings, canChange, onChange }: { settings: HamanSettings; canChange: boolean; onChange: (patch: Partial<HamanSettings>) => void }) {
+  const effort = HAMAN_EFFORTS.find((e) => e.id === settings.effort)?.label ?? settings.effort;
+  const text = `${modelLabel(settings.model)} · ${effort}`;
+  if (!canChange) return <span className="text-caption1 text-label-2">{text}</span>;
+  const items: MenuItem[] = [
+    ...HAMAN_MODELS.map((m) => ({ label: `${m.label}  ·  ${m.price}`, icon: m.id === settings.model ? Check : undefined, onSelect: () => onChange({ model: m.id }) })),
+    "separator" as const,
+    ...HAMAN_EFFORTS.map((e) => ({ label: e.label, icon: e.id === settings.effort ? Check : undefined, onSelect: () => onChange({ effort: e.id }) })),
+  ];
+  return (
+    <Menu
+      align="start"
+      label="Haman's model"
+      items={items}
+      trigger={
+        <button type="button" className="flex items-center gap-0.5 rounded-full px-1.5 text-caption1 text-label-2 hover:text-label" aria-label={`Model: ${text}. Change`}>
+          {text}
+          <ChevronDown className="h-3 w-3" strokeWidth={2.4} />
+        </button>
+      }
+    />
+  );
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      aria-label="Copy answer"
+      onClick={() => {
+        void navigator.clipboard?.writeText(text.replace(/\*\*/g, "")).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        });
+      }}
+      className="press rounded-full p-1.5 text-label-3 hover:text-label-2"
+    >
+      {copied ? <Check className="h-3.5 w-3.5 text-ios-green" strokeWidth={2.6} /> : <Copy className="h-3.5 w-3.5" />}
+    </button>
   );
 }
 

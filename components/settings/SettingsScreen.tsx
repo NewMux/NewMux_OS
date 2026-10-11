@@ -12,6 +12,7 @@ import { FormSheet } from "@/components/ui/FormSheet";
 import { useConfirm } from "@/components/ui/Confirm";
 import { ProfitSplitRuleSheet, type Scope } from "./ProfitSplitRuleSheet";
 import { NotificationsSection } from "./NotificationsSection";
+import { HamanSection } from "./HamanSection";
 import { useMutation } from "@/lib/useMutation";
 import { COMPANY_LINKS, forRole } from "@/lib/nav";
 import { NavIcon } from "@/components/shell/NavIcon";
@@ -100,6 +101,8 @@ export function SettingsScreen({
         </ListSection>
 
         <NotificationsSection />
+
+        {admin && <HamanSection />}
 
         <ListSection header="Appearance">
           <div className="p-3">

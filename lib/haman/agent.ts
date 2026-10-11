@@ -1,4 +1,6 @@
 import { formatDate, todayYmd } from "@/lib/time";
+import { getSetting } from "@/lib/data/settings";
+import { HAMAN_MODELS, normalizeSettings, type HamanSettings } from "./models";
 import { runTool, toolsFor, type HamanContext } from "./tools";
 import { ActionInputError, actionToolsFor, isActionName, proposeAction, type ProposedAction } from "./actions";
 
@@ -13,15 +15,21 @@ import { ActionInputError, actionToolsFor, isActionName, proposeAction, type Pro
  * `action` event, a card the user confirms, and the browser then calls the
  * app's own API route.
  *
- * Needs ANTHROPIC_API_KEY. HAMAN_MODEL picks the Claude model.
+ * Needs ANTHROPIC_API_KEY. The model and how hard he thinks are chosen by a
+ * partner in Settings → Haman (./models.ts); HAMAN_MODEL is the fallback
+ * when nothing has been chosen there.
  */
 
 const API_URL = "https://api.anthropic.com/v1/messages";
-const DEFAULT_MODEL = "claude-sonnet-5-5";
 /** Lookups Haman may chain for one question before he has to answer. */
 const MAX_ROUNDS = 8;
-/** Room for a document's line items or a wiki page's text in one action. */
-const MAX_TOKENS = 4096;
+/** Room for thinking plus a document's line items or a wiki page's text in one action. */
+const MAX_TOKENS = 16000;
+
+/** The model and effort for this question: the saved choice, else HAMAN_MODEL, else the default. */
+export async function hamanSettings(): Promise<HamanSettings> {
+  return normalizeSettings(await getSetting<Partial<HamanSettings> | null>("haman", null), process.env.HAMAN_MODEL);
+}
 
 export type ChatTurn = { role: "user" | "assistant"; content: string };
 
@@ -79,7 +87,11 @@ function situation(ctx: HamanContext): string {
   return `Today is ${formatDate(today, { weekday: "long", day: "numeric", month: "long", year: "numeric" })} (${today}), Bahrain time. You are talking with ${ctx.userName}, ${role}.`;
 }
 
-async function callClaude(messages: ApiMessage[], ctx: HamanContext, lastRound: boolean, signal?: AbortSignal): Promise<ApiResponse> {
+async function callClaude(messages: ApiMessage[], ctx: HamanContext, settings: HamanSettings, lastRound: boolean, signal?: AbortSignal): Promise<ApiResponse> {
+  // A request the model's safety checks decline is re-run by Anthropic on a suitable model (Haiku has no fallback).
+  // A model named only by HAMAN_MODEL (an older or newer one) gets neither effort nor fallback, which it may not accept.
+  const known = HAMAN_MODELS.find((m) => m.id === settings.model);
+  const fallback = known?.fallback ?? false;
   const tools = [...toolsFor(ctx.role), ...actionToolsFor(ctx.role)].map((t, i, all) => ({
     name: t.name,
     description: t.description,
@@ -94,10 +106,13 @@ async function callClaude(messages: ApiMessage[], ctx: HamanContext, lastRound: 
       "content-type": "application/json",
       "x-api-key": process.env.ANTHROPIC_API_KEY ?? "",
       "anthropic-version": "2023-06-01",
+      ...(fallback ? { "anthropic-beta": "server-side-fallback-2026-07-01" } : {}),
     },
     body: JSON.stringify({
-      model: process.env.HAMAN_MODEL || DEFAULT_MODEL,
+      model: settings.model,
       max_tokens: MAX_TOKENS,
+      ...(known ? { output_config: { effort: settings.effort } } : {}),
+      ...(fallback ? { fallbacks: "default" } : {}),
       system: [
         { type: "text", text: PERSONA, cache_control: { type: "ephemeral" } },
         { type: "text", text: situation(ctx) },
@@ -122,7 +137,7 @@ export class HamanError extends Error {}
 
 function messageForStatus(status: number): string {
   if (status === 401 || status === 403) return "Haman's Claude API key was rejected. Check ANTHROPIC_API_KEY.";
-  if (status === 404) return "Haman's Claude model wasn't found. Check HAMAN_MODEL.";
+  if (status === 404) return "Haman's Claude model isn't available to this API key. Pick another one in Settings → Haman.";
   if (status === 429) return "Haman has hit the Claude API's rate or credit limit. Try again in a minute.";
   if (status === 529 || status >= 500) return "The Claude API is busy right now. Try again in a moment.";
   return "Haman couldn't reach the Claude API. Try again.";
@@ -141,9 +156,11 @@ const textOf = (blocks: ContentBlock[]) =>
  */
 export async function askHaman(turns: ChatTurn[], ctx: HamanContext, emit: (event: HamanEvent) => void, signal?: AbortSignal): Promise<string> {
   const messages: ApiMessage[] = turns.map((t) => ({ role: t.role, content: t.content }));
+  const settings = await hamanSettings();
 
   for (let round = 1; round <= MAX_ROUNDS; round++) {
-    const response = await callClaude(messages, ctx, round === MAX_ROUNDS, signal);
+    const response = await callClaude(messages, ctx, settings, round === MAX_ROUNDS, signal);
+    if (response.stop_reason === "refusal") return "I can't help with that one. Try asking it another way.";
     const calls = response.content.filter((b): b is ToolUseBlock => b.type === "tool_use");
     if (response.stop_reason !== "tool_use" || calls.length === 0) {
       return textOf(response.content) || "I couldn't put an answer together for that. Try asking it another way.";

@@ -26,6 +26,8 @@ Who can reach each `/api/*` endpoint, reviewed for Improvements PRD item 19
 | `/api/reminders` (yours, or ones you set), `DELETE /api/reminders/[id]` | 401 | ✓ | ✓ |
 | `POST /api/reminders` for someone else (`userId`) | 401 | 409 | ✓ |
 | `POST /api/cron/notifications` (no session: `Authorization: Bearer $CRON_SECRET`; refused if unset) | 403 | 403 | 403 |
+| `GET /api/haman/settings` (Haman's model and depth) | 401 | ✓ | ✓ |
+| `PATCH /api/haman/settings` | 401 | 403 | ✓ |
 | `/api/haman` (Ask Haman: lookups and prepared changes follow the role, see below) | 401 | ✓ | ✓ |
 | `/api/tasks/**`, `/api/subtasks/**`, `/api/meetings/**` | 401 | ✓ | ✓ |
 | `/api/projects` (list, create, edit) | 401 | ✓ | ✓ |

@@ -11,6 +11,8 @@ type SheetProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
+  /** A line under the title (Haman's model). */
+  subtitle?: React.ReactNode;
   /** Leading header control (usually a SheetIconButton ✕). */
   left?: React.ReactNode;
   /** Trailing header control (usually a prominent SheetIconButton ✓). */
@@ -26,13 +28,16 @@ type SheetProps = {
  * sheets float inset from the screen edges, tall ones run edge to edge. On
  * iPad/desktop: a centred dialog. Header: ✕ · Title · ✓ in glass circles.
  */
-export function Sheet({ open, onOpenChange, title, left, right, children, size = "large", className }: SheetProps) {
+export function Sheet({ open, onOpenChange, title, subtitle, left, right, children, size = "large", className }: SheetProps) {
   const desktop = useIsDesktop();
 
   const header = (
     <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 pb-2 pt-2.5">
       <div className="flex justify-start">{left}</div>
-      <div className="max-w-[56vw] truncate text-center text-headline">{title}</div>
+      <div className="flex max-w-[56vw] flex-col items-center">
+        <div className="max-w-full truncate text-center text-headline">{title}</div>
+        {subtitle}
+      </div>
       <div className="flex justify-end">{right}</div>
     </div>
   );
