@@ -50,7 +50,8 @@ export async function listFiles(
   const where: string[] = [];
   const params: unknown[] = [];
   if (!filter.includeReceipts) where.push("f.category <> 'receipt'");
-  if (filter.categories) where.push(`f.category = any($${params.push([...filter.categories])})`);
+  // A comma list rather than an array parameter: on Workers the driver skips type lookups and can't send arrays (lib/db.ts).
+  if (filter.categories) where.push(`f.category = any(string_to_array($${params.push(filter.categories.join(","))}, ','))`);
   if (filter.clientId) where.push(`f.client_id = $${params.push(filter.clientId)}`);
   if (filter.projectId) where.push(`f.project_id = $${params.push(filter.projectId)}`);
   if (filter.ventureId) where.push(`f.venture_id = $${params.push(filter.ventureId)}`);
