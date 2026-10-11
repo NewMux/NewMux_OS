@@ -6,6 +6,7 @@ import { Sidebar } from "@/components/shell/Sidebar";
 import { CommandPalette } from "@/components/shell/CommandPalette";
 import { RoleProvider } from "@/components/shell/QuickAdd";
 import { TaskSheetHost } from "@/components/work/TaskSheetHost";
+import { HamanSheet } from "@/components/haman/HamanSheet";
 import { Suspense } from "react";
 
 export default async function ShellLayout({ children }: { children: React.ReactNode }) {
@@ -28,6 +29,7 @@ export default async function ShellLayout({ children }: { children: React.ReactN
       <main className="min-h-dvh md:pl-[272px]">{children}</main>
       <TabBar tabs={forRole(TABS, role)} />
       <CommandPalette links={allLinksFor(role)} />
+      <HamanSheet />
       <Suspense>
         <TaskSheetHost />
       </Suspense>

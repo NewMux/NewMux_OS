@@ -29,6 +29,7 @@ One app for running NEWMUX: **CRM, project management, finance and a knowledge b
   - templates, favorites, recently viewed pages and full-text search;
   - pages can be linked to clients, projects and deals.
 - **Company**: registration and renewals, certifications, partnerships, ventures with their own profit split and spending, **Files** (contracts, the CR, brand identity) with expiry reminders, the credentials **Vault** (AES-256-GCM) and **Growth** (campaign attribution, MRR).
+- **Haman**, the AI project manager: ask "who owes us money?" or "what needs me today?" and he answers from the live records, with links to open. See [Ask Haman](#ask-haman).
 - **Everywhere**:
   - global search (the Search tab, or ⌘K on iPad/Mac);
   - light/dark appearance that follows the system, with an override in Settings;
@@ -103,6 +104,7 @@ npm run seed         # migrate + load db/seed.sql if the database is empty
 npm run db:reset     # wipe local PGlite and reseed
 npm run typecheck && npm run lint
 npm run test:prd     # the Improvements PRD's worked examples, on a throwaway empty database
+npm run test:haman   # Haman's lookups on the demo data, and his conversation loop against a stand-in for the Claude API
 ```
 
 The seed contains the real business data from the ERP PRD:
@@ -135,6 +137,20 @@ The app is internal and unlisted. Every response sends `noindex`, so search engi
 - **Team member** (`lead_dev`): Today, Work (projects, tasks, calendar), Wiki, Vault (masked values only) and Settings (appearance, password). CRM, Finance, Company and Growth are blocked in the API routes (403) as well as hidden in navigation.
 
 [docs/API_ACCESS.md](docs/API_ACCESS.md) lists who can reach every `/api/*` endpoint. Deleted or deactivated users lose access within 5 minutes.
+
+## Ask Haman
+
+Haman is a Claude model that answers questions about the business by looking things up in NEWMUX OS. Open him from **Ask Haman** in the sidebar, from ⌘K (type a question, then choose "Ask Haman"), or on iPhone from the ✦ button on Today and from Search.
+
+- **Setting him up:** add a Claude API key as `ANTHROPIC_API_KEY` (a Cloudflare secret, or in `deploy/.env` for Docker). Without it the rest of the app is unchanged and Ask Haman says it isn't set up. `HAMAN_MODEL` picks the model; the default is `claude-sonnet-5-5`.
+- **What he can look up** (`lib/haman/tools.ts`): tasks, projects, the calendar, the wiki and Needs Attention for everyone; for partners also the finance overview, invoices and documents, cash flow and forecast, profit by project, expenses, hosting fees, clients, the pipeline and follow-ups. Each lookup calls the same `lib/data` function as the screen it mirrors.
+- **What he can't do:** change anything. Every lookup is read-only. He has no access to the Vault.
+- **Roles:** a team member's Haman is offered only the lookups their account can open, and the rest are refused on the server.
+- **Money:** amounts reach the model already formatted, with totals worked out by the finance code, and he is told to quote them and not to do sums. Treat a figure that matters as a pointer to the screen he links, not as the record.
+- **Privacy:** the question and whatever a lookup returns (client names, amounts, task titles, wiki text) are sent to the Claude API to write the answer. Conversations aren't stored in NEWMUX OS; one lasts until the app is reloaded.
+- **Cost:** each question is a few Claude API calls, billed to the key's account.
+
+To add a lookup, add an entry to `HAMAN_TOOLS` with `access: "everyone"` or `"partner"`, format every amount with `centsToDisplay`, and return an `href` for anything he should be able to link.
 
 ## Money
 

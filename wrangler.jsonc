@@ -1,7 +1,7 @@
 // Cloudflare Workers deployment. Step-by-step guide: docs/DEPLOY_CLOUDFLARE.md
 //
 // Secrets are NOT stored here. Set AUTH_SECRET, VAULT_SESSION_SECRET and
-// (optionally) PADDLE_WEBHOOK_SECRET in the Cloudflare dashboard under
+// (optionally) ANTHROPIC_API_KEY and PADDLE_WEBHOOK_SECRET in the Cloudflare dashboard under
 // Workers & Pages -> newmux-os -> Settings -> Variables and Secrets, as type Secret.
 {
   "$schema": "node_modules/wrangler/config-schema.json",

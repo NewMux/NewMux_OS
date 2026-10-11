@@ -34,6 +34,9 @@ services:
       NEXTAUTH_URL: https://${DOMAIN}
       VAULT_SESSION_SECRET: ${VAULT_SESSION_SECRET:?set VAULT_SESSION_SECRET in deploy/.env}
       PADDLE_WEBHOOK_SECRET: ${PADDLE_WEBHOOK_SECRET:-}
+      # "Ask Haman" (optional): a Claude API key, and the model to use.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      HAMAN_MODEL: ${HAMAN_MODEL:-}
     expose:
       - "3000"
 

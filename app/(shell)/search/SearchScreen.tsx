@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { SearchX, Sparkles } from "lucide-react";
 import { Page } from "@/components/ui/Page";
 import { SearchField } from "@/components/ui/SearchField";
-import { ListSection } from "@/components/ui/List";
+import { IconTile, ListRow, ListSection } from "@/components/ui/List";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { RESULT_META, ResultRow, groupResults } from "@/components/shell/SearchResults";
+import { openHaman } from "@/components/haman/HamanSheet";
 import type { SearchResult } from "@/lib/data/search";
 
 export function SearchScreen() {
@@ -34,7 +35,22 @@ export function SearchScreen() {
   return (
     <Page title="Search" accessory={<SearchField value={q} onChange={setQ} autoFocus placeholder="Clients, deals, tasks, invoices, wiki" />}>
       {results === null && (
-        <EmptyState icon={Sparkles} title="Search everything" message="Clients, contacts, deals, projects, tasks, invoices and wiki pages — all in one place." />
+        <EmptyState
+          icon={Sparkles}
+          title="Search everything"
+          message="Clients, contacts, deals, projects, tasks, invoices and wiki pages — all in one place."
+          action={
+            <button type="button" onClick={() => openHaman()} className="press rounded-full bg-accent/[0.12] px-4 py-2 text-subhead font-medium text-accent">
+              Ask Haman
+            </button>
+          }
+        />
+      )}
+      {/* A question rather than a name: hand it to Haman. */}
+      {results !== null && q.trim().length >= 3 && (
+        <ListSection>
+          <ListRow leading={<IconTile icon={Sparkles} color="blue" />} title={`Ask Haman: “${q.trim()}”`} onClick={() => openHaman(q.trim())} chevron />
+        </ListSection>
       )}
       {results?.length === 0 && <EmptyState icon={SearchX} title={`No results for “${q}”`} message="Check the spelling or try a new search." />}
       {results &&

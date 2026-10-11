@@ -10,5 +10,8 @@ DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/newmux
 AUTH_SECRET=change-me-to-a-long-random-string
 VAULT_SESSION_SECRET=change-me-to-another-long-random-string
 
+# Only for "Ask Haman": a Claude API key from https://platform.claude.com.
+ANTHROPIC_API_KEY=
+
 # Only if Paddle webhooks are connected.
 PADDLE_WEBHOOK_SECRET=

@@ -7,6 +7,7 @@ import { SummaryCard } from "@/components/ui/Widget";
 import { Avatar } from "@/components/ui/Avatar";
 import { TaskRow } from "@/components/work/TaskRow";
 import { QuickAddMenu } from "@/components/shell/QuickAdd";
+import { AskHamanButton } from "@/components/haman/HamanSheet";
 import { AttentionList } from "@/components/home/AttentionList";
 import { getAttentionItems } from "@/lib/data/attention";
 import { getErpDashboardSummary } from "@/lib/data/finance";
@@ -46,7 +47,12 @@ export default async function HomePage() {
     <Page
       title="Today"
       eyebrow={formatDate(today, { weekday: "long", day: "numeric", month: "long" })}
-      actions={<QuickAddMenu />}
+      actions={
+        <>
+          <AskHamanButton />
+          <QuickAddMenu />
+        </>
+      }
       titleTrailing={
         <Link href="/settings" aria-label="Account and settings" className="press block md:hidden">
           <Avatar name={session.user.name ?? "?"} size={38} />
