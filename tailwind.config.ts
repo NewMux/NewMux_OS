@@ -89,6 +89,7 @@ const config: Config = {
         "fade-in": { from: { opacity: "0" }, to: { opacity: "1" } },
         "scale-in": { from: { opacity: "0", transform: "scale(0.96)" }, to: { opacity: "1", transform: "scale(1)" } },
         "slide-up": { from: { opacity: "0", transform: "translateY(8px)" }, to: { opacity: "1", transform: "translateY(0)" } },
+        "slide-in-right": { from: { opacity: "0", transform: "translateX(24px)" }, to: { opacity: "1", transform: "translateX(0)" } },
         shimmer: { "100%": { transform: "translateX(100%)" } },
         // Navigation: a pushed screen slides in from the right, a popped one from the left.
         "page-push": { from: { opacity: "0", transform: "translate3d(32%, 0, 0)" }, to: { opacity: "1", transform: "translate3d(0, 0, 0)" } },
@@ -100,6 +101,7 @@ const config: Config = {
         "fade-in": "fade-in 200ms ease-out",
         "scale-in": "scale-in 220ms cubic-bezier(0.32, 0.72, 0, 1)",
         "slide-up": "slide-up 280ms cubic-bezier(0.32, 0.72, 0, 1)",
+        "slide-in-right": "slide-in-right 320ms cubic-bezier(0.32, 0.72, 0, 1)",
         "page-push": "page-push 420ms cubic-bezier(0.32, 0.72, 0, 1) backwards",
         "page-pop": "page-pop 380ms cubic-bezier(0.32, 0.72, 0, 1) backwards",
         "page-fade": "page-fade 240ms ease-out backwards",

@@ -94,7 +94,7 @@ cp .env.example .env.local   # set AUTH_SECRET / NEXTAUTH_SECRET / VAULT_SESSION
 npm run build && npm start   # first start creates + seeds .data/pglite
 ```
 
-Log in as `info@newmux.com` / `changeme123`, then change the password under **Settings → Change Password**. The other seeded login is `m4ahmed7@gmail.com` (partner), with the same default password.
+Log in as `info@newmux.com` / `changeme123`, then change the password under **Settings → Change Password**. A partner who is signed in can set a new password for anyone else who is locked out under **Settings → Team**; each reset goes in the audit log. The other seeded login is `m4ahmed7@gmail.com` (partner), with the same default password.
 
 Useful scripts:
 
@@ -140,7 +140,7 @@ The app is internal and unlisted. Every response sends `noindex`, so search engi
 
 ## Ask Haman
 
-Haman is a Claude model that answers questions about the business by looking things up in NEWMUX OS. Open him from **Ask Haman** in the sidebar, from ⌘K (type a question, then choose "Ask Haman"), or on iPhone from the ✦ button on Today and from Search.
+Haman is a Claude model that answers questions about the business by looking things up in NEWMUX OS. Open him from **Ask Haman** in the sidebar, from ⌘K (type a question, then choose "Ask Haman"), or on iPhone from the ✦ button on Today and from Search. On iPad and Mac he opens in a panel on the right, so the page stays usable beside him (on wide windows it moves over to make room); on iPhone he opens as a sheet.
 
 - **Setting him up:** add a Claude API key as `ANTHROPIC_API_KEY` (a Cloudflare secret, or in `deploy/.env` for Docker). Without it the rest of the app is unchanged and Ask Haman says it isn't set up. `HAMAN_MODEL` picks the model; the default is `claude-sonnet-5-5`.
 - **What he can look up** (`lib/haman/tools.ts`): tasks, projects, the calendar, the wiki and Needs Attention for everyone; for partners also the finance overview, invoices and documents, cash flow and forecast, profit by project, expenses, hosting fees, clients, the pipeline and follow-ups. Each lookup calls the same `lib/data` function as the screen it mirrors.

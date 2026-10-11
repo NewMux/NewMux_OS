@@ -21,6 +21,7 @@ Who can reach each `/api/*` endpoint, reviewed for Improvements PRD item 19
 | --- | --- | --- | --- |
 | `/api/health`, `/api/webhooks/paddle` (signature-verified) | ✓ | ✓ | ✓ |
 | `/api/me/password`, `/api/users` (id + name only), `/api/search` (results filtered by role) | 401 | ✓ | ✓ |
+| `POST /api/users/[id]/password` (Settings → Team: a partner sets a new password for someone else, never their own; audit-logged) | 401 | 403 | ✓ |
 | `/api/haman` (Ask Haman: read-only, and what he can look up follows the role, see below) | 401 | ✓ | ✓ |
 | `/api/tasks/**`, `/api/subtasks/**`, `/api/meetings/**` | 401 | ✓ | ✓ |
 | `/api/projects` (list, create, edit) | 401 | ✓ | ✓ |

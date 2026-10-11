@@ -546,7 +546,8 @@ export type AuditEntityType =
   | "deal"
   | "bank_account"
   | "payout"
-  | "file";
+  | "file"
+  | "user";
 
 export type AuditLogEntry = {
   id: string;

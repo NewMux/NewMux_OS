@@ -95,6 +95,7 @@ export function SettingsScreen({
             subtitle="Server logins, API tokens and database passwords, encrypted (AES-256)"
             multiline
           />
+          {admin && <ListRow href="/settings/team" leading={<IconTile icon={Users} color="blue" />} title="Team" subtitle="Who can sign in, and new passwords for anyone locked out" multiline />}
         </ListSection>
 
         <ListSection header="Appearance">

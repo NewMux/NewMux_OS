@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import * as Dialog from "@radix-ui/react-dialog";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { ArrowUp, Sparkles } from "lucide-react";
 import { NavButton } from "@/components/ui/Page";
 import { Sheet, SheetButton, SheetIconButton } from "@/components/ui/Sheet";
 import { RoleContext } from "@/components/shell/QuickAdd";
 import { cn } from "@/lib/utils";
+import { useIsDesktop } from "@/lib/hooks/useMediaQuery";
 import type { UserRole } from "@/lib/data/types";
 import { toBlocks, toSpans } from "@/lib/haman/markdown";
 
@@ -44,6 +46,7 @@ const HISTORY = 16;
  */
 export function HamanSheet() {
   const role = useContext(RoleContext);
+  const desktop = useIsDesktop();
   const [open, setOpen] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
@@ -151,21 +154,19 @@ export function HamanSheet() {
   const busy = status !== null;
   const unavailable = configured === false;
 
-  return (
-    <Sheet
-      open={open}
-      onOpenChange={setOpen}
-      title="Haman"
-      className="md:h-[min(720px,85vh)]"
-      left={<SheetIconButton label="Close" onClick={() => setOpen(false)} />}
-      right={
-        turns.length > 0 ? (
-          <SheetButton disabled={busy} onClick={() => update([])}>
-            New
-          </SheetButton>
-        ) : undefined
-      }
-    >
+  const close = <SheetIconButton label="Close" onClick={() => setOpen(false)} />;
+  const newChat =
+    turns.length > 0 ? (
+      <SheetButton disabled={busy} onClick={() => update([])}>
+        New
+      </SheetButton>
+    ) : undefined;
+  // On iPad and Mac a link only navigates the page beside the panel; on phones the sheet covers it, so it closes.
+  const onNavigate = () => {
+    if (!desktop) setOpen(false);
+  };
+
+  const body = (
       <div className="flex min-h-full flex-col">
         <div className="flex-1 space-y-3 pb-3" aria-live="polite">
           {turns.length === 0 && (
@@ -204,7 +205,7 @@ export function HamanSheet() {
                   dir="auto"
                   className={cn("max-w-[92%] break-words rounded-[20px] rounded-bl-[6px] px-3.5 py-2.5 text-body", turn.failed ? "bg-ios-red/[0.12] text-label" : "bg-bg-elevated text-label")}
                 >
-                  <RichText text={turn.content} onNavigate={() => setOpen(false)} />
+                  <RichText text={turn.content} onNavigate={onNavigate} />
                 </div>
               </div>
             ),
@@ -261,7 +262,54 @@ export function HamanSheet() {
           <p className="px-2 pt-1.5 text-center text-caption2 text-label-2">Haman reads NEWMUX OS and can&apos;t change anything. Check figures that matter.</p>
         </form>
       </div>
+  );
+
+  if (desktop) {
+    return (
+      <SidePanel open={open} onOpenChange={setOpen} left={close} right={newChat}>
+        {body}
+      </SidePanel>
+    );
+  }
+  return (
+    <Sheet open={open} onOpenChange={setOpen} title="Haman" left={close} right={newChat}>
+      {body}
     </Sheet>
+  );
+}
+
+/**
+ * iPad and Mac: Haman sits in a panel on the right, like Mail's inspector,
+ * instead of a dialog over the screen. The app beside it stays usable, and
+ * on wide windows the page makes room for it (`html[data-haman]` in globals.css).
+ */
+function SidePanel({ open, onOpenChange, left, right, children }: { open: boolean; onOpenChange: (o: boolean) => void; left: React.ReactNode; right?: React.ReactNode; children: React.ReactNode }) {
+  useEffect(() => {
+    if (!open) return;
+    document.documentElement.dataset.haman = "open";
+    return () => {
+      delete document.documentElement.dataset.haman;
+    };
+  }, [open]);
+
+  return (
+    <Dialog.Root open={open} onOpenChange={onOpenChange} modal={false}>
+      <Dialog.Portal>
+        <Dialog.Content
+          aria-describedby={undefined}
+          // Clicking the page beside the panel keeps it open; ✕ or Escape closes it.
+          onInteractOutside={(e) => e.preventDefault()}
+          className="fixed bottom-3 right-3 top-3 z-50 flex w-[min(400px,calc(100vw-296px))] flex-col overflow-hidden rounded-[28px] bg-bg shadow-float ring-[0.5px] ring-black/10 animate-slide-in-right focus:outline-none dark:ring-white/10"
+        >
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 pb-2 pt-3.5">
+            <div className="flex justify-start">{left}</div>
+            <Dialog.Title className="text-center text-headline">Haman</Dialog.Title>
+            <div className="flex justify-end">{right}</div>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3 pt-2">{children}</div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 
