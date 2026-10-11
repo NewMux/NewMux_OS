@@ -18,6 +18,7 @@ export const CATEGORY_LABEL: Record<FileCategory, string> = {
   registration: "Registration",
   certificate: "Certificate",
   brand: "Brand identity",
+  marketing: "Marketing asset",
   legal: "Legal",
   finance: "Finance",
   receipt: "Receipt",
@@ -36,7 +37,10 @@ export function FileSheet({
   clients,
   projects,
   ventures,
+  categories = Object.keys(CATEGORY_LABEL) as FileCategory[],
 }: {
+  /** Categories this person may use (Marketing can't file contracts, finance or receipts). */
+  categories?: FileCategory[];
   file?: FileListItem;
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -49,7 +53,7 @@ export function FileSheet({
   const confirm = useConfirm();
   const input = useRef<HTMLInputElement>(null);
   const [picked, setPicked] = useState<File | null>(null);
-  const blank = { name: "", category: "other" as FileCategory, issueDate: "", expiryDate: "", remindDaysBefore: "30", notes: "", clientId: "", projectId: "", ventureId: "" };
+  const blank = { name: "", category: (categories.includes("other") ? "other" : categories[0]!) as FileCategory, issueDate: "", expiryDate: "", remindDaysBefore: "30", notes: "", clientId: "", projectId: "", ventureId: "" };
   const [f, setF] = useState(blank);
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((p) => ({ ...p, [k]: v }));
 
@@ -129,7 +133,7 @@ export function FileSheet({
         <PlainRowInput placeholder="Name (e.g. Commercial Registration)" value={f.name} onChange={(e) => set("name", e.target.value)} />
         <FieldRow label="Category">
           <Select value={f.category} onChange={(e) => set("category", e.target.value as FileCategory)}>
-            {(Object.keys(CATEGORY_LABEL) as FileCategory[]).map((c) => (
+            {categories.map((c) => (
               <option key={c} value={c}>
                 {CATEGORY_LABEL[c]}
               </option>

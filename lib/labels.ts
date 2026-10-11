@@ -1,5 +1,6 @@
 import type { SysColor } from "./colors";
-import type { ActivityKind, DealStage, DocumentStatus, DocumentType, PaymentMethod, ProjectStatus, TaskPriority, TaskStatus } from "./data/types";
+import type { CampaignStatus, PostChannel, PostStatus } from "./marketing";
+import type { ActivityKind, CampaignChannel, DealStage, DocumentStatus, DocumentType, PaymentMethod, ProjectStatus, TaskPriority, TaskStatus } from "./data/types";
 
 type Meta = { label: string; color: SysColor };
 
@@ -79,3 +80,49 @@ export const CYCLE_LABEL = { monthly: "Monthly", quarterly: "Quarterly", annual:
 export function titleCase(s: string) {
   return s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
+
+// --- Marketing ---
+
+export const CAMPAIGN_CHANNEL: Record<CampaignChannel, string> = {
+  instagram: "Instagram",
+  linkedin: "LinkedIn",
+  meta_ads: "Meta Ads",
+  google_search: "Google Search",
+  tiktok: "TikTok",
+  x: "X",
+  facebook: "Facebook",
+  youtube: "YouTube",
+  website: "Website",
+  newsletter: "Newsletter",
+  outbound_email: "Outbound Email",
+  event: "Event",
+  referral: "Referral",
+  other: "Other",
+};
+
+export const POST_CHANNEL: Record<PostChannel, Meta> = {
+  instagram: { label: "Instagram", color: "pink" },
+  linkedin: { label: "LinkedIn", color: "blue" },
+  x: { label: "X", color: "gray" },
+  tiktok: { label: "TikTok", color: "indigo" },
+  facebook: { label: "Facebook", color: "blue" },
+  youtube: { label: "YouTube", color: "red" },
+  website: { label: "Website / blog", color: "teal" },
+  newsletter: { label: "Newsletter", color: "orange" },
+  other: { label: "Other", color: "gray" },
+};
+
+export const POST_STATUS: Record<PostStatus, Meta> = {
+  idea: { label: "Idea", color: "gray" },
+  drafting: { label: "Drafting", color: "orange" },
+  review: { label: "In review", color: "purple" },
+  scheduled: { label: "Scheduled", color: "blue" },
+  published: { label: "Published", color: "green" },
+};
+
+export const CAMPAIGN_STATUS: Record<CampaignStatus, Meta> = {
+  planned: { label: "Planned", color: "blue" },
+  active: { label: "Active", color: "green" },
+  paused: { label: "Paused", color: "orange" },
+  completed: { label: "Completed", color: "gray" },
+};

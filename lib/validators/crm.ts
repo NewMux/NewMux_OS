@@ -27,6 +27,7 @@ export const dealSchema = z.object({
   expectedClose: ymd,
   ownerId: ref,
   source: text,
+  campaignId: ref,
   notes: text,
 });
 export const updateDealSchema = dealSchema.partial();

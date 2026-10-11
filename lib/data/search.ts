@@ -3,7 +3,7 @@ import { searchPages } from "./kb";
 import type { UserRole } from "./types";
 
 export type SearchResult = {
-  kind: "client" | "contact" | "deal" | "project" | "task" | "document" | "page";
+  kind: "client" | "contact" | "deal" | "project" | "task" | "document" | "page" | "post" | "campaign";
   id: string;
   title: string;
   subtitle: string | null;
@@ -20,6 +20,8 @@ export async function globalSearch(term: string, role: UserRole, limit = 6): Pro
   if (q.length < 2) return [];
   const like = `%${q.replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
   const admin = role === "partner_admin";
+  // Marketing searches the CRM too, but never documents (invoices, quotes, contracts).
+  const crm = admin || role === "marketing";
 
   const queries: Promise<SearchResult[]>[] = [
     many<SearchResult>(
@@ -45,7 +47,7 @@ export async function globalSearch(term: string, role: UserRole, limit = 6): Pro
     ),
   ];
 
-  if (admin) {
+  if (crm) {
     queries.unshift(
       many<SearchResult>(
         `select 'client' as kind, id, name as title, client_code as subtitle, '/clients/' || id as href
@@ -65,6 +67,25 @@ export async function globalSearch(term: string, role: UserRole, limit = 6): Pro
          where d.title ilike $1 order by d.updated_at desc limit $2`,
         [like, limit],
       ),
+    );
+  }
+  if (crm) {
+    queries.push(
+      many<SearchResult>(
+        `select 'post' as kind, id, title, replace(status, '_', ' ') || ' · ' || channel as subtitle, '/marketing/content' as href
+         from marketing_posts where title ilike $1 or caption ilike $1 order by publish_at desc nulls last limit $2`,
+        [like, limit],
+      ),
+      many<SearchResult>(
+        `select 'campaign' as kind, id, name as title, status as subtitle, '/marketing/campaigns?id=' || id as href
+         from campaigns where name ilike $1 or goal ilike $1 order by status = 'completed', name limit $2`,
+        [like, limit],
+      ),
+    );
+  }
+  if (admin) {
+    // Partners have the three CRM queries first, so documents follow them as before.
+    queries.splice(3, 0,
       many<SearchResult>(
         `select 'document' as kind, d.id,
            d.document_number || coalesce(' (' || d.external_ref || ')', '') as title,

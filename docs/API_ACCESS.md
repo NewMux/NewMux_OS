@@ -9,45 +9,55 @@ Who can reach each `/api/*` endpoint, reviewed for Improvements PRD item 19
 - `middleware.ts` protects pages. API routes are excluded from it and each one
   checks the session itself, almost always through `route()` in `lib/api.ts`
   (no session → 401, wrong role → 403).
-- Roles are defined in `lib/rbac.ts`: **Partner** (`partner_admin`) and
-  **Team member** (`lead_dev`).
+- Roles are defined in `lib/rbac.ts`: **Partner** (`partner_admin`),
+  **Marketing** (`marketing`: everything except money) and **Team member**
+  (`lead_dev`). Partners set roles under Settings → Team.
 - Sessions are JWTs, but `lib/auth.ts` re-reads the user every 5 minutes: a
   deleted or deactivated account (like the removed demo user) loses access
   within 5 minutes, and a role change applies just as quickly.
 
 ## Matrix
 
-| Endpoints | No session | Team member | Partner |
-| --- | --- | --- | --- |
-| `/api/health`, `/api/webhooks/paddle` (signature-verified) | ✓ | ✓ | ✓ |
-| `/api/me/password`, `/api/users` (id + name only), `/api/search` (results filtered by role) | 401 | ✓ | ✓ |
-| `POST /api/users/[id]/password` (Settings → Team: a partner sets a new password for someone else, never their own; audit-logged) | 401 | 403 | ✓ |
-| `/api/push`, `/api/push/subscribe`, `/api/push/test` (your own devices only) | 401 | ✓ | ✓ |
-| `/api/reminders` (yours, or ones you set), `DELETE /api/reminders/[id]` | 401 | ✓ | ✓ |
-| `POST /api/reminders` for someone else (`userId`) | 401 | 409 | ✓ |
-| `POST /api/cron/notifications` (no session: `Authorization: Bearer $CRON_SECRET`; refused if unset) | 403 | 403 | 403 |
-| `GET /api/haman/settings` (Haman's model and depth) | 401 | ✓ | ✓ |
-| `PATCH /api/haman/settings` | 401 | 403 | ✓ |
-| `/api/haman` (Ask Haman: lookups and prepared changes follow the role, see below) | 401 | ✓ | ✓ |
-| `/api/tasks/**`, `/api/subtasks/**`, `/api/meetings/**` | 401 | ✓ | ✓ |
-| `/api/projects` (list, create, edit) | 401 | ✓ | ✓ |
-| `DELETE /api/projects/[id]` (also blocked while money is recorded, item 20) | 401 | 403 | ✓ |
-| `/api/kb/**` | 401 | ✓ | ✓ |
-| `DELETE /api/kb/spaces/[id]` | 401 | 403 | ✓ |
-| `GET /api/vault` (masked previews only), `/api/vault/lock` | 401 | ✓ | ✓ |
-| `/api/vault/setup`, `/api/vault/unlock`, `/api/vault/[id]/reveal`, `DELETE /api/vault/[id]`, `POST /api/vault` | 401 | 403 | ✓ |
-| CRM: `/api/clients/**`, `/api/contacts/**`, `/api/deals/**`, `/api/activities/**` | 401 | 403 | ✓ |
-| Documents: `/api/documents/**` (incl. PDFs, transitions, void, purge) | 401 | 403 | ✓ |
-| Finance: `/api/finance/**`, `/api/expenses/**`, `/api/payments/**`, `/api/hosting/**`, `/api/reports/**` | 401 | 403 | ✓ |
-| Company: `/api/company/**`, `/api/ventures/**`, `/api/files/**`, `/api/pipeline/**` | 401 | 403 | ✓ |
-| Growth: `/api/campaigns/**` | 401 | 403 | ✓ |
-| Settings: `/api/settings/**`, `/api/finance/parties`, `/api/finance/deduction-types`, `/api/finance/profit-split-rules`, `/api/attention` | 401 | 403 | ✓ |
+| Endpoints | No session | Team member | Marketing | Partner |
+| --- | --- | --- | --- | --- |
+| `/api/health`, `/api/webhooks/paddle` (signature-verified) | ✓ | ✓ | ✓ | ✓ |
+| `/api/me/password`, `/api/users` (id + name only), `/api/search` (results filtered by role) | 401 | ✓ | ✓ | ✓ |
+| `POST /api/users/[id]/password` (Settings → Team: a partner sets a new password for someone else, never their own; audit-logged) | 401 | 403 | 403 | ✓ |
+| `/api/push`, `/api/push/subscribe`, `/api/push/test` (your own devices only) | 401 | ✓ | ✓ | ✓ |
+| `/api/reminders` (yours, or ones you set), `DELETE /api/reminders/[id]` | 401 | ✓ | ✓ | ✓ |
+| `POST /api/reminders` for someone else (`userId`) | 401 | 409 | 409 | ✓ |
+| `POST /api/cron/notifications` (no session: `Authorization: Bearer $CRON_SECRET`; refused if unset) | 403 | 403 | 403 | 403 |
+| `GET /api/haman/settings` (Haman's model and depth) | 401 | ✓ | ✓ | ✓ |
+| `PATCH /api/haman/settings` | 401 | 403 | 403 | ✓ |
+| `/api/haman` (Ask Haman: lookups and prepared changes follow the role, see below) | 401 | ✓ | ✓ | ✓ |
+| `/api/tasks/**`, `/api/subtasks/**`, `/api/meetings/**` | 401 | ✓ | ✓ | ✓ |
+| `/api/projects` (list, create, edit) | 401 | ✓ | ✓ | ✓ |
+| `DELETE /api/projects/[id]` (also blocked while money is recorded, item 20) | 401 | 403 | 403 | ✓ |
+| `/api/kb/**` | 401 | ✓ | ✓ | ✓ |
+| `DELETE /api/kb/spaces/[id]` | 401 | 403 | 403 | ✓ |
+| `GET /api/vault` (masked previews only), `/api/vault/lock` | 401 | ✓ | ✓ | ✓ |
+| `/api/vault/setup`, `/api/vault/unlock`, `/api/vault/[id]/reveal`, `DELETE /api/vault/[id]`, `POST /api/vault` | 401 | 403 | 403 | ✓ |
+| CRM: `/api/clients/**`, `/api/contacts/**`, `/api/deals/**`, `/api/activities/**` | 401 | 403 | ✓ (deal values left out, and not settable) | ✓ |
+| Documents: `/api/documents/**` (incl. PDFs, transitions, void, purge) | 401 | 403 | 403 | ✓ |
+| Finance: `/api/finance/**`, `/api/expenses/**`, `/api/payments/**`, `/api/hosting/**`, `/api/reports/**` | 401 | 403 | 403 | ✓ |
+| Company: `/api/company/**`, `/api/ventures/**`, `/api/files/**`, `/api/pipeline/**` | 401 | 403 | ✓ (no contracts, finance or receipt files) | ✓ |
+| Growth: `/api/campaigns/**` | 401 | 403 | 403 | ✓ |
+| Settings: `/api/settings/**`, `/api/finance/parties`, `/api/finance/deduction-types`, `/api/finance/profit-split-rules`, `/api/attention` | 401 | 403 | 403 | ✓ |
+| Marketing: `/api/marketing/**` (posts, campaigns, campaign numbers; revenue only written for partners) | 401 | 403 | ✓ | ✓ |
+| `POST /api/users`, `PATCH /api/users/[id]` (Settings → Team: add people, change roles, turn accounts off; never your own role, never the last partner) | 401 | 403 | 403 | ✓ |
 
 ## Findings
 
 - Every endpoint other than the health check and the signed Paddle webhook
   requires a session. No endpoint returns finance, CRM or company data to a
   team member.
+- Marketing never receives an amount it shouldn't: deal values are replaced
+  with 0 on the server (pages and API responses, `withoutValue()` in
+  `lib/data/crm.ts`) and ignored when Marketing sends one; client pages leave
+  out documents, hosting fees and expenses; partners-only file categories
+  (contracts, finance, receipts) don't exist for it (`fileCategoriesFor()`).
+  Campaign budgets and spend are visible to it; campaign revenue and the
+  value of won deals are not.
 - A team member can create and edit projects, including choosing the client.
   That matches their delivery role; deleting a project remains partner-only.
 - `/api/users` exposes only ids and names to team members, for assignee pickers.

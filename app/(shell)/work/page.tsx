@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { isPartnerAdmin } from "@/lib/rbac";
+import { canAccessCrm, isPartnerAdmin } from "@/lib/rbac";
 import { listProjectsWithStats, listTasks } from "@/lib/data/projects";
 import { listClients } from "@/lib/data/clients";
 import { addDaysYmd, todayYmd } from "@/lib/time";
@@ -13,7 +13,7 @@ export default async function WorkPage() {
   const [projects, mine, clients] = await Promise.all([
     listProjectsWithStats({ includeArchived: true }),
     listTasks({ assigneeId: session.user.id, openOnly: true }),
-    admin ? listClients() : Promise.resolve([]),
+    canAccessCrm(session) ? listClients() : Promise.resolve([]),
   ]);
   const today = todayYmd();
   const counts = {

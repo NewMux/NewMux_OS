@@ -16,7 +16,7 @@ import { HamanSection } from "./HamanSection";
 import { useMutation } from "@/lib/useMutation";
 import { COMPANY_LINKS, forRole } from "@/lib/nav";
 import { NavIcon } from "@/components/shell/NavIcon";
-import type { DeductionKind, DeductionType, Party, ProfitSplitRule, UserRole } from "@/lib/data/types";
+import { ROLE_LABEL, type DeductionKind, type DeductionType, type Party, type ProfitSplitRule, type UserRole } from "@/lib/data/types";
 
 type Theme = "system" | "light" | "dark";
 
@@ -73,7 +73,7 @@ export function SettingsScreen({
     <Page title="Settings">
       <div className="mx-auto max-w-2xl">
         <ListSection>
-          <ListRow leading={<Avatar name={user.name || user.email} size={56} />} title={<span className="text-title3 font-semibold">{user.name}</span>} subtitle={`${user.email} · ${user.role === "partner_admin" ? "Partner" : "Team member"}`} />
+          <ListRow leading={<Avatar name={user.name || user.email} size={56} />} title={<span className="text-title3 font-semibold">{user.name}</span>} subtitle={`${user.email} · ${ROLE_LABEL[user.role as UserRole] ?? "Team member"}`} />
         </ListSection>
 
         {companyLinks.length > 0 && (
@@ -97,7 +97,7 @@ export function SettingsScreen({
             subtitle="Server logins, API tokens and database passwords, encrypted (AES-256)"
             multiline
           />
-          {admin && <ListRow href="/settings/team" leading={<IconTile icon={Users} color="blue" />} title="Team" subtitle="Who can sign in, and new passwords for anyone locked out" multiline />}
+          {admin && <ListRow href="/settings/team" leading={<IconTile icon={Users} color="blue" />} title="Team" subtitle="Who can sign in, their roles, and new passwords for anyone locked out" multiline />}
         </ListSection>
 
         <NotificationsSection />

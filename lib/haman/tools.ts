@@ -16,7 +16,11 @@ import { DOC_TYPE, docStatusLabel } from "@/lib/labels";
 import { centsToDisplay, convertMinorUnits, minorUnitDigits } from "@/lib/money";
 import { many, one } from "@/lib/data/sql";
 import { listUpcomingReminders } from "@/lib/data/notifications";
-import { daysUntil, formatDate, formatTime, todayYmd, toYmd } from "@/lib/time";
+import { addDaysYmd, daysUntil, formatDate, formatTime, todayYmd, toYmd } from "@/lib/time";
+import { roleCanAccessCrm, roleCanSeeMoney } from "@/lib/rbac";
+import { MONEY_FILE_CATEGORIES, type FileCategory } from "@/lib/data/files";
+import { getLeadsReport, listMarketingCampaigns, listPosts } from "@/lib/data/marketing";
+import { CAMPAIGN_CHANNEL, CAMPAIGN_STATUS, POST_CHANNEL, POST_STATUS } from "@/lib/labels";
 
 /**
  * What Haman can look up. Every tool here is read-only and wraps the same
@@ -45,7 +49,8 @@ export type HamanTool = {
   status: string;
   description: string;
   input_schema: { type: "object"; properties: Record<string, unknown>; required?: string[] };
-  access: "everyone" | "partner";
+  /** everyone; crm = partners and Marketing (amounts left out for Marketing); partner = partners only. */
+  access: "everyone" | "crm" | "partner";
   run(input: Input, ctx: HamanContext): Promise<unknown>;
 };
 
@@ -151,25 +156,19 @@ function hostingRow(h: HostingListItem) {
 // --- Record lookups for changes ---
 
 const LIST_KINDS_EVERYONE = ["team", "wiki_spaces", "meetings", "reminders"] as const;
+/** Partners and Marketing. */
+const LIST_KINDS_CRM = ["contacts", "deals", "ventures", "products", "certifications", "partnerships", "product_pipeline", "files", "campaigns", "posts"] as const;
 const LIST_KINDS_PARTNER = [
   "bank_accounts",
   "parties",
   "deduction_types",
   "split_rules",
-  "ventures",
-  "products",
   "recurring_expenses",
   "payouts",
-  "contacts",
-  "deals",
-  "certifications",
-  "partnerships",
-  "product_pipeline",
-  "files",
   "vault_items",
 ] as const;
 
-const LIST_SQL: Record<(typeof LIST_KINDS_EVERYONE)[number] | (typeof LIST_KINDS_PARTNER)[number], string> = {
+const LIST_SQL: Record<(typeof LIST_KINDS_EVERYONE)[number] | (typeof LIST_KINDS_CRM)[number] | (typeof LIST_KINDS_PARTNER)[number], string> = {
   team: "select id, full_name as name, role from users where is_active order by full_name",
   wiki_spaces: "select id, name, description from kb_spaces order by sort_order, name",
   // Filled in per user in list_records.
@@ -191,32 +190,37 @@ const LIST_SQL: Record<(typeof LIST_KINDS_EVERYONE)[number] | (typeof LIST_KINDS
   certifications: "select id, name, status, expiry_date from certifications order by name",
   partnerships: "select id, name from partnerships order by name",
   product_pipeline: "select id, name, stage from pipeline_items order by created_at",
+  // Partners only: contracts and finance files are filtered out for Marketing in list_records.
   files: "select id, name, category, expiry_date from files where category <> 'receipt' order by name",
+  campaigns: "select id, name, channel, status, start_date, end_date from campaigns order by status = 'completed', name",
+  posts: "select id, title, channel, status, publish_at from marketing_posts where publish_at is null or publish_at > now() - interval '30 days' order by publish_at nulls last limit 80",
   vault_items: "select s.id, s.label, s.secret_type, c.name as client, p.name as project from secrets_vault s left join clients c on c.id = s.client_id left join projects p on p.id = s.project_id order by s.label",
 };
 
 /** Tables get_record reads. `partner`: closed to team members, as in lib/rbac.ts. */
 const RECORD_TABLES = {
-  task: { table: "tasks", partner: false },
-  project: { table: "projects", partner: false },
-  meeting: { table: "meetings", partner: false },
-  wiki_space: { table: "kb_spaces", partner: false },
-  client: { table: "clients", partner: true },
-  contact: { table: "contacts", partner: true },
-  deal: { table: "deals", partner: true },
-  activity: { table: "activities", partner: true },
-  document: { table: "documents", partner: true },
-  expense: { table: "expenses", partner: true },
-  recurring_expense: { table: "recurring_expenses", partner: true },
-  payout: { table: "payouts", partner: true },
-  bank_account: { table: "bank_accounts", partner: true },
-  hosting_fee: { table: "hosting_subscriptions", partner: true },
-  venture: { table: "ventures", partner: true },
-  certification: { table: "certifications", partner: true },
-  file: { table: "files", partner: true },
-  profit_split_rule: { table: "profit_split_rules", partner: true },
-  company_profile: { table: "company_profile", partner: true },
-} as const;
+  task: { table: "tasks", access: "everyone" },
+  project: { table: "projects", access: "everyone" },
+  meeting: { table: "meetings", access: "everyone" },
+  wiki_space: { table: "kb_spaces", access: "everyone" },
+  client: { table: "clients", access: "crm" },
+  contact: { table: "contacts", access: "crm" },
+  deal: { table: "deals", access: "crm" },
+  activity: { table: "activities", access: "crm" },
+  venture: { table: "ventures", access: "crm" },
+  certification: { table: "certifications", access: "crm" },
+  file: { table: "files", access: "crm" },
+  company_profile: { table: "company_profile", access: "crm" },
+  campaign: { table: "campaigns", access: "crm" },
+  post: { table: "marketing_posts", access: "crm" },
+  document: { table: "documents", access: "partner" },
+  expense: { table: "expenses", access: "partner" },
+  recurring_expense: { table: "recurring_expenses", access: "partner" },
+  payout: { table: "payouts", access: "partner" },
+  bank_account: { table: "bank_accounts", access: "partner" },
+  hosting_fee: { table: "hosting_subscriptions", access: "partner" },
+  profit_split_rule: { table: "profit_split_rules", access: "partner" },
+} as const satisfies Record<string, { table: string; access: "everyone" | "crm" | "partner" }>;
 
 /** Never handed to the model, whatever the table. */
 const HIDDEN_FIELDS = new Set(["passwordHash", "ciphertext", "iv", "authTag", "maskedPreview", "data", "content"]);
@@ -408,7 +412,7 @@ export const HAMAN_TOOLS: HamanTool[] = [
     access: "everyone",
     run: async (_input, ctx) => {
       const partner = ctx.role === "partner_admin";
-      const items = await getAttentionItems({ includeFinance: partner, includeCrm: partner });
+      const items = await getAttentionItems({ includeFinance: partner, includeCrm: roleCanAccessCrm(ctx.role) });
       return {
         items: items.map((i) => ({ kind: i.kind, title: i.title, about: i.detail ?? null, date: day(i.date), daysUntil: daysUntil(i.date), overdue: i.overdue, href: i.href })),
       };
@@ -598,9 +602,10 @@ export const HAMAN_TOOLS: HamanTool[] = [
     status: "Checking clients",
     description: "Every client with its primary contact and counts of contacts, open deals, active projects and outstanding invoices.",
     input_schema: NO_INPUT,
-    access: "partner",
-    run: async () => {
+    access: "crm",
+    run: async (_input, ctx) => {
       const clients = await listClientsWithStats();
+      const showMoney = roleCanSeeMoney(ctx.role);
       return {
         clients: clients.map((c) => ({
           id: c.id,
@@ -612,7 +617,7 @@ export const HAMAN_TOOLS: HamanTool[] = [
           contacts: c.contactCount,
           openDeals: c.openDealCount,
           activeProjects: c.activeProjectCount,
-          outstandingInvoices: c.outstandingInvoiceCount,
+          outstandingInvoices: showMoney ? c.outstandingInvoiceCount : undefined,
           href: `/clients/${c.id}`,
         })),
       };
@@ -624,17 +629,19 @@ export const HAMAN_TOOLS: HamanTool[] = [
     description:
       "Everything about one client: details and notes, contacts, deals, projects, what they owe, their latest documents, hosting fees and recent activity. Needs the client's id (from list_clients or search_os).",
     input_schema: { type: "object", properties: { client_id: { type: "string" } }, required: ["client_id"] },
-    access: "partner",
-    run: async (input) => {
+    access: "crm",
+    run: async (input, ctx) => {
       const clientId = id(input, "client_id");
       const client = await getClientById(clientId);
       if (!client) return { error: "No client has that id." };
+      // Marketing gets the client without money: no deal values, balance, documents or hosting fees.
+      const showMoney = roleCanSeeMoney(ctx.role);
       const [contacts, deals, projects, documents, hosting, activities] = await Promise.all([
         listContacts({ clientId }),
         listDeals({ clientId }),
         listProjectsWithStats({ clientId, includeArchived: true }),
-        listDocuments({ clientId }),
-        listHostingSubscriptionsForClient(clientId),
+        showMoney ? listDocuments({ clientId }) : Promise.resolve([]),
+        showMoney ? listHostingSubscriptionsForClient(clientId) : Promise.resolve([]),
         listActivities({ clientId, limit: 10 }),
       ]);
       return {
@@ -648,12 +655,16 @@ export const HAMAN_TOOLS: HamanTool[] = [
         notes: client.notes?.slice(0, 1500) ?? null,
         href: `/clients/${client.id}`,
         contacts: contacts.map((c) => ({ id: c.id, name: c.fullName, title: c.title, email: c.email, phone: c.phone, primary: c.isPrimary, href: `/contacts/${c.id}` })),
-        deals: deals.map((d) => ({ id: d.id, title: d.title, stage: d.stage, value: money(d.valueCents, d.currency), probability: `${d.probability}%`, expectedClose: day(d.expectedClose), href: `/crm/deals/${d.id}` })),
+        deals: deals.map((d) => ({ id: d.id, title: d.title, stage: d.stage, value: showMoney ? money(d.valueCents, d.currency) : undefined, source: d.source, probability: `${d.probability}%`, expectedClose: day(d.expectedClose), href: `/crm/deals/${d.id}` })),
         projects: projects.map((p) => ({ id: p.id, name: p.name, status: p.status, openTasks: p.openCount, overdueTasks: p.overdueCount, href: `/projects/${p.id}` })),
-        owes: bhd(documents.reduce((sum, d) => sum + convertMinorUnits(outstandingCents(d), d.currency, "BHD"), 0)),
-        documents: documents.slice(0, 12).map(documentRow),
-        documentsNotShown: Math.max(documents.length - 12, 0),
-        hostingFees: hosting.map(hostingRow),
+        ...(showMoney
+          ? {
+              owes: bhd(documents.reduce((sum, d) => sum + convertMinorUnits(outstandingCents(d), d.currency, "BHD"), 0)),
+              documents: documents.slice(0, 12).map(documentRow),
+              documentsNotShown: Math.max(documents.length - 12, 0),
+              hostingFees: hosting.map(hostingRow),
+            }
+          : {}),
         recentActivity: activities.map((a) => ({
           id: a.id,
           kind: a.kind,
@@ -670,22 +681,25 @@ export const HAMAN_TOOLS: HamanTool[] = [
   {
     name: "pipeline",
     status: "Checking the pipeline",
-    description: "The sales pipeline: every open deal with stage, value, probability and expected close, and totals per stage (plain and weighted by probability).",
+    description: "The sales pipeline: every open deal with stage, value (partners only), source, probability and expected close, and totals per stage.",
     input_schema: NO_INPUT,
-    access: "partner",
-    run: async () => {
+    access: "crm",
+    run: async (_input, ctx) => {
       const [deals, summary] = await Promise.all([listDeals({ open: true }), getPipelineSummary()]);
       const open = openPipelineTotals(summary);
+      // Marketing sees the pipeline by count only.
+      const showMoney = roleCanSeeMoney(ctx.role);
       return {
-        open: { deals: open.count, total: bhd(open.totalBhdCents), weighted: bhd(open.weightedBhdCents) },
-        byStage: summary.map((s) => ({ stage: s.stage, deals: s.count, total: bhd(s.totalBhdCents), weighted: bhd(s.weightedBhdCents) })),
+        open: showMoney ? { deals: open.count, total: bhd(open.totalBhdCents), weighted: bhd(open.weightedBhdCents) } : { deals: open.count },
+        byStage: summary.map((s) => (showMoney ? { stage: s.stage, deals: s.count, total: bhd(s.totalBhdCents), weighted: bhd(s.weightedBhdCents) } : { stage: s.stage, deals: s.count })),
         deals: deals.map((d) => ({
           id: d.id,
           title: d.title,
           client: d.clientName,
           contact: d.contactName,
           stage: d.stage,
-          value: money(d.valueCents, d.currency),
+          value: showMoney ? money(d.valueCents, d.currency) : undefined,
+          source: d.source,
           probability: `${d.probability}%`,
           expectedClose: day(d.expectedClose),
           owner: d.ownerName,
@@ -700,7 +714,7 @@ export const HAMAN_TOOLS: HamanTool[] = [
     status: "Checking follow-ups",
     description: "Open CRM follow-ups (calls to return, emails to send), soonest first, with who they are about and when they are due.",
     input_schema: NO_INPUT,
-    access: "partner",
+    access: "crm",
     run: async () => {
       const items = await listOpenFollowUps();
       const { rows, notShown } = cap(items, 40);
@@ -724,6 +738,95 @@ export const HAMAN_TOOLS: HamanTool[] = [
   },
 
 
+  // --- Marketing (partners and Marketing) ---
+
+  {
+    name: "content_calendar",
+    status: "Checking the content calendar",
+    description:
+      "Marketing posts: what's going out when, on which channel, its status (idea, drafting, in review, scheduled, published), owner and campaign. Default: the last 7 days through the next 30, plus ideas with no date. Dates are YYYY-MM-DD.",
+    input_schema: { type: "object", properties: { from: { type: "string", description: "YYYY-MM-DD" }, to: { type: "string", description: "YYYY-MM-DD, exclusive" } } },
+    access: "crm",
+    run: async (input) => {
+      const from = ymd(input, "from") ?? addDaysYmd(todayYmd(), -7);
+      const to = ymd(input, "to") ?? addDaysYmd(todayYmd(), 31);
+      const posts = await listPosts({ from: `${from}T00:00:00+03:00`, to: `${to}T00:00:00+03:00` });
+      const { rows, notShown } = cap(posts, 60);
+      return {
+        from: day(from),
+        to: day(to),
+        posts: rows.map((p) => ({
+          id: p.id,
+          title: p.title,
+          channel: POST_CHANNEL[p.channel].label,
+          status: POST_STATUS[p.status].label,
+          goesOut: p.publishAt ? `${formatDate(p.publishAt, { weekday: "short", day: "numeric", month: "short" })} ${formatTime(p.publishAt)}` : "No date yet",
+          owner: p.ownerName,
+          campaign: p.campaignName,
+          caption: p.caption?.slice(0, 300) ?? null,
+          link: p.link,
+        })),
+        notShown,
+        href: "/marketing/content",
+      };
+    },
+  },
+  {
+    name: "campaigns",
+    status: "Checking campaigns",
+    description:
+      "Every marketing campaign: channel, status, dates, goal, owner, budget and spend so far (in the campaign's currency), leads and conversions logged, deals linked and won, and posts. Partners also get revenue and the value of won deals.",
+    input_schema: NO_INPUT,
+    access: "crm",
+    run: async (_input, ctx) => {
+      const showMoney = roleCanSeeMoney(ctx.role);
+      const campaigns = await listMarketingCampaigns({ money: showMoney });
+      return {
+        campaigns: campaigns.map((c) => ({
+          id: c.id,
+          name: c.name,
+          channel: CAMPAIGN_CHANNEL[c.channel],
+          status: CAMPAIGN_STATUS[c.status].label,
+          starts: day(c.startDate),
+          ends: day(c.endDate),
+          goal: c.goal,
+          owner: c.ownerName,
+          budget: c.budgetCents === null ? null : money(c.budgetCents, c.currency),
+          spent: money(c.spendCents, c.currency),
+          leads: c.leadsCaptured,
+          conversions: c.conversions,
+          deals: c.deals,
+          wonDeals: c.wonDeals,
+          posts: c.posts,
+          ...(showMoney ? { revenue: money(c.revenueCents, c.currency), wonValue: bhd(c.wonValueBhdCents) } : {}),
+          href: `/marketing/campaigns?id=${c.id}`,
+        })),
+      };
+    },
+  },
+  {
+    name: "leads_report",
+    status: "Checking where leads come from",
+    description: "New deals over the last N days (default 90; 0 for all time), grouped by their source and by the campaign that brought them: how many, open, won, lost and the win rate. Partners also get the value won.",
+    input_schema: { type: "object", properties: { days: { type: "integer", minimum: 0, maximum: 3650 } } },
+    access: "crm",
+    run: async (input, ctx) => {
+      const days = int(input, "days", 90, 0, 3650);
+      const showMoney = roleCanSeeMoney(ctx.role);
+      const report = await getLeadsReport({ from: days === 0 ? null : addDaysYmd(todayYmd(), -days), money: showMoney });
+      const shape = (r: (typeof report.bySource)[number]) => ({
+        source: r.source,
+        deals: r.deals,
+        open: r.open,
+        won: r.won,
+        lost: r.lost,
+        winRate: r.won + r.lost === 0 ? null : `${Math.round((r.won / (r.won + r.lost)) * 100)}%`,
+        ...(showMoney ? { wonValue: bhd(r.wonValueBhdCents) } : {}),
+      });
+      return { period: days === 0 ? "all time" : `last ${days} days`, total: shape(report.total), bySource: report.bySource.map(shape), byCampaign: report.byCampaign.map(shape), href: "/marketing/leads" };
+    },
+  },
+
   // --- Ids and full records, for preparing changes (lib/haman/actions.ts) ---
 
   {
@@ -731,17 +834,19 @@ export const HAMAN_TOOLS: HamanTool[] = [
     status: "Looking up records",
     description:
       "Ids and names of things search_os doesn't cover, to use in a change: team (people to assign), wiki_spaces, meetings (last 30 and next 60 days), reminders (the user's, not sent yet), and for partners bank_accounts, parties (partners and funds), deduction_types, split_rules, ventures, products, recurring_expenses, payouts, contacts, deals (open and closed), certifications, partnerships, product_pipeline, files and vault_items (names only, never values).",
-    input_schema: { type: "object", properties: { kind: { type: "string", enum: [...LIST_KINDS_EVERYONE, ...LIST_KINDS_PARTNER] } }, required: ["kind"] },
+    input_schema: { type: "object", properties: { kind: { type: "string", enum: [...LIST_KINDS_EVERYONE, ...LIST_KINDS_CRM, ...LIST_KINDS_PARTNER] } }, required: ["kind"] },
     access: "everyone",
     run: async (input, ctx) => {
-      const kind = oneOf(input, "kind", [...LIST_KINDS_EVERYONE, ...LIST_KINDS_PARTNER] as const);
+      const kind = oneOf(input, "kind", [...LIST_KINDS_EVERYONE, ...LIST_KINDS_CRM, ...LIST_KINDS_PARTNER] as const);
       if (!kind) throw new ToolInputError('"kind" must be one of the listed kinds.');
-      if ((LIST_KINDS_PARTNER as readonly string[]).includes(kind) && ctx.role !== "partner_admin") return { error: "That part of NEWMUX OS isn't open to this account." };
+      const allowed = ctx.role === "partner_admin" || (LIST_KINDS_EVERYONE as readonly string[]).includes(kind) || (roleCanAccessCrm(ctx.role) && (LIST_KINDS_CRM as readonly string[]).includes(kind));
+      if (!allowed) return { error: "That part of NEWMUX OS isn't open to this account." };
       if (kind === "reminders") {
         const reminders = await listUpcomingReminders(ctx.userId);
         return { kind, records: reminders.map((r) => ({ id: r.id, title: r.title, when: `${formatDate(r.remindAt, { weekday: "short", day: "numeric", month: "short" })} ${formatTime(r.remindAt)}`, for: r.userName })) };
       }
-      const records = await many<Record<string, unknown>>(LIST_SQL[kind]);
+      let records = await many<Record<string, unknown>>(LIST_SQL[kind]);
+      if (kind === "files" && !roleCanSeeMoney(ctx.role)) records = records.filter((r) => !MONEY_FILE_CATEGORIES.includes(r.category as FileCategory));
       if (kind === "payouts") {
         return { kind, records: records.map(({ amountCents, currency, ...r }) => ({ ...r, amount: money(Number(amountCents), String(currency)) })) };
       }
@@ -763,12 +868,21 @@ export const HAMAN_TOOLS: HamanTool[] = [
       const kind = oneOf(input, "kind", Object.keys(RECORD_TABLES) as (keyof typeof RECORD_TABLES)[]);
       if (!kind) throw new ToolInputError('"kind" must be one of the listed kinds.');
       const def = RECORD_TABLES[kind];
-      if (def.partner && ctx.role !== "partner_admin") return { error: "That part of NEWMUX OS isn't open to this account." };
+      const open = def.access === "everyone" || ctx.role === "partner_admin" || (def.access === "crm" && roleCanAccessCrm(ctx.role));
+      if (!open) return { error: "That part of NEWMUX OS isn't open to this account." };
       const row =
         kind === "company_profile"
           ? await one<Record<string, unknown>>("select * from company_profile limit 1")
           : await one<Record<string, unknown>>(`select * from ${def.table} where id = $1`, [id(input, "id")]);
       if (!row) return { error: `No ${kind.replace(/_/g, " ")} has that id.` };
+      // Marketing: a deal without its value, and no partners-only files.
+      if (!roleCanSeeMoney(ctx.role)) {
+        if (kind === "deal") {
+          delete row.valueCents;
+          delete row.currency;
+        }
+        if (kind === "file" && MONEY_FILE_CATEGORIES.includes(row.category as FileCategory)) return { error: "No file has that id." };
+      }
       const record = withMajorUnits(row);
       if (kind === "task") {
         const [subtasks, comments] = await Promise.all([listSubtasks(String(row.id)), listTaskComments(String(row.id))]);
@@ -790,7 +904,7 @@ export const HAMAN_TOOLS: HamanTool[] = [
 
 /** The tools a role may use. */
 export function toolsFor(role: UserRole): HamanTool[] {
-  return HAMAN_TOOLS.filter((t) => t.access === "everyone" || role === "partner_admin");
+  return HAMAN_TOOLS.filter((t) => t.access === "everyone" || role === "partner_admin" || (t.access === "crm" && roleCanAccessCrm(role)));
 }
 
 const MAX_RESULT_CHARS = 16_000;

@@ -63,6 +63,7 @@ async function main() {
   const [page] = await query<{ id: string; title: string }>("select id, title from kb_pages where not is_template order by title limit 1");
   const partner: Ctx = { userId: user!.id, userName: user!.fullName, role: "partner_admin" };
   const member: Ctx = { userId: user!.id, userName: "Team Member", role: "lead_dev" };
+  const marketer: Ctx = { userId: user!.id, userName: "Marketing", role: "marketing" };
 
   section("Lookups — each one runs, as a partner and as a team member");
   const inputs: Record<string, unknown> = {
@@ -90,9 +91,34 @@ async function main() {
     ].filter(Boolean);
     check(`${tool.name}`, problems.length === 0, `${problems.join("; ")}: ${result.content.slice(0, 200)}`);
     const asMember = await runTool(tool.name, inputs[tool.name] ?? {}, member);
-    if (tool.access === "partner") check(`${tool.name} is refused for a team member`, asMember.isError && !/BHD|\$/.test(asMember.content));
+    if (tool.access !== "everyone") check(`${tool.name} is refused for a team member`, asMember.isError && !/BHD|\$/.test(asMember.content));
     else check(`${tool.name} works for a team member`, !asMember.isError);
   }
+
+  section("Lookups — the Marketing role sees everything except money");
+  const marketingTools = toolsFor("marketing").map((t) => t.name);
+  check("Marketing gets the CRM and marketing lookups", ["list_clients", "get_client", "pipeline", "follow_ups", "content_calendar", "campaigns", "leads_report"].every((n) => marketingTools.includes(n)));
+  check("Marketing gets no finance lookups", !["finance_overview", "list_documents", "cash_flow", "profit_by_project", "list_expenses", "hosting_fees"].some((n) => marketingTools.includes(n)));
+  for (const name of ["pipeline", "get_client", "list_clients", "leads_report", "campaigns", "search_os", "needs_attention"]) {
+    const r = await runTool(name, inputs[name] ?? {}, marketer);
+    check(`${name} for Marketing has no amounts`, !r.isError && !/BHD|USD|"value"|"owes"|"total":"|"weighted"|wonValue|revenue|outstanding/.test(r.content.replace(/"spent":"[^"]*"|"budget":"[^"]*"/g, "")), r.content.slice(0, 300));
+  }
+  check("Marketing's pipeline still counts deals by stage", /"byStage":\[\{"stage":"lead","deals":\d+\}/.test((await runTool("pipeline", {}, marketer)).content));
+  const [someDeal] = await query<{ id: string }>("select id from deals limit 1");
+  const dealForMarketing = await runTool("get_record", { kind: "deal", id: someDeal!.id }, marketer);
+  check("get_record gives Marketing a deal without its value", !dealForMarketing.isError && !/valueCents|valueMajor/.test(dealForMarketing.content));
+  check("get_record refuses Marketing a document", /isn't open/.test((await runTool("get_record", { kind: "document", id: someDeal!.id }, marketer)).content));
+  check("list_records refuses Marketing bank accounts and payouts", /isn't open/.test((await runTool("list_records", { kind: "bank_accounts" }, marketer)).content) && /isn't open/.test((await runTool("list_records", { kind: "payouts" }, marketer)).content));
+  const marketingFiles = await runTool("list_records", { kind: "files" }, marketer);
+  check("list_records gives Marketing no contracts or finance files", !/"category":"(contract|finance|receipt)"/.test(marketingFiles.content));
+  const marketingActions = actionToolsFor("marketing");
+  const dealTool = marketingActions.find((t) => t.name === "create_deal")!;
+  check("Marketing's create_deal has no value or currency to fill in", !("value" in dealTool.input_schema.properties) && !("currency" in dealTool.input_schema.properties));
+  check("Marketing can plan posts and campaigns but not record payments or touch the Vault", ["create_post", "create_campaign", "log_campaign_numbers"].every((n) => marketingActions.some((t) => t.name === n)) && !["record_payment", "create_expense", "reveal_vault_secret", "set_profit_split_rule"].some((n) => marketingActions.some((t) => t.name === n)));
+  const dealCard = await proposeAction("create_deal", { target: "New lead", title: "New lead", value: 900, currency: "BHD", source: "Instagram" }, "marketing");
+  check("A deal Marketing prepares carries no value, even if one is given", !("value" in (dealCard.request.body ?? {})) && !dealCard.fields.some((f) => /BHD/.test(f.value)));
+  const post = await proposeAction("create_post", { target: "Case study", title: "Ox Roastery case study", channel: "linkedin", status: "drafting", publishAt: "2026-10-20T10:00:00+03:00" }, "marketing");
+  check("A post becomes a request to the content calendar", post.request.path === "/api/marketing/posts" && post.fields.some((f) => f.label === "Publish at" || f.label === "Goes out" || /Oct/.test(f.value)));
 
   section("Lookups — role filtering and bad input");
   const memberSearch = await runTool("search_os", { query: client!.name.slice(0, 5) }, member);

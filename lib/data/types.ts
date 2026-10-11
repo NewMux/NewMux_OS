@@ -1,4 +1,6 @@
-export type UserRole = "partner_admin" | "lead_dev";
+export type UserRole = "partner_admin" | "lead_dev" | "marketing";
+
+export const ROLE_LABEL: Record<UserRole, string> = { partner_admin: "Partner", lead_dev: "Team member", marketing: "Marketing" };
 
 export type User = {
   id: string;
@@ -59,6 +61,8 @@ export type Deal = {
   expectedClose: string | null;
   ownerId: string | null;
   source: string | null;
+  /** The marketing campaign that brought it in. */
+  campaignId: string | null;
   notes: string | null;
   lostReason: string | null;
   sortOrder: number;
@@ -286,7 +290,21 @@ export type SaasTransaction = {
   billedAt: string | null;
 };
 
-export type CampaignChannel = "meta_ads" | "linkedin" | "google_search" | "outbound_email";
+export type CampaignChannel =
+  | "meta_ads"
+  | "linkedin"
+  | "google_search"
+  | "outbound_email"
+  | "instagram"
+  | "tiktok"
+  | "x"
+  | "facebook"
+  | "youtube"
+  | "website"
+  | "newsletter"
+  | "event"
+  | "referral"
+  | "other";
 
 export type Campaign = {
   id: string;
@@ -547,7 +565,8 @@ export type AuditEntityType =
   | "bank_account"
   | "payout"
   | "file"
-  | "user";
+  | "user"
+  | "campaign";
 
 export type AuditLogEntry = {
   id: string;

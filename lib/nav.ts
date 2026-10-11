@@ -25,6 +25,11 @@ export type NavIconName =
   | "ventures"
   | "vault"
   | "growth"
+  | "marketing"
+  | "content"
+  | "campaigns"
+  | "leads"
+  | "brand"
   | "settings";
 
 export type NavLink = {
@@ -37,13 +42,18 @@ export type NavLink = {
   match?: string[];
 };
 
-const ALL: UserRole[] = ["partner_admin", "lead_dev"];
+const ALL: UserRole[] = ["partner_admin", "lead_dev", "marketing"];
 const ADMIN: UserRole[] = ["partner_admin"];
+/** Partners and Marketing: CRM, Marketing and Company (Marketing never sees money in them). */
+const BUSINESS: UserRole[] = ["partner_admin", "marketing"];
+const MARKETING_ONLY: UserRole[] = ["marketing"];
 
 /** Phone tab bar (iOS keeps it to five). */
 export const TABS: NavLink[] = [
   { href: "/home", label: "Today", icon: "today", color: "blue", roles: ALL },
-  { href: "/crm", label: "CRM", icon: "crm", color: "indigo", roles: ADMIN, match: ["/clients", "/contacts"] },
+  { href: "/crm", label: "CRM", icon: "crm", color: "indigo", roles: BUSINESS, match: ["/clients", "/contacts"] },
+  // Marketing's phone has Marketing where partners have Finance (partners reach Marketing from CRM and Search).
+  { href: "/marketing", label: "Marketing", icon: "marketing", color: "pink", roles: MARKETING_ONLY },
   { href: "/work", label: "Work", icon: "work", color: "orange", roles: ALL, match: ["/projects", "/tasks", "/meetings"] },
   { href: "/finance", label: "Finance", icon: "finance", color: "green", roles: ADMIN, match: ["/documents", "/hosting", "/reports"] },
   { href: "/wiki", label: "Wiki", icon: "wiki", color: "yellow", roles: ALL },
@@ -62,14 +72,28 @@ export const SIDEBAR: NavSection[] = [
     label: "CRM",
     icon: "crm",
     color: "indigo",
-    roles: ADMIN,
+    roles: BUSINESS,
     match: ["/clients", "/contacts"],
     children: [
-      { href: "/crm", label: "Overview", icon: "crm", color: "indigo", roles: ADMIN },
-      { href: "/crm/pipeline", label: "Pipeline", icon: "pipeline", color: "indigo", roles: ADMIN },
-      { href: "/clients", label: "Clients", icon: "clients", color: "indigo", roles: ADMIN },
-      { href: "/contacts", label: "Contacts", icon: "contacts", color: "indigo", roles: ADMIN },
-      { href: "/crm/activities", label: "Activities", icon: "activity", color: "indigo", roles: ADMIN },
+      { href: "/crm", label: "Overview", icon: "crm", color: "indigo", roles: BUSINESS },
+      { href: "/crm/pipeline", label: "Pipeline", icon: "pipeline", color: "indigo", roles: BUSINESS },
+      { href: "/clients", label: "Clients", icon: "clients", color: "indigo", roles: BUSINESS },
+      { href: "/contacts", label: "Contacts", icon: "contacts", color: "indigo", roles: BUSINESS },
+      { href: "/crm/activities", label: "Activities", icon: "activity", color: "indigo", roles: BUSINESS },
+    ],
+  },
+  {
+    href: "/marketing",
+    label: "Marketing",
+    icon: "marketing",
+    color: "pink",
+    roles: BUSINESS,
+    children: [
+      { href: "/marketing", label: "Overview", icon: "marketing", color: "pink", roles: BUSINESS },
+      { href: "/marketing/content", label: "Content Calendar", icon: "content", color: "pink", roles: BUSINESS },
+      { href: "/marketing/campaigns", label: "Campaigns", icon: "campaigns", color: "pink", roles: BUSINESS },
+      { href: "/marketing/leads", label: "Leads", icon: "leads", color: "pink", roles: BUSINESS },
+      { href: "/marketing/brand", label: "Brand & Assets", icon: "brand", color: "pink", roles: BUSINESS },
     ],
   },
   {
@@ -108,12 +132,12 @@ export const SIDEBAR: NavSection[] = [
     label: "Company",
     icon: "company",
     color: "gray",
-    roles: ADMIN,
+    roles: BUSINESS,
     match: ["/ventures", "/files", "/growth"],
     children: [
-      { href: "/company", label: "Profile & Renewals", icon: "company", color: "gray", roles: ADMIN },
-      { href: "/ventures", label: "Ventures", icon: "ventures", color: "purple", roles: ADMIN },
-      { href: "/files", label: "Files", icon: "files", color: "blue", roles: ADMIN },
+      { href: "/company", label: "Profile & Renewals", icon: "company", color: "gray", roles: BUSINESS },
+      { href: "/ventures", label: "Ventures", icon: "ventures", color: "purple", roles: BUSINESS },
+      { href: "/files", label: "Files", icon: "files", color: "blue", roles: BUSINESS },
       { href: "/growth", label: "Growth", icon: "growth", color: "pink", roles: ADMIN },
     ],
   },
@@ -121,9 +145,9 @@ export const SIDEBAR: NavSection[] = [
 
 /** Company-level screens: in the account menu (sidebar) and at the top of Settings. */
 export const COMPANY_LINKS: NavLink[] = [
-  { href: "/company", label: "Company", icon: "company", color: "gray", roles: ADMIN },
-  { href: "/ventures", label: "Ventures", icon: "ventures", color: "purple", roles: ADMIN },
-  { href: "/files", label: "Files", icon: "files", color: "blue", roles: ADMIN },
+  { href: "/company", label: "Company", icon: "company", color: "gray", roles: BUSINESS },
+  { href: "/ventures", label: "Ventures", icon: "ventures", color: "purple", roles: BUSINESS },
+  { href: "/files", label: "Files", icon: "files", color: "blue", roles: BUSINESS },
   { href: "/vault", label: "Vault", icon: "vault", color: "teal", roles: ALL },
   { href: "/growth", label: "Growth", icon: "growth", color: "pink", roles: ADMIN },
 ];

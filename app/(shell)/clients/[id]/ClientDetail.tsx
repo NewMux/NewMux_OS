@@ -15,6 +15,7 @@ import { ClientSheet, ContactSheet, DealSheet, type ContactOption } from "@/comp
 import { ActivityButtons, NewLinkedPageButton } from "@/components/crm/DealActions";
 import type { Option } from "@/components/forms/Fields";
 import { DEAL_STAGE, DOC_TYPE, PROJECT_STATUS, CYCLE_LABEL } from "@/lib/labels";
+import { useCanSeeMoney } from "@/components/shell/QuickAdd";
 import { amountOrTbd, centsToDisplay, convertMinorUnits } from "@/lib/money";
 import { formatDate, relativeDay } from "@/lib/time";
 import type { Client, HostingSubscription, KbPageSummary } from "@/lib/data/types";
@@ -36,10 +37,12 @@ export function ClientDetail(props: {
   activities: ActivityListItem[];
   pages: KbPageSummary[];
   expenses: ExpenseListItem[];
-  options: { clients: Option[]; contacts: ContactOption[]; users: Option[] };
+  options: { clients: Option[]; contacts: ContactOption[]; users: Option[]; campaigns?: Option[] };
 }) {
   const { client, contacts, deals, projects, documents, hosting, activities, pages, expenses, options } = props;
   const [tab, setTab] = useState<Tab>("overview");
+  // Marketing gets no Money tab and no deal values (the server sends none either).
+  const money = useCanSeeMoney();
   const [editing, setEditing] = useState(false);
   const [addingContact, setAddingContact] = useState(false);
   const [editingContact, setEditingContact] = useState<ContactListItem | null>(null);
@@ -77,7 +80,7 @@ export function ClientDetail(props: {
             { value: "overview", label: "Info" },
             { value: "deals", label: "Deals" },
             { value: "work", label: "Work" },
-            { value: "money", label: "Money" },
+            ...(money ? [{ value: "money" as const, label: "Money" }] : []),
             { value: "wiki", label: "Wiki" },
           ]}
         />
@@ -129,7 +132,7 @@ export function ClientDetail(props: {
                 href={`/crm/deals/${d.id}`}
                 title={d.title}
                 subtitle={d.expectedClose ? `Close ${formatDate(d.expectedClose)}` : undefined}
-                detail={centsToDisplay(d.valueCents, d.currency)}
+                detail={money ? centsToDisplay(d.valueCents, d.currency) : undefined}
                 trailing={<Badge color={DEAL_STAGE[d.stage].color}>{DEAL_STAGE[d.stage].label}</Badge>}
               />
             ))}
@@ -153,7 +156,7 @@ export function ClientDetail(props: {
           </ListSection>
         )}
 
-        {tab === "money" && (
+        {tab === "money" && money && (
           <>
             <div className="mb-6 grid grid-cols-3 gap-2 text-center">
               {[
@@ -208,7 +211,7 @@ export function ClientDetail(props: {
       <ClientSheet client={client} open={editing} onOpenChange={setEditing} />
       <ContactSheet open={addingContact} onOpenChange={setAddingContact} clients={options.clients} defaultClientId={client.id} />
       <ContactSheet contact={editingContact ?? undefined} open={!!editingContact} onOpenChange={(o) => !o && setEditingContact(null)} clients={options.clients} />
-      <DealSheet open={addingDeal} onOpenChange={setAddingDeal} clients={options.clients} contacts={options.contacts} users={options.users} defaults={{ clientId: client.id }} />
+      <DealSheet open={addingDeal} onOpenChange={setAddingDeal} clients={options.clients} contacts={options.contacts} users={options.users} campaigns={options.campaigns} defaults={{ clientId: client.id }} />
     </Page>
   );
 }

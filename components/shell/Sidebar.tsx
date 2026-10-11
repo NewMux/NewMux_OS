@@ -12,7 +12,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Menu } from "@/components/ui/Menu";
 import { QuickAddMenu } from "./QuickAdd";
 import { openHaman } from "@/components/haman/HamanSheet";
-import type { UserRole } from "@/lib/data/types";
+import { ROLE_LABEL, type UserRole } from "@/lib/data/types";
 
 /**
  * Mail/Notes-style source list for iPad and desktop, as a floating Liquid
@@ -119,7 +119,7 @@ export function Sidebar({
               <Avatar name={userName} size={30} />
               <span className="min-w-0">
                 <span className="block truncate text-subhead font-medium">{userName}</span>
-                <span className="block text-caption1 text-label-2">{userRole === "partner_admin" ? "Partner" : "Team member"}</span>
+                <span className="block text-caption1 text-label-2">{ROLE_LABEL[userRole as UserRole] ?? "Team member"}</span>
               </span>
             </button>
           }

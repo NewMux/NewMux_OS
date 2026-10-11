@@ -23,7 +23,19 @@ function expiry(f: FileListItem): { text: string; color?: "red" | "orange" } | n
 }
 
 /** Company files with expiry reminders (item 18). */
-export function FilesScreen({ files, clients, projects, ventures }: { files: FileListItem[]; clients: Option[]; projects: Option[]; ventures: Option[] }) {
+export function FilesScreen({
+  files,
+  categories,
+  clients,
+  projects,
+  ventures,
+}: {
+  files: FileListItem[];
+  categories: FileCategory[];
+  clients: Option[];
+  projects: Option[];
+  ventures: Option[];
+}) {
   const [editing, setEditing] = useState<FileListItem | "new" | null>(null);
   const [q, setQ] = useState("");
   useNewParam(() => setEditing("new"));
@@ -80,6 +92,7 @@ export function FilesScreen({ files, clients, projects, ventures }: { files: Fil
         clients={clients}
         projects={projects}
         ventures={ventures}
+        categories={categories}
       />
     </Page>
   );

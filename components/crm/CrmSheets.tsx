@@ -10,6 +10,7 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useConfirm } from "@/components/ui/Confirm";
 import { DeleteRow, MoneyRow, type Option } from "@/components/forms/Fields";
 import { useMutation } from "@/lib/useMutation";
+import { useCanSeeMoney } from "@/components/shell/QuickAdd";
 import { minorToMajor } from "@/lib/money";
 import { DEAL_STAGE, ACTIVITY_KIND } from "@/lib/labels";
 import type { ActivityKind, Client, Contact, Currency, Deal, DealStage } from "@/lib/data/types";
@@ -183,6 +184,9 @@ export function ContactSheet({
 
 // ---------------- Deal ----------------
 
+/** Suggested lead sources; anything else can be typed. "Leads from marketing" groups deals by these. */
+export const LEAD_SOURCES = ["Website", "Referral", "Instagram", "LinkedIn", "Ads", "Event", "Outbound", "WhatsApp", "Other"];
+
 export function DealSheet({
   deal,
   open,
@@ -190,6 +194,7 @@ export function DealSheet({
   clients,
   contacts,
   users,
+  campaigns = [],
   defaults,
 }: {
   deal?: Deal;
@@ -198,10 +203,13 @@ export function DealSheet({
   clients: Option[];
   contacts: ContactOption[];
   users: Option[];
+  /** Marketing campaigns, for "where did this lead come from". */
+  campaigns?: Option[];
   defaults?: { clientId?: string; stage?: DealStage };
 }) {
   const { run } = useMutation();
   const router = useRouter();
+  const money = useCanSeeMoney();
   const blank = {
     title: "",
     clientId: defaults?.clientId ?? "",
@@ -212,6 +220,7 @@ export function DealSheet({
     expectedClose: "",
     ownerId: "",
     source: "",
+    campaignId: "",
     notes: "",
   };
   const [f, setF] = useState(blank);
@@ -231,6 +240,7 @@ export function DealSheet({
             expectedClose: deal.expectedClose ?? "",
             ownerId: deal.ownerId ?? "",
             source: deal.source ?? "",
+            campaignId: deal.campaignId ?? "",
             notes: deal.notes ?? "",
           }
         : blank,
@@ -241,7 +251,9 @@ export function DealSheet({
   const visibleContacts = f.clientId ? contacts.filter((c) => c.clientId === f.clientId) : contacts;
 
   const submit = async () => {
-    const payload = { ...f, value: Number(f.value) || 0 };
+    // Without money access the value isn't sent at all (the server ignores it either way).
+    const { value, currency, ...rest } = f;
+    const payload = money ? { ...rest, currency, value: Number(value) || 0 } : rest;
     if (deal) return !!(await run(`/api/deals/${deal.id}`, { method: "PATCH", body: payload, success: "Saved" }));
     const res = await run<{ deal: Deal }>("/api/deals", { body: payload, success: "Deal created", refresh: false });
     if (res) router.push(`/crm/deals/${res.deal.id}`);
@@ -254,7 +266,7 @@ export function DealSheet({
         <PlainRowInput placeholder="Deal name (e.g. Website redesign)" value={f.title} onChange={(e) => set("title", e.target.value)} autoFocus={!deal} />
       </ListSection>
       <ListSection>
-        <MoneyRow label="Value" amount={f.value} currency={f.currency} onAmount={(v) => set("value", v)} onCurrency={(v) => set("currency", v)} />
+        {money && <MoneyRow label="Value" amount={f.value} currency={f.currency} onAmount={(v) => set("value", v)} onCurrency={(v) => set("currency", v)} />}
         {!deal && (
           <FieldRow label="Stage">
             <Select value={f.stage} onChange={(e) => set("stage", e.target.value as DealStage)}>
@@ -307,7 +319,24 @@ export function DealSheet({
             ))}
           </Select>
         </FieldRow>
-        <PlainRowInput placeholder="Source (referral, website, …)" value={f.source} onChange={(e) => set("source", e.target.value)} />
+        <PlainRowInput placeholder="Source (referral, website, …)" list="deal-sources" value={f.source} onChange={(e) => set("source", e.target.value)} />
+        <datalist id="deal-sources">
+          {LEAD_SOURCES.map((s) => (
+            <option key={s} value={s} />
+          ))}
+        </datalist>
+        {campaigns.length > 0 && (
+          <FieldRow label="Campaign">
+            <Select value={f.campaignId} onChange={(e) => set("campaignId", e.target.value)}>
+              <option value="">None</option>
+              {campaigns.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Select>
+          </FieldRow>
+        )}
       </ListSection>
       <ListSection>
         <div className="px-4 py-2.5">

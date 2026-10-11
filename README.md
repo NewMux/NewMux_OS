@@ -28,6 +28,11 @@ One app for running NEWMUX: **CRM, project management, finance and a knowledge b
   - spaces holding nested pages, edited in an Apple Notes-style editor with autosave, checklists, headings, quotes, code and links;
   - templates, favorites, recently viewed pages and full-text search;
   - pages can be linked to clients, projects and deals.
+- **Marketing**:
+  - **Content calendar**: posts per channel (Instagram, LinkedIn, X, TikTok, website, newsletter…) by day, and a board from idea → drafting → in review → scheduled → published, each with owner, caption, link, campaign and an asset;
+  - **Campaigns**: channel, dates, goal, budget and owner, with logged spend, leads and conversions, and the posts and deals linked to them;
+  - **Leads**: new deals by source (set on the deal) and by campaign, with how many were won;
+  - **Brand & assets**: the brand guide in the wiki and the Brand and Marketing files.
 - **Company**: registration and renewals, certifications, partnerships, ventures with their own profit split and spending, **Files** (contracts, the CR, brand identity) with expiry reminders, the credentials **Vault** (AES-256-GCM) and **Growth** (campaign attribution, MRR).
 - **Haman**, the AI project manager: ask "who owes us money?" or "what needs me today?" and he answers from the live records, with links to open; ask him to add a task, record a payment or move a deal and he prepares it for you to confirm. See [Ask Haman](#ask-haman).
 - **Notifications**: push to the lock screen (iPhone/iPad from the Home Screen app, Mac and desktop browsers) for reminders you or Haman set, CRM follow-ups, tasks due today, meetings 15 minutes before, and, for partners, renewals and hosting fees a week ahead and on the day. Turn it on per device in Settings → Notifications. See [Notifications](#notifications).
@@ -136,9 +141,10 @@ The app is internal and unlisted. Every response sends `noindex`, so search engi
 ## Roles
 
 - **Partner** (`partner_admin`): everything.
+- **Marketing** (`marketing`): everything except money. CRM (deals without their values, which it can't set either; clients without the Money tab), Marketing, Work, Wiki and Company (profile, ventures without their spending or split, files other than contracts, finance and receipts). No Finance, documents, hosting fees, payouts, reports, Growth (SaaS revenue), Settings, Team or revealing Vault secrets. Amounts are left out on the server, not just hidden. Campaign budgets and spend are visible; campaign revenue and the value of won deals are partners-only.
 - **Team member** (`lead_dev`): Today, Work (projects, tasks, calendar), Wiki, Vault (masked values only) and Settings (appearance, password). CRM, Finance, Company and Growth are blocked in the API routes (403) as well as hidden in navigation.
 
-[docs/API_ACCESS.md](docs/API_ACCESS.md) lists who can reach every `/api/*` endpoint. Deleted or deactivated users lose access within 5 minutes.
+Partners add people, set their role and turn accounts off under **Settings → Team** (nobody can change their own role, and there's always at least one active partner). [docs/API_ACCESS.md](docs/API_ACCESS.md) lists who can reach every `/api/*` endpoint. Deleted or deactivated users lose access within 5 minutes.
 
 ## Notifications
 
