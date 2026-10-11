@@ -13,10 +13,12 @@ import { ActivityButtons } from "@/components/crm/DealActions";
 import type { Option } from "@/components/forms/Fields";
 import { DEAL_STAGE } from "@/lib/labels";
 import { centsToDisplay } from "@/lib/money";
+import { useCanSeeMoney } from "@/components/shell/QuickAdd";
 import type { ActivityListItem, ContactListItem, DealListItem } from "@/lib/data/crm";
 
 export function ContactDetail({ contact, activities, deals, clients }: { contact: ContactListItem; activities: ActivityListItem[]; deals: DealListItem[]; clients: Option[] }) {
   const [editing, setEditing] = useState(false);
+  const money = useCanSeeMoney();
   return (
     <Page
       title={contact.fullName}
@@ -48,7 +50,7 @@ export function ContactDetail({ contact, activities, deals, clients }: { contact
         {deals.length > 0 && (
           <ListSection header="Deals">
             {deals.map((d) => (
-              <ListRow key={d.id} href={`/crm/deals/${d.id}`} title={d.title} detail={centsToDisplay(d.valueCents, d.currency)} trailing={<Badge color={DEAL_STAGE[d.stage].color}>{DEAL_STAGE[d.stage].label}</Badge>} />
+              <ListRow key={d.id} href={`/crm/deals/${d.id}`} title={d.title} detail={money ? centsToDisplay(d.valueCents, d.currency) : undefined} trailing={<Badge color={DEAL_STAGE[d.stage].color}>{DEAL_STAGE[d.stage].label}</Badge>} />
             ))}
           </ListSection>
         )}

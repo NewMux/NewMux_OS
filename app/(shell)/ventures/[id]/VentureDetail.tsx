@@ -18,21 +18,10 @@ import type { DeductionType, Party, ProfitSplitRule, Venture } from "@/lib/data/
 
 type Spend = Awaited<ReturnType<typeof getVentureSpend>>;
 
-export function VentureDetail({
-  venture,
-  rule,
-  parties,
-  deductionTypes,
-  spend,
-  expenses,
-}: {
-  venture: Venture;
-  rule?: ProfitSplitRule;
-  parties: Party[];
-  deductionTypes: DeductionType[];
-  spend: Spend;
-  expenses: ExpenseListItem[];
-}) {
+type VentureMoney = { rule?: ProfitSplitRule; parties: Party[]; deductionTypes: DeductionType[]; spend: Spend; expenses: ExpenseListItem[] };
+
+/** `money` is only passed to partners: Marketing sees the venture without its spending or split. */
+export function VentureDetail({ venture, money }: { venture: Venture; money?: VentureMoney }) {
   const [editing, setEditing] = useState(false);
   const [splitOpen, setSplitOpen] = useState(false);
   const status = VENTURE_STATUS[venture.launchStatus];
@@ -60,18 +49,20 @@ export function VentureDetail({
             </a>
           )}
         </div>
+        {money && (
+          <>
         <SummaryCard
           items={[
-            { label: "Spent", value: compactMoney(spend.allTimeBhdCents), caption: `${spend.count} expense${spend.count === 1 ? "" : "s"}` },
-            { label: "This year", value: compactMoney(spend.thisYearBhdCents) },
-            { label: "Recurring", value: compactMoney(spend.monthlyRunRateBhdCents), caption: "per month" },
+            { label: "Spent", value: compactMoney(money.spend.allTimeBhdCents), caption: `${money.spend.count} expense${money.spend.count === 1 ? "" : "s"}` },
+            { label: "This year", value: compactMoney(money.spend.thisYearBhdCents) },
+            { label: "Recurring", value: compactMoney(money.spend.monthlyRunRateBhdCents), caption: "per month" },
           ]}
         />
         <ListSection header="Spending" info="Expenses and recurring costs linked to this venture." action={<a href="/finance/expenses?new=1" className="text-subhead text-accent">Add</a>}>
-          {spend.recurring.map((r) => (
+          {money.spend.recurring.map((r) => (
             <ListRow key={r.id} href="/finance/expenses?tab=recurring" title={r.name} subtitle={`${CYCLE_LABEL[r.cycle]}${r.status === "paused" ? " · Paused" : ""}`} detail={centsToDisplay(r.amountCents, r.currency)} />
           ))}
-          {expenses.map((e) => (
+          {money.expenses.map((e) => (
             <ListRow
               key={e.id}
               href={`/finance/expenses?id=${e.id}`}
@@ -80,20 +71,24 @@ export function VentureDetail({
               detail={centsToDisplay(e.amountBhdCents ?? e.amountCents, e.amountBhdCents !== null ? "BHD" : e.currency)}
             />
           ))}
-          {expenses.length === 0 && spend.recurring.length === 0 && <ListRow title="No spending linked yet" />}
+          {money.expenses.length === 0 && money.spend.recurring.length === 0 && <ListRow title="No spending linked yet" />}
         </ListSection>
 
         <ListSection header="Ownership & Profit Split" footer="Ventures are held personally by the founders — the split is set here, not assumed.">
-          {rule ? (
-            rule.splits.map((s) => <ListRow key={s.partyId} title={parties.find((p) => p.id === s.partyId)?.name ?? "?"} detail={`${s.percentageBps / 100}%`} />)
+          {money.rule ? (
+            money.rule.splits.map((s) => <ListRow key={s.partyId} title={money.parties.find((p) => p.id === s.partyId)?.name ?? "?"} detail={`${s.percentageBps / 100}%`} />)
           ) : (
             <ListRow title="Not configured yet" />
           )}
-          <ListRow title={<span className="text-accent">{rule ? "Edit Split" : "Set Up Split"}</span>} onClick={() => setSplitOpen(true)} />
+          <ListRow title={<span className="text-accent">{money.rule ? "Edit Split" : "Set Up Split"}</span>} onClick={() => setSplitOpen(true)} />
         </ListSection>
+          </>
+        )}
       </div>
       <VentureSheet venture={venture} open={editing} onOpenChange={setEditing} />
-      <ProfitSplitRuleSheet open={splitOpen} onOpenChange={setSplitOpen} scope={{ scopeType: "venture", scopeId: venture.id, name: venture.name }} rule={rule} parties={parties} deductionTypes={deductionTypes} />
+      {money && (
+        <ProfitSplitRuleSheet open={splitOpen} onOpenChange={setSplitOpen} scope={{ scopeType: "venture", scopeId: venture.id, name: venture.name }} rule={money.rule} parties={money.parties} deductionTypes={money.deductionTypes} />
+      )}
     </Page>
   );
 }

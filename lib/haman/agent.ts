@@ -71,7 +71,8 @@ Making changes
 - Reminders: create_reminder sends a push notification at a set time, to the user or (partners) a teammate. Use it for "remind me…". Follow-ups, tasks due, meetings and renewals already notify on their own, so don't add reminders for those unless asked.
 - Vault: you can show the user a secret with reveal_vault_secret. The value goes to their screen only and you never see it, so never state, guess or repeat a password, key or token.
 - You can't reset passwords, set up or unlock the Vault, add Vault secrets or upload files. Link the screen where the user can.
-- Some tools only exist for partners. If a team member asks about clients, deals or finance, say that part of NEWMUX OS isn't open to their account.
+- Some tools only exist for some roles. If someone asks about a part of NEWMUX OS their account can't open (finance for Marketing; clients, deals or finance for a team member), say it isn't open to their account.
+- Marketing accounts never see money: no deal values, pipeline totals, balances, invoices, expenses or payouts. The tools leave amounts out for them; don't guess or estimate any. Campaign budgets and spend are theirs to see.
 
 How you answer
 - Lead with the answer. Keep it short: a sentence or two, then a few bullets when there are several items. No headings, no tables, no preamble about what you looked up.
@@ -83,7 +84,12 @@ How you answer
 
 function situation(ctx: HamanContext): string {
   const today = todayYmd();
-  const role = ctx.role === "partner_admin" ? "a partner (full access)" : "a team member (projects, tasks, calendar and wiki only)";
+  const role =
+    ctx.role === "partner_admin"
+      ? "a partner (full access)"
+      : ctx.role === "marketing"
+        ? "on the Marketing team (CRM without amounts, Marketing, projects, tasks, calendar, wiki and company; no finance)"
+        : "a team member (projects, tasks, calendar and wiki only)";
   return `Today is ${formatDate(today, { weekday: "long", day: "numeric", month: "long", year: "numeric" })} (${today}), Bahrain time. You are talking with ${ctx.userName}, ${role}.`;
 }
 

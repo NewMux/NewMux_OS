@@ -11,6 +11,7 @@ import {
   canAccessDocuments,
   canAccessFinance,
   canAccessKb,
+  canAccessMarketing,
   canAccessSettings,
   canAccessWork,
   canRevealVaultSecrets,
@@ -39,6 +40,7 @@ import {
 import { collectHostingSchema, hostingSubscriptionSchema, linkHostingInvoiceSchema } from "@/lib/validators/hosting";
 import { createPageSchema, spaceSchema, updatePageSchema } from "@/lib/validators/kb";
 import { meetingSchema } from "@/lib/validators/meeting";
+import { campaignNumbersSchema, campaignSchema, postSchema, postStatusSchema } from "@/lib/validators/marketing";
 import { reminderSchema } from "@/lib/validators/notifications";
 import { createPipelineItemSchema } from "@/lib/validators/pipeline";
 import { projectSchema, updateProjectSchema } from "@/lib/validators/project";
@@ -83,6 +85,8 @@ type ActionDef = {
   toBody?: (input: Record<string, unknown>) => Record<string, unknown>;
   /** Overrides the input schema built from `schema`. */
   input?: Record<string, unknown>;
+  /** Fields only partners may set: left out of the tool and the request for anyone else (the route ignores them too). */
+  moneyFields?: string[];
 };
 
 const FULL = " Send every field, not only the ones that change: the record is replaced. Read it first with get_record.";
@@ -116,6 +120,42 @@ const ACTIONS: ActionDef[] = [
   },
   { name: "delete_reminder", title: "Cancel a reminder", description: "Cancel a reminder that hasn't gone yet (id from list_records kind reminders).", method: "DELETE", path: "/api/reminders/{id}", access: canAccessWork, kind: "delete" },
 
+  // --- Marketing ---
+  {
+    name: "create_post",
+    title: "Plan a post",
+    description:
+      "Add a post to the content calendar. channel: instagram, linkedin, x, tiktok, facebook, youtube, website, newsletter or other. status: idea, drafting, review, scheduled or published. publishAt is a Bahrain date and time like 2026-10-16T18:00:00+03:00, or leave it out for an idea with no date. Write the caption only if the user asked for it.",
+    method: "POST",
+    path: "/api/marketing/posts",
+    schema: postSchema,
+    access: canAccessMarketing,
+  },
+  { name: "update_post", title: "Change a post", description: "Edit a post on the content calendar." + FULL, method: "PATCH", path: "/api/marketing/posts/{id}", schema: postSchema, access: canAccessMarketing },
+  { name: "move_post", title: "Move a post", description: "Change a post's status (idea, drafting, review, scheduled, published) without editing it.", method: "POST", path: "/api/marketing/posts/{id}/status", schema: postStatusSchema, access: canAccessMarketing },
+  { name: "delete_post", title: "Delete a post", description: "Remove a post from the content calendar.", method: "DELETE", path: "/api/marketing/posts/{id}", access: canAccessMarketing, kind: "delete" },
+  {
+    name: "create_campaign",
+    title: "Plan a campaign",
+    description: "Add a marketing campaign: channel, status (planned, active, paused, completed), dates, goal, budget (major units, in its currency) and owner.",
+    method: "POST",
+    path: "/api/marketing/campaigns",
+    schema: campaignSchema,
+    access: canAccessMarketing,
+  },
+  { name: "update_campaign", title: "Change a campaign", description: "Edit a campaign." + FULL, method: "PATCH", path: "/api/marketing/campaigns/{id}", schema: campaignSchema, access: canAccessMarketing },
+  {
+    name: "log_campaign_numbers",
+    title: "Log a campaign's numbers",
+    description: "Record a day's spend (major units, in the campaign's currency), leads and conversions for a campaign; partners can add revenue. Logging the same day again replaces it.",
+    method: "POST",
+    path: "/api/marketing/campaigns/{id}/numbers",
+    schema: campaignNumbersSchema,
+    access: canAccessMarketing,
+    moneyFields: ["revenue"],
+  },
+  { name: "delete_campaign", title: "Delete a campaign", description: "Delete a campaign and its logged numbers; its posts and deals stay, unlinked.", method: "DELETE", path: "/api/marketing/campaigns/{id}", access: canAccessMarketing, kind: "delete" },
+
   // --- Wiki ---
   { name: "create_wiki_space", title: "Create a wiki space", description: "Add a wiki space.", method: "POST", path: "/api/kb/spaces", schema: spaceSchema, access: canAccessKb },
   { name: "update_wiki_space", title: "Change a wiki space", description: "Rename or describe a wiki space." + FULL, method: "PATCH", path: "/api/kb/spaces/{id}", schema: spaceSchema, access: canAccessKb },
@@ -144,8 +184,26 @@ const ACTIONS: ActionDef[] = [
   { name: "create_contact", title: "Add a contact", description: "Add a person, usually at a client.", method: "POST", path: "/api/contacts", schema: contactSchema, access: canAccessCrm },
   { name: "update_contact", title: "Change a contact", description: "Edit a contact. Send only what changes.", method: "PATCH", path: "/api/contacts/{id}", schema: contactSchema.partial(), access: canAccessCrm },
   { name: "delete_contact", title: "Delete a contact", description: "Delete a contact.", method: "DELETE", path: "/api/contacts/{id}", access: canAccessCrm, kind: "delete" },
-  { name: "create_deal", title: "Add a deal", description: "Add a deal to the pipeline. value is in major units (BHD 1,500 is 1500).", method: "POST", path: "/api/deals", schema: dealSchema, access: canAccessCrm },
-  { name: "update_deal", title: "Change a deal", description: "Edit a deal's details. Send only what changes. To change its stage use move_deal.", method: "PATCH", path: "/api/deals/{id}", schema: updateDealSchema.omit({ stage: true }), access: canAccessCrm },
+  {
+    name: "create_deal",
+    title: "Add a deal",
+    description: "Add a deal to the pipeline. value is in major units (BHD 1,500 is 1500). source is where it came from (Website, Referral, Instagram…); campaignId links the marketing campaign that brought it.",
+    method: "POST",
+    path: "/api/deals",
+    schema: dealSchema,
+    access: canAccessCrm,
+    moneyFields: ["value", "currency"],
+  },
+  {
+    name: "update_deal",
+    title: "Change a deal",
+    description: "Edit a deal's details, including its source and campaign. Send only what changes. To change its stage use move_deal.",
+    method: "PATCH",
+    path: "/api/deals/{id}",
+    schema: updateDealSchema.omit({ stage: true }),
+    access: canAccessCrm,
+    moneyFields: ["value", "currency"],
+  },
   { name: "move_deal", title: "Move a deal", description: "Move a deal to another stage (won and lost included; lostReason when lost).", method: "POST", path: "/api/deals/{id}/stage", schema: moveDealSchema.omit({ orderedIds: true }), access: canAccessCrm },
   { name: "create_project_from_deal", title: "Create the project for a deal", description: "Start the project for a won deal (id = the deal).", method: "POST", path: "/api/deals/{id}/project", access: canAccessCrm },
   { name: "delete_deal", title: "Delete a deal", description: "Delete a deal.", method: "DELETE", path: "/api/deals/{id}", access: canAccessCrm, kind: "delete" },
@@ -277,7 +335,11 @@ export type ActionTool = { name: string; description: string; input_schema: { ty
 export function actionToolsFor(role: UserRole): ActionTool[] {
   return actionsFor(role).map((a) => {
     const params = placeholders(a.path);
-    const own = a.input ? { properties: a.input, required: Object.keys(a.input).filter((k) => k !== "title") } : bodyProperties(a.schema);
+    const own = a.input ? { properties: { ...a.input }, required: Object.keys(a.input).filter((k) => k !== "title") } : bodyProperties(a.schema);
+    if (a.moneyFields && role !== "partner_admin") {
+      for (const f of a.moneyFields) delete own.properties[f];
+      own.required = own.required.filter((r) => !a.moneyFields!.includes(r));
+    }
     const properties: Record<string, unknown> = {
       target: {
         type: "string",
@@ -336,6 +398,7 @@ export async function proposeAction(name: string, rawInput: unknown, role: UserR
     delete input[key];
   }
 
+  if (action.moneyFields && role !== "partner_admin") for (const f of action.moneyFields) delete input[f];
   const body = action.toBody ? action.toBody(input) : input;
   if (action.schema) {
     const parsed = action.schema.safeParse(body);

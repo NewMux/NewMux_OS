@@ -42,6 +42,7 @@ export function AskHamanButton() {
 const SUGGESTIONS: Record<UserRole, string[]> = {
   partner_admin: ["What needs me today?", "Who owes us money?", "How is the pipeline looking?", "Add a task for me to follow up tomorrow"],
   lead_dev: ["What's on my plate today?", "Which tasks are overdue?", "What meetings are coming up?", "Mark my overdue tasks in review"],
+  marketing: ["What's going out this week?", "Which campaigns are running?", "Where are our leads coming from?", "Plan a LinkedIn post for Friday"],
 };
 
 /** How many earlier turns go with each question. */

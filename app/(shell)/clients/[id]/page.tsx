@@ -1,8 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { canAccessCrm } from "@/lib/rbac";
+import { canAccessCrm, canSeeMoney } from "@/lib/rbac";
 import { getClientById, listClients } from "@/lib/data/clients";
-import { listActivities, listContacts, listDeals } from "@/lib/data/crm";
+import { listActivities, listContacts, listDeals, withoutValue } from "@/lib/data/crm";
+import { listCampaigns } from "@/lib/data/campaigns";
 import { listProjectsWithStats } from "@/lib/data/projects";
 import { listDocuments } from "@/lib/data/documents";
 import { listHostingSubscriptionsForClient } from "@/lib/data/hosting";
@@ -17,24 +18,27 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
   const { id } = await params;
   const client = await getClientById(id);
   if (!client) notFound();
-  const [contacts, deals, projects, documents, hosting, activities, pages, clients, allContacts, users, expenses] = await Promise.all([
+  // Documents, hosting fees, expenses and deal values are partners only.
+  const money = canSeeMoney(session);
+  const [contacts, deals, projects, documents, hosting, activities, pages, clients, allContacts, users, expenses, campaigns] = await Promise.all([
     listContacts({ clientId: id }),
     listDeals({ clientId: id }),
     listProjectsWithStats({ clientId: id, includeArchived: true }),
-    listDocuments({ clientId: id }),
-    listHostingSubscriptionsForClient(id),
+    money ? listDocuments({ clientId: id }) : Promise.resolve([]),
+    money ? listHostingSubscriptionsForClient(id) : Promise.resolve([]),
     listActivities({ clientId: id }),
     listLinkedPages({ clientId: id }),
     listClients(),
     listContacts(),
     listUsers(),
-    listExpenses({ clientId: id }),
+    money ? listExpenses({ clientId: id }) : Promise.resolve([]),
+    listCampaigns(),
   ]);
   return (
     <ClientDetail
       client={client}
       contacts={contacts}
-      deals={deals}
+      deals={money ? deals : deals.map(withoutValue)}
       projects={projects}
       documents={documents}
       hosting={hosting}
@@ -45,6 +49,7 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
         clients: clients.map((c) => ({ id: c.id, name: c.name })),
         contacts: allContacts.map((c) => ({ id: c.id, name: c.fullName, clientId: c.clientId })),
         users: users.map((u) => ({ id: u.id, name: u.fullName })),
+        campaigns: campaigns.map((c) => ({ id: c.id, name: c.name })),
       }}
     />
   );

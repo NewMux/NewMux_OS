@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { Building2 } from "lucide-react";
 import { auth } from "@/lib/auth";
-import { canAccessCrm } from "@/lib/rbac";
+import { canAccessCrm, canSeeMoney } from "@/lib/rbac";
 import { listClientsWithStats } from "@/lib/data/clients";
 import { SplitView } from "@/components/shell/SplitView";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -12,7 +12,8 @@ export default async function ClientsLayout({ children }: { children: React.Reac
   const session = await auth();
   if (!canAccessCrm(session)) redirect("/home");
   return (
-    <SplitView list={<ClientsScreen clients={await listClientsWithStats()} />} placeholder={<EmptyState icon={Building2} title="No client selected" message="Choose a client to see their people, deals, work and money." />}>
+    <SplitView
+      list={<ClientsScreen clients={(await listClientsWithStats()).map((c) => (canSeeMoney(session) ? c : { ...c, outstandingInvoiceCount: 0 }))} />} placeholder={<EmptyState icon={Building2} title="No client selected" message="Choose a client to see their people, deals, work and money." />}>
       {children}
     </SplitView>
   );

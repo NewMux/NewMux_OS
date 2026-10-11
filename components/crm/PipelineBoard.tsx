@@ -24,6 +24,7 @@ import type { DealListItem } from "@/lib/data/crm";
 import { centsToDisplay, compactMoney, convertMinorUnits } from "@/lib/money";
 import { formatDate, daysUntil } from "@/lib/time";
 import { solidBg } from "@/lib/colors";
+import { useCanSeeMoney } from "@/components/shell/QuickAdd";
 import { cn } from "@/lib/utils";
 
 /**
@@ -88,6 +89,7 @@ export function PipelineBoard({ deals: initial }: { deals: DealListItem[] }) {
 function Column({ stage, deals, onMove }: { stage: DealStage; deals: DealListItem[]; onMove: (d: DealListItem, s: DealStage) => void }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage });
   const meta = DEAL_STAGE[stage];
+  const money = useCanSeeMoney();
   const total = deals.reduce((s, d) => s + convertMinorUnits(d.valueCents, d.currency, "BHD"), 0);
   const closed = stage === "won" || stage === "lost";
   const shown = closed ? deals.slice(0, 12) : deals;
@@ -104,7 +106,7 @@ function Column({ stage, deals, onMove }: { stage: DealStage; deals: DealListIte
         <span className={cn("h-2.5 w-2.5 rounded-full", solidBg[meta.color])} />
         <h2 className="text-headline">{meta.label}</h2>
         <span className="text-subhead text-label-2">{deals.length}</span>
-        <span className="ml-auto text-footnote text-label-2 tabular">{compactMoney(total)}</span>
+        {money && <span className="ml-auto text-footnote text-label-2 tabular">{compactMoney(total)}</span>}
       </header>
       <div className="flex min-h-[120px] flex-1 flex-col gap-2">
         {shown.map((d) => (
@@ -128,13 +130,14 @@ function DraggableCard({ deal, onMove }: { deal: DealListItem; onMove: (d: DealL
 function DealCard({ deal, lifted, onMove }: { deal: DealListItem; lifted?: boolean; onMove?: (d: DealListItem, s: DealStage) => void }) {
   const closeIn = deal.expectedClose ? daysUntil(deal.expectedClose) : null;
   const open = deal.stage !== "won" && deal.stage !== "lost";
+  const money = useCanSeeMoney();
   return (
     <div className={cn("group relative rounded-[16px] bg-bg-elevated p-3 transition-transform", lifted && "rotate-[1.5deg] scale-[1.03] shadow-float")}>
       <Link href={`/crm/deals/${deal.id}`} className="block md:pr-7" draggable={false}>
         <div className="text-body font-medium leading-snug">{deal.title}</div>
         <div className="mt-0.5 truncate text-subhead text-label-2">{deal.clientName ?? deal.contactName ?? "New prospect"}</div>
         <div className="mt-2.5 flex items-center gap-2">
-          <span className="font-rounded text-headline tabular">{centsToDisplay(deal.valueCents, deal.currency)}</span>
+          {money && <span className="font-rounded text-headline tabular">{centsToDisplay(deal.valueCents, deal.currency)}</span>}
           {open && closeIn !== null && (
             <span className={cn("ml-auto flex items-center gap-1 text-caption1", closeIn < 0 ? "text-ios-red" : "text-label-2")}>
               <CalendarClock className="h-3 w-3" />

@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { isPartnerAdmin } from "@/lib/rbac";
+import { canAccessCrm } from "@/lib/rbac";
 import { listMeetings } from "@/lib/data/meetings";
 import { listProjects } from "@/lib/data/projects";
 import { listClients } from "@/lib/data/clients";
@@ -13,7 +13,7 @@ export default async function MeetingsPage() {
   const [meetings, projects, clients] = await Promise.all([
     listMeetings({ from }),
     listProjects(),
-    isPartnerAdmin(session) ? listClients() : Promise.resolve([]),
+    canAccessCrm(session) ? listClients() : Promise.resolve([]),
   ]);
   return (
     <CalendarScreen

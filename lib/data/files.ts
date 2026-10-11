@@ -13,8 +13,16 @@ export { MAX_FILE_BYTES };
  * Bytes live in file_blobs so lists never load them.
  */
 
-export const FILE_CATEGORIES = ["contract", "registration", "certificate", "brand", "legal", "finance", "receipt", "other"] as const;
+export const FILE_CATEGORIES = ["contract", "registration", "certificate", "brand", "marketing", "legal", "finance", "receipt", "other"] as const;
 export type FileCategory = (typeof FILE_CATEGORIES)[number];
+
+/** Categories that hold money (statements, receipts, contracts with fees): partners only. */
+export const MONEY_FILE_CATEGORIES: readonly FileCategory[] = ["contract", "finance", "receipt"];
+
+/** The categories this person may see, upload or edit. */
+export function fileCategoriesFor(canSeeMoney: boolean): FileCategory[] {
+  return FILE_CATEGORIES.filter((c) => canSeeMoney || !MONEY_FILE_CATEGORIES.includes(c));
+}
 
 export type StoredFile = {
   id: string;
@@ -36,10 +44,13 @@ export type StoredFile = {
 
 export type FileListItem = StoredFile & { clientName: string | null; projectName: string | null; ventureName: string | null; uploadedByName: string | null };
 
-export async function listFiles(filter: { includeReceipts?: boolean; clientId?: string; projectId?: string; ventureId?: string } = {}): Promise<FileListItem[]> {
+export async function listFiles(
+  filter: { includeReceipts?: boolean; clientId?: string; projectId?: string; ventureId?: string; categories?: readonly FileCategory[] } = {},
+): Promise<FileListItem[]> {
   const where: string[] = [];
   const params: unknown[] = [];
   if (!filter.includeReceipts) where.push("f.category <> 'receipt'");
+  if (filter.categories) where.push(`f.category = any($${params.push([...filter.categories])})`);
   if (filter.clientId) where.push(`f.client_id = $${params.push(filter.clientId)}`);
   if (filter.projectId) where.push(`f.project_id = $${params.push(filter.projectId)}`);
   if (filter.ventureId) where.push(`f.venture_id = $${params.push(filter.ventureId)}`);

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { canAccessCrm } from "@/lib/rbac";
+import { canAccessCrm, canSeeMoney } from "@/lib/rbac";
 import { getPipelineSummary, listDeals, listOpenFollowUps, openPipelineTotals } from "@/lib/data/crm";
 import { one } from "@/lib/data/sql";
 import { QuickAddMenu } from "@/components/shell/QuickAdd";
@@ -26,9 +26,12 @@ export default async function CrmPage() {
     listDeals({ open: true }),
     one<{ clients: number; contacts: number }>("select (select count(*)::int from clients) as clients, (select count(*)::int from contacts) as contacts"),
   ]);
+  // Marketing sees the pipeline by number of deals, never by value.
+  const money = canSeeMoney(session);
   const totals = openPipelineTotals(summary);
   const won = summary.find((s) => s.stage === "won")!;
-  const maxStage = Math.max(...summary.filter((s) => OPEN_DEAL_STAGES.includes(s.stage)).map((s) => s.totalBhdCents), 1);
+  const stageSize = (s: (typeof summary)[number]) => (money ? s.totalBhdCents : s.count);
+  const maxStage = Math.max(...summary.filter((s) => OPEN_DEAL_STAGES.includes(s.stage)).map(stageSize), 1);
   const closingSoon = [...openDeals].filter((d) => d.expectedClose).sort((a, b) => a.expectedClose!.localeCompare(b.expectedClose!)).slice(0, 5);
 
   return (
@@ -39,11 +42,19 @@ export default async function CrmPage() {
       }
     >
       <SummaryCard
-        items={[
-          { label: "Open pipeline", value: compactMoney(totals.totalBhdCents), caption: plural(totals.count, "deal"), href: "/crm/pipeline" },
-          { label: "Weighted", value: compactMoney(totals.weightedBhdCents), caption: "by probability", href: "/crm/pipeline" },
-          { label: "Won", value: compactMoney(won.totalBhdCents), caption: plural(won.count, "deal") },
-        ]}
+        items={
+          money
+            ? [
+                { label: "Open pipeline", value: compactMoney(totals.totalBhdCents), caption: plural(totals.count, "deal"), href: "/crm/pipeline" },
+                { label: "Weighted", value: compactMoney(totals.weightedBhdCents), caption: "by probability", href: "/crm/pipeline" },
+                { label: "Won", value: compactMoney(won.totalBhdCents), caption: plural(won.count, "deal") },
+              ]
+            : [
+                { label: "Open deals", value: String(totals.count), caption: "in the pipeline", href: "/crm/pipeline" },
+                { label: "Won", value: String(won.count), caption: "deals" },
+                { label: "Follow-ups", value: String(followUps.length), caption: "open", href: "/crm/activities" },
+              ]
+        }
       />
 
       <div className="grid gap-x-6 lg:grid-cols-2 [&>*]:min-w-0">
@@ -51,6 +62,7 @@ export default async function CrmPage() {
           <ListSection>
             <ListRow href="/clients" title="Clients" detail={counts?.clients} />
             <ListRow href="/contacts" title="Contacts" detail={counts?.contacts} />
+            <ListRow href="/marketing" title="Marketing" />
           </ListSection>
 
           <ListSection variant="prominent" header="By Stage" action={<SectionLink href="/crm/pipeline">Board</SectionLink>}>
@@ -68,10 +80,10 @@ export default async function CrmPage() {
                   }
                   subtitle={
                     <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-fill/15">
-                      <span className="block h-full rounded-full bg-accent" style={{ width: `${(s.totalBhdCents / maxStage) * 100}%` }} />
+                      <span className="block h-full rounded-full bg-accent" style={{ width: `${(stageSize(s) / maxStage) * 100}%` }} />
                     </span>
                   }
-                  detail={compactMoney(s.totalBhdCents)}
+                  detail={money ? compactMoney(s.totalBhdCents) : undefined}
                 />
               ))}
           </ListSection>
@@ -83,7 +95,7 @@ export default async function CrmPage() {
                 href={`/crm/deals/${d.id}`}
                 title={d.title}
                 subtitle={`${d.clientName ?? d.contactName ?? "New prospect"} · closes ${formatDate(d.expectedClose, { day: "numeric", month: "short" })}`}
-                detail={compactMoney(convertMinorUnits(d.valueCents, d.currency, "BHD"))}
+                detail={money ? compactMoney(convertMinorUnits(d.valueCents, d.currency, "BHD")) : undefined}
               />
             ))}
             {closingSoon.length === 0 && <ListRow title="No open deals with a close date" />}

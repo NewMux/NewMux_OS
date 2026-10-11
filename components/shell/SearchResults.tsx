@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, CheckCircle2, Contact, FileText, FolderKanban, Handshake, BookOpen } from "lucide-react";
+import { Building2, CheckCircle2, Contact, FileText, FolderKanban, Handshake, BookOpen, Megaphone, Target } from "lucide-react";
 import type { SearchResult } from "@/lib/data/search";
 import { IconTile } from "@/components/ui/List";
 import type { SysColor } from "@/lib/colors";
@@ -12,6 +12,8 @@ export const RESULT_META: Record<SearchResult["kind"], { label: string; icon: Re
   task: { label: "Tasks", icon: CheckCircle2, color: "blue" },
   document: { label: "Documents", icon: FileText, color: "green" },
   page: { label: "Wiki", icon: BookOpen, color: "yellow" },
+  post: { label: "Posts", icon: Megaphone, color: "pink" },
+  campaign: { label: "Campaigns", icon: Target, color: "orange" },
 };
 
 export function groupResults(results: SearchResult[]) {

@@ -129,6 +129,13 @@ If you'd rather not move DNS, keep using the `workers.dev` address.
 
 Not used on Cloudflare: `AUTH_URL`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `DB_AUTO_MIGRATE`, `POSTGRES_PASSWORD`, `DOMAIN` (those are for the Oracle setup).
 
+## Upgrading the database
+
+New releases sometimes add tables. The app on Cloudflare doesn't change the database itself, so run the release's upgrade file once in Supabase → **SQL Editor** before or right after deploying it:
+
+- **Marketing** (the Marketing role and module): [`db/supabase-upgrade-marketing.sql`](../db/supabase-upgrade-marketing.sql). Until it's run, Marketing pages and adding someone with the Marketing role fail.
+- **Push notifications**: see step 1 under [Push notifications](#push-notifications).
+
 ## Push notifications
 
 The app can send notifications to your phone's lock screen and to Mac and desktop browsers: reminders set through Haman, CRM follow-ups, tasks due today, meetings 15 minutes before, and (for partners) renewals and hosting fees. A cron trigger in `wrangler.jsonc` checks every 5 minutes. It's included in Workers Paid; no other service or account is needed.

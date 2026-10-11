@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { isPartnerAdmin } from "@/lib/rbac";
+import { canAccessCrm, isPartnerAdmin } from "@/lib/rbac";
 import { getProjectById, listTasksByProject } from "@/lib/data/projects";
 import { getClientById, listClients } from "@/lib/data/clients";
 import { listDocuments } from "@/lib/data/documents";
@@ -26,7 +26,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
     listLinkedPages({ projectId: id }),
     listMeetings({ projectId: id }),
     listUsers(),
-    admin ? listClients() : Promise.resolve([]),
+    canAccessCrm(session) ? listClients() : Promise.resolve([]),
     admin ? getProfitByProjectReport({ projectId: id }) : Promise.resolve([]),
   ]);
   // Item 36: invoiced, collected, costs, profit and shares (partners only).

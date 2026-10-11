@@ -9,6 +9,8 @@ export class ForbiddenError extends Error {
 }
 
 const isAdmin = (session: Session | null) => session?.user?.role === "partner_admin";
+const isMarketing = (session: Session | null) => session?.user?.role === "marketing";
+const adminOrMarketing = (session: Session | null) => isAdmin(session) || isMarketing(session);
 const isSignedIn = (session: Session | null) => !!session?.user;
 
 export function isPartnerAdmin(session: Session | null): boolean {
@@ -22,18 +24,31 @@ export function requireRole(session: Session | null, allowed: UserRole[]): asser
 }
 
 /**
- * Access matrix (PRD 2.1/2.2). Partner admins see everything. The limited
- * lead-dev role gets delivery tools only: Home, Work (projects, tasks,
- * calendar), the Wiki, and the Vault with masked values — never CRM,
- * Finance, Documents, Growth, Company or Settings. Enforced in API routes
- * and pages, not just hidden in navigation.
+ * Access matrix (PRD 2.1/2.2). Enforced in API routes and pages, not just
+ * hidden in navigation.
+ *
+ * - Partner (`partner_admin`): everything.
+ * - Marketing (`marketing`): everything except money. CRM, Marketing, Work,
+ *   the Wiki and Company (profile, ventures, files other than financial
+ *   ones), but never Finance, Documents (invoices, quotes, contracts),
+ *   hosting fees, payouts, reports, SaaS revenue (Growth), deal or project
+ *   values, Settings, Team, or revealing Vault secrets.
+ * - Team member (`lead_dev`): delivery tools only: Home, Work (projects,
+ *   tasks, calendar), the Wiki, and the Vault with masked values.
  */
-export const canAccessCrm = isAdmin;
+export const canAccessCrm = adminOrMarketing;
+export const canAccessMarketing = adminOrMarketing;
+export const canAccessCompany = adminOrMarketing;
+/** Amounts anywhere: deal values, pipeline totals, client balances, project and venture money. */
+export const canSeeMoney = isAdmin;
 export const canAccessDocuments = isAdmin;
 export const canAccessFinance = isAdmin;
 export const canAccessGrowth = isAdmin;
 export const canAccessSettings = isAdmin;
-export const canAccessCompany = isAdmin;
 export const canRevealVaultSecrets = isAdmin;
+
+/** Role-only checks, for code that has a role but no session (Haman, search, notifications). */
+export const roleCanSeeMoney = (role: UserRole) => role === "partner_admin";
+export const roleCanAccessCrm = (role: UserRole) => role === "partner_admin" || role === "marketing";
 export const canAccessWork = isSignedIn;
 export const canAccessKb = isSignedIn;

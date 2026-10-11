@@ -129,14 +129,15 @@ export type DealInput = {
   ownerId?: string | null;
   source?: string | null;
   notes?: string | null;
+  campaignId?: string | null;
 };
 
 export async function createDeal(input: DealInput, createdBy: string): Promise<Deal> {
   const stage = input.stage ?? "lead";
   const deal = await must<Deal>(
     "Deal",
-    `insert into deals (title, client_id, contact_id, stage, value_cents, currency, probability, expected_close, owner_id, source, notes, created_by, sort_order)
-     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12, coalesce((select min(sort_order) - 1 from deals where stage = $4), 0))
+    `insert into deals (title, client_id, contact_id, stage, value_cents, currency, probability, expected_close, owner_id, source, notes, created_by, campaign_id, sort_order)
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13, coalesce((select min(sort_order) - 1 from deals where stage = $4), 0))
      returning *`,
     [
       input.title,
@@ -151,13 +152,14 @@ export async function createDeal(input: DealInput, createdBy: string): Promise<D
       input.source ?? null,
       input.notes ?? null,
       createdBy,
+      input.campaignId ?? null,
     ],
   );
   await logAudit({ entityType: "deal", entityId: deal.id, action: "create", summary: `Created deal "${deal.title}" (${centsToDisplay(deal.valueCents, deal.currency)})`, changedBy: createdBy });
   return deal;
 }
 
-const DEAL_FIELDS = ["title", "clientId", "contactId", "valueCents", "currency", "probability", "expectedClose", "ownerId", "source", "notes"] as const;
+const DEAL_FIELDS = ["title", "clientId", "contactId", "valueCents", "currency", "probability", "expectedClose", "ownerId", "source", "campaignId", "notes"] as const;
 
 export async function updateDeal(id: string, patch: Partial<DealInput>): Promise<Deal> {
   const { set, values } = buildUpdate(patch, DEAL_FIELDS, 2);
@@ -321,4 +323,9 @@ export async function setActivityCompleted(id: string, completed: boolean): Prom
 
 export async function deleteActivity(id: string): Promise<void> {
   await query("delete from activities where id = $1", [id]);
+}
+
+/** A deal with its amount left out, for people who can't see money (lib/rbac.ts canSeeMoney). */
+export function withoutValue<T extends { valueCents: number }>(deal: T): T {
+  return { ...deal, valueCents: 0 };
 }

@@ -11,6 +11,7 @@ import { ListSection } from "@/components/ui/List";
 import { Textarea } from "@/components/ui/Input";
 import { ActivitySheet, DealSheet, type ContactOption } from "./CrmSheets";
 import type { Option } from "@/components/forms/Fields";
+import { useCanSeeMoney } from "@/components/shell/QuickAdd";
 import { useMutation } from "@/lib/useMutation";
 import { DEAL_STAGE } from "@/lib/labels";
 import { OPEN_DEAL_STAGES, type DealStage } from "@/lib/data/types";
@@ -18,6 +19,7 @@ import type { DealListItem } from "@/lib/data/crm";
 import { cn } from "@/lib/utils";
 
 export function DealHeaderActions({ deal }: { deal: DealListItem }) {
+  const money = useCanSeeMoney();
   const router = useRouter();
   const { run, pending } = useMutation();
   const [losing, setLosing] = useState(false);
@@ -76,9 +78,11 @@ export function DealHeaderActions({ deal }: { deal: DealListItem }) {
                 <FolderKanban className="h-4 w-4" /> Create Project
               </Button>
             )}
-            <Button variant="tinted" className="flex-1" onClick={() => router.push(`/documents/new?type=invoice&dealId=${deal.id}`)}>
-              <FileText className="h-4 w-4" /> Invoice
-            </Button>
+            {money && (
+              <Button variant="tinted" className="flex-1" onClick={() => router.push(`/documents/new?type=invoice&dealId=${deal.id}`)}>
+                <FileText className="h-4 w-4" /> Invoice
+              </Button>
+            )}
           </>
         )}
         {deal.stage === "lost" && (
@@ -106,8 +110,9 @@ export function DealHeaderActions({ deal }: { deal: DealListItem }) {
   );
 }
 
-export function DealMenu({ deal, clients, contacts, users }: { deal: DealListItem; clients: Option[]; contacts: ContactOption[]; users: Option[] }) {
+export function DealMenu({ deal, clients, contacts, users, campaigns }: { deal: DealListItem; clients: Option[]; contacts: ContactOption[]; users: Option[]; campaigns?: Option[] }) {
   const router = useRouter();
+  const money = useCanSeeMoney();
   const { run } = useMutation();
   const confirm = useConfirm();
   const [editing, setEditing] = useState(false);
@@ -117,7 +122,7 @@ export function DealMenu({ deal, clients, contacts, users }: { deal: DealListIte
       <Menu
         items={[
           { label: "Edit Deal", icon: Pencil, onSelect: () => setEditing(true) },
-          { label: "New Quote", icon: FileText, onSelect: () => router.push(`/documents/new?type=quote&dealId=${deal.id}`) },
+          ...(money ? [{ label: "New Quote", icon: FileText, onSelect: () => router.push(`/documents/new?type=quote&dealId=${deal.id}`) }] : []),
           { label: "New Wiki Page", icon: BookOpen, onSelect: () => createPage({ dealId: deal.id, clientId: deal.clientId }, `${deal.title} — notes`) },
           "separator",
           {
@@ -135,7 +140,7 @@ export function DealMenu({ deal, clients, contacts, users }: { deal: DealListIte
           },
         ]}
       />
-      <DealSheet deal={deal} open={editing} onOpenChange={setEditing} clients={clients} contacts={contacts} users={users} />
+      <DealSheet deal={deal} open={editing} onOpenChange={setEditing} clients={clients} contacts={contacts} users={users} campaigns={campaigns} />
     </>
   );
 }

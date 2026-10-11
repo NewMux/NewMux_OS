@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { isPartnerAdmin } from "@/lib/rbac";
+import { canAccessCrm } from "@/lib/rbac";
 import { getPageAncestors, getPageById, getSpaceById, isFavorite, listChildPages, listSpaces, listTemplates, recordPageView } from "@/lib/data/kb";
 import { listProjects } from "@/lib/data/projects";
 import { listClients } from "@/lib/data/clients";
@@ -9,7 +9,7 @@ import { WikiEditor } from "./WikiEditor";
 
 export default async function WikiPageRoute({ params }: { params: Promise<{ id: string }> }) {
   const session = (await auth())!;
-  const admin = isPartnerAdmin(session);
+  const crm = canAccessCrm(session);
   const { id } = await params;
   const page = await getPageById(id);
   if (!page) notFound();
@@ -21,8 +21,8 @@ export default async function WikiPageRoute({ params }: { params: Promise<{ id: 
     listSpaces(),
     listTemplates(),
     listProjects(),
-    admin ? listClients() : Promise.resolve([]),
-    admin ? listDeals() : Promise.resolve([]),
+    crm ? listClients() : Promise.resolve([]),
+    crm ? listDeals() : Promise.resolve([]),
     recordPageView(session.user.id, id),
   ]);
 
@@ -41,7 +41,7 @@ export default async function WikiPageRoute({ params }: { params: Promise<{ id: 
         projects: projects.map((p) => ({ id: p.id, name: p.name })),
         deals: deals.map((d) => ({ id: d.id, name: d.title })),
       }}
-      canLinkCrm={admin}
+      canLinkCrm={crm}
     />
   );
 }

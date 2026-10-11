@@ -1,7 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { canAccessCrm } from "@/lib/rbac";
-import { getDealById, listActivities, listContacts } from "@/lib/data/crm";
+import { canAccessCrm, canSeeMoney } from "@/lib/rbac";
+import { getDealById, listActivities, listContacts, withoutValue } from "@/lib/data/crm";
+import { listCampaigns } from "@/lib/data/campaigns";
 import { listDocuments } from "@/lib/data/documents";
 import { listClients } from "@/lib/data/clients";
 import { listUsers } from "@/lib/data/users";
@@ -20,16 +21,20 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
   const session = await auth();
   if (!canAccessCrm(session)) redirect("/home");
   const { id } = await params;
-  const deal = await getDealById(id);
-  if (!deal) notFound();
-  const [activities, documents, pages, clients, contacts, users] = await Promise.all([
+  const money = canSeeMoney(session);
+  const found = await getDealById(id);
+  if (!found) notFound();
+  const deal = money ? found : withoutValue(found);
+  const [activities, documents, pages, clients, contacts, users, campaigns] = await Promise.all([
     listActivities({ dealId: id }),
-    listDocuments({ dealId: id }),
+    money ? listDocuments({ dealId: id }) : Promise.resolve([]),
     listLinkedPages({ dealId: id }),
     listClients(),
     listContacts(),
     listUsers(),
+    listCampaigns(),
   ]);
+  const campaign = campaigns.find((c) => c.id === deal.campaignId);
 
   return (
     <Page
@@ -41,13 +46,18 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
           clients={clients.map((c) => ({ id: c.id, name: c.name }))}
           contacts={contacts.map((c) => ({ id: c.id, name: c.fullName, clientId: c.clientId }))}
           users={users.map((u) => ({ id: u.id, name: u.fullName }))}
+          campaigns={campaigns.map((c) => ({ id: c.id, name: c.name }))}
         />
       }
     >
       <div className="mx-auto max-w-2xl">
         <div className="mb-7 rounded-card bg-bg-elevated p-4">
           <div className="truncate text-subhead text-label-2">{deal.clientName ?? deal.contactName ?? "New prospect"}</div>
-          <div className="font-rounded text-title1 font-semibold leading-tight tabular">{centsToDisplay(deal.valueCents, deal.currency)}</div>
+          {money ? (
+            <div className="font-rounded text-title1 font-semibold leading-tight tabular">{centsToDisplay(deal.valueCents, deal.currency)}</div>
+          ) : (
+            <div className="text-title2 font-semibold leading-tight">{deal.title}</div>
+          )}
           <DealHeaderActions deal={deal} />
         </div>
 
@@ -64,6 +74,7 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
           <ListRow title="Expected close" detail={formatDate(deal.expectedClose)} />
           <ListRow title="Probability" detail={`${deal.probability}%`} />
           {deal.source && <ListRow title="Source" detail={deal.source} />}
+          {campaign && <ListRow title="Campaign" detail={campaign.name} href={`/marketing/campaigns?id=${campaign.id}`} />}
           <ListRow title="Created" detail={formatDate(deal.createdAt)} />
         </ListSection>
 

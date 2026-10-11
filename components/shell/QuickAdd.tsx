@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BookOpen, Building2, CircleCheckBig, FileSignature, FileText, Handshake, HandCoins, Plus, Receipt } from "lucide-react";
+import { BookOpen, Building2, CircleCheckBig, FileSignature, FileText, Handshake, HandCoins, Plus, Receipt, Megaphone, Target } from "lucide-react";
 import { Menu, type MenuItem } from "@/components/ui/Menu";
 import { NavButton } from "@/components/ui/Page";
 import { Sheet, SheetIconButton } from "@/components/ui/Sheet";
@@ -19,6 +19,11 @@ type Extra = { label: string; icon?: React.ComponentType<{ className?: string }>
 
 /** The signed-in role, so any screen's "+" knows which creates to offer. Set in the shell layout. */
 export const RoleContext = createContext<UserRole>("lead_dev");
+
+/** Whether amounts show on this screen (partners only). The server leaves them out for everyone else too. */
+export function useCanSeeMoney(): boolean {
+  return useContext(RoleContext) === "partner_admin";
+}
 
 export function RoleProvider({ role, children }: { role: UserRole; children: React.ReactNode }) {
   return <RoleContext.Provider value={role}>{children}</RoleContext.Provider>;
@@ -59,6 +64,16 @@ export function QuickAddMenu({
       { label: "Client", icon: Building2, onSelect: go("/clients?new=1") },
       "separator",
       { label: "Quote", icon: FileSignature, onSelect: go("/documents/new?type=quote") },
+      { label: "Deal", icon: Handshake, onSelect: go("/crm/pipeline?new=1") },
+      { label: "Wiki Page", icon: BookOpen, onSelect: go("/wiki?new=1") },
+    );
+  } else if (role === "marketing") {
+    items.push(
+      { label: "Post", icon: Megaphone, onSelect: go("/marketing/content?new=1") },
+      { label: "Campaign", icon: Target, onSelect: go("/marketing/campaigns?new=1") },
+      { label: "Task", icon: CircleCheckBig, onSelect: go("/tasks?new=1") },
+      { label: "Client", icon: Building2, onSelect: go("/clients?new=1") },
+      "separator",
       { label: "Deal", icon: Handshake, onSelect: go("/crm/pipeline?new=1") },
       { label: "Wiki Page", icon: BookOpen, onSelect: go("/wiki?new=1") },
     );

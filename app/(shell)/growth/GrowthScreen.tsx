@@ -14,10 +14,11 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { useMutation } from "@/lib/useMutation";
 import { centsToDisplay, compactMoney } from "@/lib/money";
 import { todayYmd } from "@/lib/time";
+import { CAMPAIGN_CHANNEL } from "@/lib/labels";
 import type { CampaignAttribution } from "@/lib/data/campaigns";
 import type { Campaign, CampaignChannel } from "@/lib/data/types";
 
-const CHANNEL: Record<CampaignChannel, string> = { meta_ads: "Meta Ads", linkedin: "LinkedIn", google_search: "Google Search", outbound_email: "Outbound Email" };
+const CHANNEL = CAMPAIGN_CHANNEL;
 
 export function GrowthScreen({
   rows,

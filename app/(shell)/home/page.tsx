@@ -14,7 +14,7 @@ import { getErpDashboardSummary } from "@/lib/data/finance";
 import { getCompanyBalanceBhd, getPartyBalances, listBankAccounts } from "@/lib/data/ledger";
 import { listTasks } from "@/lib/data/projects";
 import { listUpcomingMeetings } from "@/lib/data/meetings";
-import { isPartnerAdmin } from "@/lib/rbac";
+import { canAccessCrm, isPartnerAdmin } from "@/lib/rbac";
 import { compactMoney } from "@/lib/money";
 import { addDaysYmd, formatDate, formatTime, relativeDay, todayYmd, toYmd } from "@/lib/time";
 import { plural } from "@/lib/utils";
@@ -29,7 +29,7 @@ export default async function HomePage() {
   const tomorrow = addDaysYmd(today, 1);
 
   const [attention, myTasks, meetings, finance, balance, parties, accounts] = await Promise.all([
-    getAttentionItems({ includeFinance: admin, includeCrm: admin }),
+    getAttentionItems({ includeFinance: admin, includeCrm: canAccessCrm(session) }),
     listTasks({ assigneeId: session.user.id, openOnly: true }),
     listUpcomingMeetings(2),
     admin ? getErpDashboardSummary() : null,
