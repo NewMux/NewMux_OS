@@ -75,6 +75,12 @@ export const updateDocumentSchema = z.object({
   externalRef: text.optional(),
 });
 
+/** Turning an accepted quote into an invoice. full: every line item; deposit: a percentage of the quote; balance: what's left to invoice. */
+export const convertToInvoiceSchema = z.object({
+  mode: z.enum(["full", "deposit", "balance"]).optional(),
+  depositPercent: z.number().min(1).max(100).optional(),
+});
+
 export const transitionSchema = z.object({
   to: z.enum(["draft", "sent", "accepted", "declined", "signed", "archived", "void"]) satisfies z.ZodType<DocumentStatus>,
   /** Required when voiding. */
