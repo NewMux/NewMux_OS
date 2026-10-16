@@ -21,6 +21,8 @@ import { roleCanAccessCrm, roleCanSeeMoney } from "@/lib/rbac";
 import { MONEY_FILE_CATEGORIES, type FileCategory } from "@/lib/data/files";
 import { getLeadsReport, listMarketingCampaigns, listPosts } from "@/lib/data/marketing";
 import { CAMPAIGN_CHANNEL, CAMPAIGN_STATUS, POST_CHANNEL, POST_STATUS } from "@/lib/labels";
+import { githubConfigured } from "@/lib/github";
+import { listOsChanges, OS_CHANGE_STATUS } from "@/lib/osChanges";
 
 /**
  * What Haman can look up. Every tool here is read-only and wraps the same
@@ -898,6 +900,32 @@ export const HAMAN_TOOLS: HamanTool[] = [
         };
       }
       return { record };
+    },
+  },
+  {
+    name: "list_os_changes",
+    status: "Checking OS updates",
+    description:
+      "Changes to NEWMUX OS itself that people have asked for, newest first: number, title, who asked, status (working, failed, answered, checking, checks_failed, conflict, ready, merged, closed), the pull request's size and checks, and Claude Code's latest note. Only partners can merge one.",
+    input_schema: NO_INPUT,
+    access: "everyone",
+    run: async () => {
+      if (!githubConfigured()) return { error: "GitHub isn't connected to NEWMUX OS yet: a partner adds GITHUB_TOKEN (see docs/OS_UPDATES.md)." };
+      const changes = await listOsChanges();
+      return {
+        href: "/settings/updates",
+        changes: changes.map((c) => ({
+          number: c.number,
+          title: c.title,
+          requestedBy: c.requestedBy,
+          asked: day(c.createdAt),
+          status: c.status,
+          statusText: OS_CHANGE_STATUS[c.status].label,
+          pullRequest: c.pr ? { url: c.pr.url, filesChanged: c.pr.changedFiles, linesAdded: c.pr.additions, linesRemoved: c.pr.deletions } : null,
+          failingChecks: c.checks?.failedNames.length ? c.checks.failedNames : undefined,
+          claudeSays: c.reply ? c.reply.slice(0, 700) : undefined,
+        })),
+      };
     },
   },
 ];

@@ -4,6 +4,7 @@ import { ZodError, type ZodTypeAny, type z } from "zod";
 import { auth } from "@/lib/auth";
 import { NotFoundError, ValidationError } from "@/lib/data/sql";
 import { ForbiddenError } from "@/lib/rbac";
+import { GitHubError } from "@/lib/github";
 
 type Ctx<P> = { req: NextRequest; session: Session; params: P };
 
@@ -44,6 +45,12 @@ export function errorResponse(error: unknown): NextResponse {
   if (error instanceof ValidationError) return NextResponse.json({ error: error.message }, { status: 409 });
   if (error instanceof NotFoundError) return NextResponse.json({ error: error.message }, { status: 404 });
   if (error instanceof ForbiddenError) return NextResponse.json({ error: "You don't have access to this." }, { status: 403 });
+  if (error instanceof GitHubError) {
+    console.error("[github]", error.status, error.message);
+    if (error.status === 503) return NextResponse.json({ error: error.message }, { status: 503 });
+    const why = error.status === 401 ? "the GitHub token is wrong or has expired" : error.status === 403 || error.status === 404 ? "the GitHub token can't reach the repository" : error.message;
+    return NextResponse.json({ error: `GitHub refused it: ${why}.` }, { status: 502 });
+  }
   // eslint-disable-next-line no-console
   console.error(error);
   return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });

@@ -1,0 +1,75 @@
+# Claude Code builds the changes people ask for in NEWMUX OS (Settings → OS
+# Updates, or through Haman). The app files an issue labelled `haman`; Claude
+# Code writes the change on a branch; the last step leaves a "finished" note
+# that the app turns into a pull request. A partner merges it in the app.
+#
+# Also answers "@claude …" comments on issues and pull requests, from people
+# with write access (asking for changes to a request is one of these).
+#
+# Needs the Claude GitHub App installed on the repository and an
+# ANTHROPIC_API_KEY repository secret. See docs/OS_UPDATES.md.
+name: Claude Code
+
+on:
+  issues:
+    types: [labeled]
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+concurrency:
+  group: claude-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  claude:
+    if: >-
+      (github.event_name == 'issues' && github.event.label.name == 'haman') ||
+      (github.event_name != 'issues' && contains(github.event.comment.body, '@claude') && github.event.comment.user.type != 'Bot')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # So Claude can run the same checks as .github/workflows/checks.yml.
+      - run: npm ci
+
+      - name: Claude Code
+        id: claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          label_trigger: haman
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --max-turns 120
+            --allowedTools "Bash(npm run lint),Bash(npm run lint:*),Bash(npm run typecheck),Bash(npm run test:haman),Bash(npm run test:push),Bash(npm run test:os-changes),Bash(npm run test:prd),Bash(npm run build),Bash(npx tsc:*),Bash(npx eslint:*),Bash(npx prettier:*),Bash(git:*),Bash(ls:*),Bash(cat:*),Bash(grep:*),Bash(find:*)"
+
+      # The app (lib/osChanges.ts) reads this note to open the pull request and to
+      # know the run is over. Don't change its format.
+      - name: Tell NEWMUX OS the run finished
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
+          CONCLUSION: ${{ steps.claude.outputs.conclusion || steps.claude.outcome }}
+          BRANCH: ${{ steps.claude.outputs.branch_name }}
+        run: |
+          if [ "$CONCLUSION" = "success" ]; then what="Claude Code has finished."; else what="Claude Code stopped before finishing ($CONCLUSION)."; fi
+          marker="<!-- haman:finished conclusion=${CONCLUSION}${BRANCH:+ branch=$BRANCH} -->"
+          gh api "repos/${GITHUB_REPOSITORY}/issues/${NUMBER}/comments" -f body="${what} ${marker}"

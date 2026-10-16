@@ -169,6 +169,7 @@ Haman is a Claude model that answers questions about the business by looking thi
 - **What he can change** (`lib/haman/actions.ts`): nearly everything a person can, each through the same `/api` route as its screen: tasks, subtasks and comments, projects, meetings, the wiki (spaces, pages and their text), clients, contacts, deals and activities, documents (create, edit, send, void, invoice a quote), payments, expenses and reimbursements, recurring expenses, payouts, bank accounts and reconciliation, hosting fees, the company profile, certifications, partnerships, the product pipeline, ventures, file details, payout parties, deduction types and profit-split rules, including deleting. He can also set reminders (push notifications at a set time) and show you a Vault secret.
 - **Confirm first:** Haman never changes anything himself. Each change he prepares appears in the chat as a card listing what will be saved, with Confirm and Cancel (Delete for a delete); only Confirm sends the request, from your browser, with your session. So the route's role check, validation, business rules and audit log all apply as if you'd made the change yourself. He's told the outcome of each card with your next message.
 - **Vault:** "Show" on a Vault card fetches the secret straight to your screen (the Vault must be unlocked in that browser). The value is never sent to Haman or the Claude API; he only knows secrets' names.
+- **Changing NEWMUX OS itself:** ask him for a new feature or a fix ("add a VAT report to Finance") and he files an OS update: Claude Code builds it on GitHub as a pull request, and a partner merges it to put it live. See [OS updates](#os-updates).
 - **What he can't do:** reset passwords, set up or unlock the Vault, add Vault secrets (the value would pass through the model) or upload files.
 - **Roles:** a team member's Haman is offered only the lookups and changes their account can make, and the rest are refused on the server, both when he prepares a change and by the route when it's confirmed.
 - **Money:** amounts reach the model already formatted, with totals worked out by the finance code, and he is told to quote them and not to do sums. Treat a figure that matters as a pointer to the screen he links, not as the record.
@@ -176,6 +177,12 @@ Haman is a Claude model that answers questions about the business by looking thi
 - **Cost:** each question is a few Claude API calls, billed to the key's account.
 
 To add a change, add an entry to `ACTIONS` in `lib/haman/actions.ts` naming the route, its body schema and the `lib/rbac.ts` check; `npm run test:haman` confirms the route exists. To add a lookup, add an entry to `HAMAN_TOOLS` with `access: "everyone"` or `"partner"`, format every amount with `centsToDisplay`, and return an `href` for anything he should be able to link.
+
+## OS updates
+
+Anyone signed in can ask for a change to NEWMUX OS itself, in **Settings → OS Updates** or by telling Haman. Claude Code (the [Claude GitHub Action](https://github.com/anthropics/claude-code-action)) builds it on a branch, the app opens a pull request and runs the checks (lint, types, tests, build), and a partner merges it from the same screen once they pass, which puts it live a few minutes later. Nothing reaches the app until a partner merges. Failing checks and clashes with newer changes go back to Claude Code automatically; anyone can ask for more changes. Partners and the requester get a notification when an update is ready.
+
+Setting it up takes a GitHub token, the Claude GitHub App and an API key: [docs/OS_UPDATES.md](docs/OS_UPDATES.md).
 
 ## Money
 

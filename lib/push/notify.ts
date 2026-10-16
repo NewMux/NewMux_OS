@@ -43,7 +43,7 @@ export async function sendToUsers(userIds: string[], payload: PushPayload): Prom
 }
 
 /** Sends `payload` to each user who hasn't had `key` yet. */
-async function once(userIds: string[], key: string, payload: PushPayload): Promise<number> {
+export async function once(userIds: string[], key: string, payload: PushPayload): Promise<number> {
   const fresh: string[] = [];
   for (const id of new Set(userIds)) if (await claimNotification(id, key)) fresh.push(id);
   return fresh.length ? sendToUsers(fresh, { tag: key, ...payload }) : 0;

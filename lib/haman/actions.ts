@@ -42,6 +42,7 @@ import { createPageSchema, spaceSchema, updatePageSchema } from "@/lib/validator
 import { meetingSchema } from "@/lib/validators/meeting";
 import { campaignNumbersSchema, campaignSchema, postSchema, postStatusSchema } from "@/lib/validators/marketing";
 import { reminderSchema } from "@/lib/validators/notifications";
+import { osChangeCommentSchema, osChangeRequestSchema } from "@/lib/validators/osChanges";
 import { createPipelineItemSchema } from "@/lib/validators/pipeline";
 import { projectSchema, updateProjectSchema } from "@/lib/validators/project";
 import { commentSchema, createTaskSchema, subtaskSchema, updateSubtaskSchema, updateTaskSchema } from "@/lib/validators/task";
@@ -85,6 +86,8 @@ type ActionDef = {
   toBody?: (input: Record<string, unknown>) => Record<string, unknown>;
   /** Overrides the input schema built from `schema`. */
   input?: Record<string, unknown>;
+  /** Lines always on the card, after the input's own. */
+  notes?: { label: string; value: string }[];
   /** Fields only partners may set: left out of the tool and the request for anyone else (the route ignores them too). */
   moneyFields?: string[];
 };
@@ -310,6 +313,38 @@ const ACTIONS: ActionDef[] = [
     kind: "reveal",
   },
   { name: "delete_vault_secret", title: "Delete a Vault secret", description: "Delete a secret from the credentials Vault.", method: "DELETE", path: "/api/vault/{id}", access: canRevealVaultSecrets, kind: "delete" },
+
+  // --- NEWMUX OS itself (lib/osChanges.ts) ---
+  {
+    name: "request_os_change",
+    title: "Request an OS update",
+    description:
+      "Ask for a change to NEWMUX OS itself: a new feature, a screen or wording to change, a bug to fix. Claude Code builds it on GitHub as a pull request; it goes live only when a partner merges it. title: a short name ('Add a VAT report'). details: what should change and why, in the user's words plus anything you know that helps (which screen, who uses it, what it should show). Check list_os_changes first so you don't ask for the same thing twice.",
+    method: "POST",
+    path: "/api/os-changes",
+    schema: osChangeRequestSchema,
+    access: canAccessWork,
+    notes: [{ label: "Next", value: "Claude Code builds it on GitHub. A partner merges it before it goes live." }],
+  },
+  {
+    name: "revise_os_change",
+    title: "Ask for changes to an OS update",
+    description: "Send Claude Code more instructions for an OS update it has built or tried (number from list_os_changes): what to change, add or fix. Not while it's still working.",
+    method: "POST",
+    path: "/api/os-changes/{number}/comments",
+    schema: osChangeCommentSchema,
+    access: canAccessWork,
+  },
+  {
+    name: "merge_os_change",
+    title: "Merge an OS update",
+    description: "Merge an OS update that is ready to merge (status ready in list_os_changes). This puts it live in NEWMUX OS a few minutes later, for everyone.",
+    method: "POST",
+    path: "/api/os-changes/{number}/merge",
+    access: isPartnerAdmin,
+    notes: [{ label: "Goes live", value: "For everyone, a few minutes after you confirm." }],
+  },
+  { name: "close_os_change", title: "Withdraw an OS update", description: "Close an OS update request that isn't wanted any more (and its pull request). Only whoever asked, or a partner.", method: "DELETE", path: "/api/os-changes/{number}", access: canAccessWork, kind: "delete" },
 ];
 
 // --- Offering the actions to the model ---
@@ -346,6 +381,7 @@ export function actionToolsFor(role: UserRole): ActionTool[] {
         description: "What this is about, as the user would recognise it, shown on the confirmation card: the record's name or number and its client or project, e.g. 'INV-0042 · Ox Roastery'.",
       },
       ...(params.includes("id") ? { id: { type: "string", description: "The record's id, from a lookup. Never a name." } } : {}),
+      ...(params.includes("number") ? { number: { type: "integer", description: "The OS update's number, from list_os_changes." } } : {}),
       ...own.properties,
     };
     return {
@@ -393,6 +429,13 @@ export async function proposeAction(name: string, rawInput: unknown, role: UserR
   let path = action.path;
   for (const key of placeholders(action.path)) {
     const v = input[key];
+    if (key === "number") {
+      const n = Number(v);
+      if (!Number.isInteger(n) || n < 1) throw new ActionInputError('"number" must be an OS update\'s number from list_os_changes.');
+      path = path.replace("{number}", String(n));
+      delete input[key];
+      continue;
+    }
     if (typeof v !== "string" || !UUID.test(v)) throw new ActionInputError(`"${key}" must be an id returned by a lookup, not a name. Use search_os or list_records to find it.`);
     path = path.replace(`{${key}}`, encodeURIComponent(v));
     delete input[key];
@@ -414,7 +457,7 @@ export async function proposeAction(name: string, rawInput: unknown, role: UserR
     title: action.title,
     target,
     kind: action.kind ?? "change",
-    fields: action.name === "write_wiki_page" ? wikiFields(input) : await describe(body),
+    fields: [...(action.name === "write_wiki_page" ? wikiFields(input) : await describe(body)), ...(action.notes ?? [])],
     request: { method: action.method, path, ...(action.method === "DELETE" ? {} : { body }) },
   };
 }

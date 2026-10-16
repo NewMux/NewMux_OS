@@ -1,0 +1,42 @@
+# Runs on every pull request, including the ones Claude Code builds for OS
+# updates. NEWMUX OS only lets a partner merge an update once these pass.
+name: Checks
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      AUTH_SECRET: ci-only-not-a-secret-0000000000000000
+      NEXTAUTH_SECRET: ci-only-not-a-secret-0000000000000000
+      VAULT_SESSION_SECRET: ci-only-not-a-secret-1111111111111111
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Types
+        run: npm run typecheck
+      - name: Haman tests
+        run: npm run test:haman
+      - name: Push notification tests
+        run: npm run test:push
+      - name: OS update tests
+        run: npm run test:os-changes
+      - name: Build
+        run: npm run build

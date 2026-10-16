@@ -21,6 +21,9 @@ if (process.env.TEST_DATABASE_URL) {
   delete process.env.DATABASE_URL;
 }
 
+// OS updates stay offline (scripts/test-os-changes.ts covers them with a fake GitHub).
+delete process.env.GITHUB_TOKEN;
+
 let failures = 0;
 let passes = 0;
 function check(name: string, ok: boolean, detail = "") {
@@ -199,7 +202,7 @@ async function main() {
   check("Action names are unique and don't clash with lookups", new Set(names).size === names.length && !names.some((n) => HAMAN_TOOLS.some((t) => t.name === n)));
   check("Nothing resets passwords, unlocks the Vault or stores a secret", !ALL_ACTIONS.some((a) => /password|vault\/(setup|unlock|lock)|^\/api\/vault$/.test(a.path) || a.name === "create_vault_secret"));
   for (const a of ALL_ACTIONS) {
-    const routeFile = path.join("app", a.path.split("?")[0]!.replace(/\{\w+\}/g, "[id]"), "route.ts");
+    const routeFile = path.join("app", a.path.split("?")[0]!.replace(/\{(\w+)\}/g, "[$1]"), "route.ts");
     const source = fs.existsSync(routeFile) ? fs.readFileSync(routeFile, "utf8") : "";
     check(`${a.name} → ${a.method} ${a.path}`, new RegExp(`export (const|async function) ${a.method}\\b`).test(source), `no ${a.method} in ${routeFile}`);
   }

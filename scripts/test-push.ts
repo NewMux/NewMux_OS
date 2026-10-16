@@ -14,6 +14,7 @@ import nodeCrypto from "node:crypto";
 
 process.env.PGLITE_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "newmux-push-"));
 delete process.env.DATABASE_URL;
+delete process.env.GITHUB_TOKEN; // the cron also syncs OS updates; keep it offline
 
 let failures = 0;
 let passes = 0;
