@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
-import { Database, KeyRound, LogOut, Moon, PieChart, PiggyBank, Trash2, Users, Receipt, Info } from "lucide-react";
+import { Database, FileSignature, GitPullRequest, KeyRound, LogOut, Moon, PieChart, PiggyBank, Trash2, Users, Receipt, Info } from "lucide-react";
 import { Page } from "@/components/ui/Page";
 import { Avatar } from "@/components/ui/Avatar";
 import { FieldRow, ListRow, ListSection, IconTile, PlainRowInput } from "@/components/ui/List";
@@ -98,6 +98,22 @@ export function SettingsScreen({
             multiline
           />
           {admin && <ListRow href="/settings/team" leading={<IconTile icon={Users} color="blue" />} title="Team" subtitle="Who can sign in, their roles, and new passwords for anyone locked out" multiline />}
+        </ListSection>
+
+        {admin && (
+          <ListSection header="Documents">
+            <ListRow
+              href="/settings/documents"
+              leading={<IconTile icon={FileSignature} color="teal" />}
+              title="Official Documents"
+              subtitle="Company details on every document, who signs, and the Terms & Conditions library"
+              multiline
+            />
+          </ListSection>
+        )}
+
+        <ListSection>
+          <ListRow href="/settings/updates" leading={<IconTile icon={GitPullRequest} color="indigo" />} title="OS Updates" subtitle={admin ? "Changes to NEWMUX OS built by Claude Code. Review and merge to put them live" : "Ask for a change to NEWMUX OS; Claude Code builds it"} multiline />
         </ListSection>
 
         <NotificationsSection />

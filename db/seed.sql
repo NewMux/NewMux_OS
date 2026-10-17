@@ -7,6 +7,11 @@ insert into users (id, email, password_hash, full_name, role) values
   ('00000000-0000-4000-8000-000000000001', 'm4ahmed7@gmail.com', '$2a$10$Y10f2W1un5TPP9vqThB3tuTB/UUMBfklmJltXyk.fng5IWsKkfuFW', 'Mohammed', 'partner_admin'),
   ('00000000-0000-4000-8000-000000000002', 'info@newmux.com', '$2a$10$Y10f2W1un5TPP9vqThB3tuTB/UUMBfklmJltXyk.fng5IWsKkfuFW', 'Jassim Baqer', 'partner_admin');
 
+-- Signatories for official documents (migration 0019 adds them on an existing database).
+insert into signatories (full_name, position, user_id, default_for, sort_order) values
+  ('Jassim Baqer', 'Co-founder & COO', '00000000-0000-4000-8000-000000000002', 'quote,proposal,contract,invoice,credit_note,letter', 0),
+  ('Mohammed', 'CEO', '00000000-0000-4000-8000-000000000001', '', 1);
+
 insert into parties (id, name) values ('00000000-0000-4000-8000-000000000011', 'Jassim'), ('00000000-0000-4000-8000-000000000012', 'Mohammed');
 
 insert into clients (id, client_code, name, industry, website, notes) values

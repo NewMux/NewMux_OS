@@ -11,7 +11,7 @@ import { addDaysYmd, toYmd, todayYmd } from "@/lib/time";
  * collect, renewals and expiring files, and CRM follow-ups — each with a
  * stable key so it can be snoozed, and the action that clears it.
  */
-export type AttentionKind = "hosting" | "renewal" | "file" | "follow_up";
+export type AttentionKind = "hosting" | "renewal" | "file" | "follow_up" | "offer";
 
 export type AttentionItem = {
   key: string;
@@ -34,7 +34,7 @@ export async function activeSnoozes(): Promise<Set<string>> {
 export async function getAttentionItems(opts: { includeFinance: boolean; includeCrm: boolean }): Promise<AttentionItem[]> {
   const today = todayYmd();
   const soon = addDaysYmd(today, 30);
-  const [hosting, followUps, files, company, projects, certs, snoozed] = await Promise.all([
+  const [hosting, followUps, files, company, projects, certs, offers, snoozed] = await Promise.all([
     opts.includeFinance ? listHostingSubscriptions() : Promise.resolve([] as HostingListItem[]),
     opts.includeCrm ? listOpenFollowUps() : Promise.resolve([]),
     opts.includeFinance ? listExpiringFiles() : Promise.resolve([]),
@@ -46,6 +46,14 @@ export async function getAttentionItems(opts: { includeFinance: boolean; include
       [soon],
     ),
     many<{ id: string; name: string; expiryDate: string }>("select id, name, expiry_date from certifications where expiry_date is not null and expiry_date <= $1::date", [soon]),
+    // Issued quotes and proposals running out within 3 days, or lapsed in the last 14 (PRD addendum 1.2, section 8.2).
+    opts.includeFinance
+      ? many<{ id: string; documentNumber: string; title: string | null; clientName: string | null; validUntil: string }>(
+          `select d.id, d.document_number, d.title, c.name as client_name, d.valid_until from documents d left join clients c on c.id = d.client_id
+           where d.type in ('quote', 'proposal') and d.status = 'sent' and d.valid_until between $1::date and $2::date`,
+          [addDaysYmd(today, -14), addDaysYmd(today, 3)],
+        )
+      : Promise.resolve([]),
     activeSnoozes(),
   ]);
 
@@ -63,6 +71,17 @@ export async function getAttentionItems(opts: { includeFinance: boolean; include
   for (const p of projects) renewal(`renewal:project:${p.id}`, `${p.name} — domain renewal`, p.domainRenewalDate, `/projects/${p.id}`);
   for (const c of certs) renewal(`renewal:cert:${c.id}`, `${c.name} expiry`, c.expiryDate, "/company");
   for (const f of files) items.push({ key: `file:${f.id}`, kind: "file", title: `${f.name} expires`, date: f.expiryDate, overdue: f.daysLeft < 0, href: "/files" });
+  for (const o of offers) {
+    items.push({
+      key: `offer:${o.id}`,
+      kind: "offer",
+      title: `${o.documentNumber}${o.title ? ` — ${o.title}` : ""}`,
+      detail: o.clientName ?? undefined,
+      date: o.validUntil,
+      overdue: o.validUntil < today,
+      href: `/documents/${o.id}`,
+    });
+  }
   for (const a of followUps) {
     const due = a.dueAt ? toYmd(a.dueAt) : null;
     if (!due || due > today) continue;
@@ -80,7 +99,7 @@ export async function getAttentionItems(opts: { includeFinance: boolean; include
   return items.filter((i) => !snoozed.has(i.key)).sort((a, b) => Number(b.overdue) - Number(a.overdue) || a.date.localeCompare(b.date));
 }
 
-const KEY = /^(hosting|renewal|file|follow_up):[\w:-]+$/;
+const KEY = /^(hosting|renewal|file|follow_up|offer):[\w:-]+$/;
 
 export async function snoozeAttention(key: string, days: number, by: string): Promise<void> {
   if (!KEY.test(key)) throw new ValidationError("Unknown item.");

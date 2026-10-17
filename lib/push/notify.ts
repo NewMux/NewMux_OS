@@ -43,7 +43,7 @@ export async function sendToUsers(userIds: string[], payload: PushPayload): Prom
 }
 
 /** Sends `payload` to each user who hasn't had `key` yet. */
-async function once(userIds: string[], key: string, payload: PushPayload): Promise<number> {
+export async function once(userIds: string[], key: string, payload: PushPayload): Promise<number> {
   const fresh: string[] = [];
   for (const id of new Set(userIds)) if (await claimNotification(id, key)) fresh.push(id);
   return fresh.length ? sendToUsers(fresh, { tag: key, ...payload }) : 0;
@@ -130,8 +130,13 @@ export async function runDueNotifications(now = new Date()): Promise<RunSummary>
       if (days !== 0 && days !== 7) continue;
       const when = days === 0 ? "today" : `in a week (${addDaysYmd(today, 7)})`;
       const sent = await once(partners, `attention:${item.key}:${item.date}:${days}`, {
-        title: item.kind === "hosting" ? `To collect ${when}: ${item.title}` : `${item.title} ${days === 0 ? "is due today" : "is due in a week"}`,
-        body: item.detail ?? (item.kind === "hosting" ? "Hosting fee" : "Renewal"),
+        title:
+          item.kind === "hosting"
+            ? `To collect ${when}: ${item.title}`
+            : item.kind === "offer"
+              ? `Quote expires today: ${item.title}`
+              : `${item.title} ${days === 0 ? "is due today" : "is due in a week"}`,
+        body: item.detail ?? (item.kind === "hosting" ? "Hosting fee" : item.kind === "offer" ? "Quote" : "Renewal"),
         url: item.href,
       });
       if (sent) summary.renewals += 1;

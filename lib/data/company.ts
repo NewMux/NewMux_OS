@@ -2,6 +2,9 @@ import { query } from "@/lib/db";
 import { many, must, one, buildUpdate, NotFoundError } from "./sql";
 import type { Certification, CertificationStatus, CompanyProfile, Partnership } from "./types";
 
+/** What every official document prints in its footer (Settings → Company Details). */
+export type CompanyDetails = Pick<CompanyProfile, "tradeName" | "tagline" | "crNumber" | "country" | "email" | "whatsapp" | "website" | "iban">;
+
 type ProfileRow = Omit<CompanyProfile, "certifications" | "partnerships">;
 
 /**
@@ -32,6 +35,23 @@ export async function updateCompanyProfile(patch: Partial<ProfileRow>): Promise<
     await query(`update company_profile set ${set} where id = 1`, values);
   }
   return getCompanyProfile();
+}
+
+const DETAIL_FIELDS = ["tradeName", "tagline", "crNumber", "country", "email", "whatsapp", "website", "iban"] as const;
+
+export async function getCompanyDetails(): Promise<CompanyDetails> {
+  const p = await profileRow();
+  return { tradeName: p.tradeName, tagline: p.tagline, crNumber: p.crNumber, country: p.country, email: p.email ?? "", whatsapp: p.whatsapp, website: p.website, iban: p.iban };
+}
+
+/** Partners only (the route checks): the IBAN goes on every invoice. */
+export async function updateCompanyDetails(patch: Partial<CompanyDetails>): Promise<CompanyDetails> {
+  const { set, values } = buildUpdate(patch, DETAIL_FIELDS);
+  if (set) {
+    await profileRow();
+    await query(`update company_profile set ${set} where id = 1`, values);
+  }
+  return getCompanyDetails();
 }
 
 export async function addCertification(input: { name: string; status: CertificationStatus; expiryDate?: string | null }): Promise<Certification> {

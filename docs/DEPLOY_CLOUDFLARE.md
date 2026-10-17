@@ -123,6 +123,8 @@ If you'd rather not move DNS, keep using the `workers.dev` address.
 | `HAMAN_MODEL` | Cloudflare variable | No | The Claude model Haman uses until a partner picks one in **Settings → Haman**. Default `claude-opus-5-5`. |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | Cloudflare secrets | Only for notifications | The key pair push notifications are signed with. See [Push notifications](#push-notifications). |
 | `CRON_SECRET` | Cloudflare secret | Only for notifications | Lets the 5-minute cron trigger run the notification check. |
+| `GITHUB_TOKEN` | Cloudflare secret | Only for OS updates | A fine-grained GitHub token that lets the app file OS update requests, open their pull requests and merge them. See [OS_UPDATES.md](OS_UPDATES.md). |
+| `GITHUB_REPO`, `GITHUB_BRANCH` | Cloudflare variables | No | The repository (default `NewMux/NewMux_OS`) and the branch updates merge into (default: the repository's default branch). |
 | `VAPID_SUBJECT` | Cloudflare variable | No | A contact for the push services. Default `mailto:info@newmux.com`. |
 | `DATABASE_URL` | `.dev.vars` (local preview only) | No | A direct connection, for running the Worker on your own computer. |
 | `NEXT_PUBLIC_MAX_FILE_MB` | Build variable | No | Upload limit. The Cloudflare build sets 4; other builds use 15. |
@@ -133,6 +135,7 @@ Not used on Cloudflare: `AUTH_URL`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `DB_AUTO_
 
 New releases sometimes add tables. The app on Cloudflare doesn't change the database itself, so run the release's upgrade file once in Supabase → **SQL Editor** before or right after deploying it:
 
+- **Official Documents** (signing, the NewMux design, letters and proposals, the terms library, the server fee): [`db/supabase-upgrade-official-documents.sql`](../db/supabase-upgrade-official-documents.sql). Run it **before** this version goes live: the documents screens need it.
 - **Marketing** (the Marketing role and module): [`db/supabase-upgrade-marketing.sql`](../db/supabase-upgrade-marketing.sql). Until it's run, Marketing pages and adding someone with the Marketing role fail.
 - **Push notifications**: see step 1 under [Push notifications](#push-notifications).
 

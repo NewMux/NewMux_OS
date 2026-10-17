@@ -6,6 +6,8 @@ import { listClients } from "@/lib/data/clients";
 import { listProjects } from "@/lib/data/projects";
 import { DocumentForm } from "@/components/documents/DocumentForm";
 import { todayYmd, toYmd } from "@/lib/time";
+import { listSignatories } from "@/lib/data/signatories";
+import { listStandaloneClauses, listTermsTemplates } from "@/lib/data/terms";
 
 export default async function EditDocumentPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -14,21 +16,27 @@ export default async function EditDocumentPage({ params }: { params: Promise<{ i
   const doc = await getDocumentById(id);
   if (!doc) notFound();
   if (doc.status !== "draft") redirect(`/documents/${id}`);
-  const [lineItems, clients, projects, credited] = await Promise.all([
+  const [lineItems, clients, projects, credited, signatories, templates, standalone] = await Promise.all([
     getLineItems(id),
     listClients(),
     listProjects(),
     doc.creditForId ? getDocumentById(doc.creditForId) : undefined,
+    listSignatories(),
+    listTermsTemplates(),
+    listStandaloneClauses(),
   ]);
 
   return (
     <DocumentForm
       clients={clients.map((c) => ({ id: c.id, name: c.name }))}
       projects={projects.map((p) => ({ id: p.id, name: p.name, clientId: p.clientId }))}
+      signatories={signatories.filter((s) => s.isActive || s.id === doc.signatoryId).map((s) => ({ id: s.id, fullName: s.fullName, position: s.position, defaultFor: s.defaultFor }))}
+      templates={templates}
+      standalone={standalone}
       initial={{
         id: doc.id,
         type: doc.type,
-        clientId: doc.clientId,
+        clientId: doc.clientId ?? "",
         projectId: doc.projectId ?? "",
         currency: doc.currency,
         taxRatePercent: String(doc.taxRateBps / 100),
@@ -40,6 +48,19 @@ export default async function EditDocumentPage({ params }: { params: Promise<{ i
         // The server re-checks the credit limit on save.
         creditFor: credited ? { id: credited.id, documentNumber: credited.documentNumber, remainingCreditCents: credited.totalCents } : null,
         lineItems: lineItems.map((li) => ({ description: li.description, quantity: li.quantity, unitPriceCents: li.unitPriceCents })),
+        title: doc.title ?? "",
+        overview: doc.overview ?? "",
+        scope: doc.scope ?? [],
+        recipient: doc.recipient ?? "",
+        body: doc.body ?? "",
+        validUntil: doc.validUntil ?? "",
+        signatoryId: doc.signatoryId ?? "",
+        terms: doc.terms,
+        serverFee:
+          doc.serverFeeCents !== null && doc.serverFeeCycle
+            ? { amountCents: doc.serverFeeCents, cycle: doc.serverFeeCycle, clientChooses: doc.serverFeeClientChooses, label: doc.serverFeeLabel }
+            : null,
+        feeSubscribed: !!doc.serverFeeSubscriptionId,
       }}
     />
   );

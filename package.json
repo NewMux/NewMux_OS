@@ -19,7 +19,9 @@
     "cf:build": "opennextjs-cloudflare build",
     "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "db:supabase-sql": "tsx scripts/supabase-sql.ts"
+    "db:supabase-sql": "tsx scripts/supabase-sql.ts",
+    "test:os-changes": "tsx scripts/test-os-changes.ts",
+    "test:official-docs": "tsx scripts/test-official-docs.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -43,6 +45,7 @@
     "lucide-react": "^0.446.0",
     "next": "^15.5.4",
     "next-auth": "5.0.0-beta.25",
+    "pdfjs-dist": "^4.10.38",
     "postgres": "^3.4.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

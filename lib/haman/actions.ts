@@ -42,6 +42,7 @@ import { createPageSchema, spaceSchema, updatePageSchema } from "@/lib/validator
 import { meetingSchema } from "@/lib/validators/meeting";
 import { campaignNumbersSchema, campaignSchema, postSchema, postStatusSchema } from "@/lib/validators/marketing";
 import { reminderSchema } from "@/lib/validators/notifications";
+import { osChangeCommentSchema, osChangeRequestSchema } from "@/lib/validators/osChanges";
 import { createPipelineItemSchema } from "@/lib/validators/pipeline";
 import { projectSchema, updateProjectSchema } from "@/lib/validators/project";
 import { commentSchema, createTaskSchema, subtaskSchema, updateSubtaskSchema, updateTaskSchema } from "@/lib/validators/task";
@@ -85,6 +86,8 @@ type ActionDef = {
   toBody?: (input: Record<string, unknown>) => Record<string, unknown>;
   /** Overrides the input schema built from `schema`. */
   input?: Record<string, unknown>;
+  /** Lines always on the card, after the input's own. */
+  notes?: { label: string; value: string }[];
   /** Fields only partners may set: left out of the tool and the request for anyone else (the route ignores them too). */
   moneyFields?: string[];
 };
@@ -216,7 +219,7 @@ const ACTIONS: ActionDef[] = [
     name: "create_document",
     title: "Create a document",
     description:
-      "Create a draft invoice, quote, contract or credit note. unitPriceCents is in minor units: BHD has 3 decimals (BHD 150 = 150000), USD 2 (USD 150 = 15000). taxRateBps: 10% VAT = 1000. It stays a draft until sent with change_document_status.",
+      "Create a draft quote, proposal, contract, invoice, credit note or official letter in the NewMux design. unitPriceCents is in minor units: BHD has 3 decimals (BHD 150 = 150000), USD 2 (USD 150 = 15000). taxRateBps: 10% VAT = 1000. title is the project name (a letter's subject). Quotes, proposals and contracts can have an overview, scope ([{deliverable, duration}]) and serverFee ({amountCents, cycle, clientChooses}: shown apart from the total, never in the accounts). Letters need recipient (one line each: name, position and company, address) and body (blank line between paragraphs, ending with the closing like 'Kind regards,'); a letter needs no client or line items. signatoryId: from list_records kind signatories (leave it out for the default). terms: {templateId, templateName, version, clauses: [{title, body}]} from list_records kind terms_templates and get_record, only if the user asks for terms. Drafts get their number when issued: quotes, proposals, contracts and letters are issued by the signatory drawing their signature on the document's screen, which you can't do; invoices and credit notes can be issued unsigned with change_document_status.",
     method: "POST",
     path: "/api/documents",
     schema: createDocumentSchema,
@@ -224,7 +227,9 @@ const ACTIONS: ActionDef[] = [
   },
   { name: "update_document", title: "Change a document", description: "Edit a draft document (line items in minor units, as for create_document). Send only what changes.", method: "PATCH", path: "/api/documents/{id}", schema: updateDocumentSchema, access: canAccessDocuments },
   { name: "change_document_status", title: "Change a document's status", description: "Send, accept, decline, sign, archive or void a document (void needs a reason). Paid is set by payments, never by hand.", method: "POST", path: "/api/documents/{id}/transition", schema: transitionSchema, access: canAccessDocuments },
-  { name: "convert_quote_to_invoice", title: "Invoice a quote", description: "Turn an accepted quote into an invoice: full, a deposit (depositPercent) or the balance still to invoice.", method: "POST", path: "/api/documents/{id}/convert-to-invoice", schema: convertToInvoiceSchema, access: canAccessFinance },
+  { name: "convert_quote_to_invoice", title: "Invoice a quote", description: "Turn an accepted quote, or an issued contract, into an invoice: full, a deposit (depositPercent) or the balance still to invoice. A server fee on it becomes a hosting subscription.", method: "POST", path: "/api/documents/{id}/convert-to-invoice", schema: convertToInvoiceSchema, access: canAccessFinance },
+  { name: "convert_to_contract", title: "Make a contract", description: "Turn an accepted quote or proposal into a draft contract with the same content (items, scope, terms, server fee). The server fee becomes a hosting subscription.", method: "POST", path: "/api/documents/{id}/convert-to-contract", access: canAccessDocuments },
+  { name: "revise_document", title: "Revise a document", description: "Start a new version of an issued document as a draft, to change what it says. When it's signed and issued it replaces the original, which is voided. Not for invoices with payments (use a credit note).", method: "POST", path: "/api/documents/{id}/revise", access: canAccessDocuments },
   { name: "delete_document", title: "Delete a document", description: "Delete a draft. Anything sent is voided instead.", method: "DELETE", path: "/api/documents/{id}", access: canAccessDocuments, kind: "delete" },
   { name: "record_payment", title: "Record a payment", description: "Record money received against an invoice (id = the invoice). amount is in major units (BHD 500 = 500).", method: "POST", path: "/api/documents/{id}/payments", schema: addPaymentSchema, access: canAccessFinance },
   { name: "delete_payment", title: "Delete a payment", description: "Remove a recorded payment (id from get_record on the invoice).", method: "DELETE", path: "/api/payments/{id}", access: canAccessFinance, kind: "delete" },
@@ -310,6 +315,38 @@ const ACTIONS: ActionDef[] = [
     kind: "reveal",
   },
   { name: "delete_vault_secret", title: "Delete a Vault secret", description: "Delete a secret from the credentials Vault.", method: "DELETE", path: "/api/vault/{id}", access: canRevealVaultSecrets, kind: "delete" },
+
+  // --- NEWMUX OS itself (lib/osChanges.ts) ---
+  {
+    name: "request_os_change",
+    title: "Request an OS update",
+    description:
+      "Ask for a change to NEWMUX OS itself: a new feature, a screen or wording to change, a bug to fix. Claude Code builds it on GitHub as a pull request; it goes live only when a partner merges it. title: a short name ('Add a VAT report'). details: what should change and why, in the user's words plus anything you know that helps (which screen, who uses it, what it should show). Check list_os_changes first so you don't ask for the same thing twice.",
+    method: "POST",
+    path: "/api/os-changes",
+    schema: osChangeRequestSchema,
+    access: canAccessWork,
+    notes: [{ label: "Next", value: "Claude Code builds it on GitHub. A partner merges it before it goes live." }],
+  },
+  {
+    name: "revise_os_change",
+    title: "Ask for changes to an OS update",
+    description: "Send Claude Code more instructions for an OS update it has built or tried (number from list_os_changes): what to change, add or fix. Not while it's still working.",
+    method: "POST",
+    path: "/api/os-changes/{number}/comments",
+    schema: osChangeCommentSchema,
+    access: canAccessWork,
+  },
+  {
+    name: "merge_os_change",
+    title: "Merge an OS update",
+    description: "Merge an OS update that is ready to merge (status ready in list_os_changes). This puts it live in NEWMUX OS a few minutes later, for everyone.",
+    method: "POST",
+    path: "/api/os-changes/{number}/merge",
+    access: isPartnerAdmin,
+    notes: [{ label: "Goes live", value: "For everyone, a few minutes after you confirm." }],
+  },
+  { name: "close_os_change", title: "Withdraw an OS update", description: "Close an OS update request that isn't wanted any more (and its pull request). Only whoever asked, or a partner.", method: "DELETE", path: "/api/os-changes/{number}", access: canAccessWork, kind: "delete" },
 ];
 
 // --- Offering the actions to the model ---
@@ -346,6 +383,7 @@ export function actionToolsFor(role: UserRole): ActionTool[] {
         description: "What this is about, as the user would recognise it, shown on the confirmation card: the record's name or number and its client or project, e.g. 'INV-0042 · Ox Roastery'.",
       },
       ...(params.includes("id") ? { id: { type: "string", description: "The record's id, from a lookup. Never a name." } } : {}),
+      ...(params.includes("number") ? { number: { type: "integer", description: "The OS update's number, from list_os_changes." } } : {}),
       ...own.properties,
     };
     return {
@@ -393,6 +431,13 @@ export async function proposeAction(name: string, rawInput: unknown, role: UserR
   let path = action.path;
   for (const key of placeholders(action.path)) {
     const v = input[key];
+    if (key === "number") {
+      const n = Number(v);
+      if (!Number.isInteger(n) || n < 1) throw new ActionInputError('"number" must be an OS update\'s number from list_os_changes.');
+      path = path.replace("{number}", String(n));
+      delete input[key];
+      continue;
+    }
     if (typeof v !== "string" || !UUID.test(v)) throw new ActionInputError(`"${key}" must be an id returned by a lookup, not a name. Use search_os or list_records to find it.`);
     path = path.replace(`{${key}}`, encodeURIComponent(v));
     delete input[key];
@@ -414,7 +459,7 @@ export async function proposeAction(name: string, rawInput: unknown, role: UserR
     title: action.title,
     target,
     kind: action.kind ?? "change",
-    fields: action.name === "write_wiki_page" ? wikiFields(input) : await describe(body),
+    fields: [...(action.name === "write_wiki_page" ? wikiFields(input) : await describe(body)), ...(action.notes ?? [])],
     request: { method: action.method, path, ...(action.method === "DELETE" ? {} : { body }) },
   };
 }

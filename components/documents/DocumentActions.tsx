@@ -2,20 +2,44 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Ban, Copy, Download, FileMinus, Mail, MessageCircle, Pencil, PieChart, Send, Trash2, Undo2 } from "lucide-react";
+import {
+  Archive,
+  Ban,
+  Copy,
+  Download,
+  Eye,
+  FileMinus,
+  FilePen,
+  FileSignature,
+  Mail,
+  MessageCircle,
+  Pencil,
+  PieChart,
+  Send,
+  Trash2,
+  Undo2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Menu, type MenuItem } from "@/components/ui/Menu";
 import { useConfirm } from "@/components/ui/Confirm";
 import { FormSheet } from "@/components/ui/FormSheet";
 import { Sheet, SheetIconButton } from "@/components/ui/Sheet";
-import { FieldRow, ListRow, ListSection, PlainRowInput, RowInput } from "@/components/ui/List";
+import {
+  FieldRow,
+  ListRow,
+  ListSection,
+  PlainRowInput,
+  RowInput,
+} from "@/components/ui/List";
 import { Textarea } from "@/components/ui/Input";
 import { PaymentSheet } from "./PaymentSheet";
 import { useMutation } from "@/lib/useMutation";
 import { downloadPdf } from "@/lib/pdf/download";
+import { IssueSheet, type Signer } from "./IssueSheet";
+import { SendSheet } from "./SendSheet";
 import { centsToDisplay } from "@/lib/money";
-import { DOC_TYPE, PAYMENT_METHOD } from "@/lib/labels";
+import { MUST_SIGN, PAYMENT_METHOD } from "@/lib/labels";
 import { formatDate, todayYmd, toYmd } from "@/lib/time";
 import type { DocumentRecord, DocumentStatus, Payment } from "@/lib/data/types";
 
@@ -30,13 +54,28 @@ export type DocumentContext = {
   contactName?: string | null;
   email?: string | null;
   whatsapp?: string | null;
+  /** Official documents: who is chosen to sign, and the signed-in user. */
+  signer?: Signer;
+  meId?: string;
+  /** The link to the issued PDF, for sending. */
+  shareUrl?: string | null;
+  /** Has a stored, issued PDF. */
+  hasPdf?: boolean;
 };
 
 /**
  * Each status offers its logical next step (item 34). `menuOnly` renders
  * the nav-bar "…" menu; otherwise the primary buttons for the current status.
  */
-export function DocumentActions({ doc, ctx, menuOnly }: { doc: DocumentRecord; ctx: DocumentContext; menuOnly?: boolean }) {
+export function DocumentActions({
+  doc,
+  ctx,
+  menuOnly,
+}: {
+  doc: DocumentRecord;
+  ctx: DocumentContext;
+  menuOnly?: boolean;
+}) {
   const router = useRouter();
   const { run, pending } = useMutation();
   const confirm = useConfirm();
@@ -45,16 +84,28 @@ export function DocumentActions({ doc, ctx, menuOnly }: { doc: DocumentRecord; c
   const [editingDetails, setEditingDetails] = useState(false);
   const [reminding, setReminding] = useState(false);
   const [depositing, setDepositing] = useState(false);
+  const [issuing, setIssuing] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [viewing, setViewing] = useState(false);
 
   const transition = async (to: DocumentStatus, message: string) => {
-    await run(`/api/documents/${doc.id}/transition`, { body: { to }, success: message });
-  };
-  const convert = async (mode: "full" | "deposit" | "balance", depositPercent?: number) => {
-    const res = await run<{ invoice: { id: string; documentNumber: string } }>(`/api/documents/${doc.id}/convert-to-invoice`, {
-      body: { mode, depositPercent },
-      refresh: false,
-      success: "Invoice created",
+    await run(`/api/documents/${doc.id}/transition`, {
+      body: { to },
+      success: message,
     });
+  };
+  const convert = async (
+    mode: "full" | "deposit" | "balance",
+    depositPercent?: number,
+  ) => {
+    const res = await run<{ invoice: { id: string; documentNumber: string } }>(
+      `/api/documents/${doc.id}/convert-to-invoice`,
+      {
+        body: { mode, depositPercent },
+        refresh: false,
+        success: "Invoice created",
+      },
+    );
     if (res) {
       router.push(`/documents/${res.invoice.id}`);
       router.refresh();
@@ -63,46 +114,254 @@ export function DocumentActions({ doc, ctx, menuOnly }: { doc: DocumentRecord; c
 
   const isInvoice = doc.type === "invoice";
   const isQuote = doc.type === "quote";
+  const isOffer = isQuote || doc.type === "proposal";
+  const signed = !!doc.signedAt;
+  const revise = async () => {
+    const res = await run<{ document: { id: string } }>(
+      `/api/documents/${doc.id}/revise`,
+      { refresh: false, success: "New version started" },
+    );
+    if (res) {
+      router.push(`/documents/${res.document.id}/edit`);
+      router.refresh();
+    }
+  };
+  const toContract = async () => {
+    const res = await run<{ document: { id: string } }>(
+      `/api/documents/${doc.id}/convert-to-contract`,
+      { refresh: false, success: "Contract created" },
+    );
+    if (res) {
+      router.push(`/documents/${res.document.id}`);
+      router.refresh();
+    }
+  };
   const open = isInvoice && doc.status === "sent" && ctx.remainingCents > 0;
   const overdue = open && !!doc.dueAt && doc.dueAt < todayYmd();
 
   const sheets = (
     <>
-      <PaymentSheet open={paying} onOpenChange={setPaying} doc={doc} remainingCents={ctx.remainingCents} />
-      <VoidSheet open={voiding} onOpenChange={setVoiding} doc={doc} paidCents={ctx.paidCents} />
-      <DetailsSheet open={editingDetails} onOpenChange={setEditingDetails} doc={doc} />
-      <ReminderSheet open={reminding} onOpenChange={setReminding} doc={doc} ctx={ctx} />
-      <DepositSheet open={depositing} onOpenChange={setDepositing} doc={doc} onCreate={(pct) => convert("deposit", pct)} />
+      <PaymentSheet
+        open={paying}
+        onOpenChange={setPaying}
+        doc={doc}
+        remainingCents={ctx.remainingCents}
+      />
+      <VoidSheet
+        open={voiding}
+        onOpenChange={setVoiding}
+        doc={doc}
+        paidCents={ctx.paidCents}
+      />
+      <DetailsSheet
+        open={editingDetails}
+        onOpenChange={setEditingDetails}
+        doc={doc}
+      />
+      <ReminderSheet
+        open={reminding}
+        onOpenChange={setReminding}
+        doc={doc}
+        ctx={ctx}
+      />
+      <DepositSheet
+        open={depositing}
+        onOpenChange={setDepositing}
+        doc={doc}
+        onCreate={(pct) => convert("deposit", pct)}
+      />
+      <IssueSheet
+        open={issuing}
+        onOpenChange={setIssuing}
+        doc={doc}
+        signer={ctx.signer ?? null}
+        meId={ctx.meId ?? ""}
+        draft
+      />
+      {ctx.hasPdf && (
+        <IssueSheet
+          open={viewing}
+          onOpenChange={setViewing}
+          doc={doc}
+          signer={null}
+          meId=""
+          draft={false}
+        />
+      )}
+      {ctx.shareUrl && (
+        <SendSheet
+          open={sending}
+          onOpenChange={setSending}
+          doc={doc}
+          shareUrl={ctx.shareUrl}
+          to={{
+            name: ctx.clientName,
+            contactName: ctx.contactName,
+            email: ctx.email,
+            whatsapp: ctx.whatsapp,
+          }}
+        />
+      )}
     </>
   );
 
   if (menuOnly) {
     const items: MenuItem[] = [];
-    if (doc.status === "draft") items.push({ label: "Edit", icon: Pencil, onSelect: () => router.push(`/documents/${doc.id}/edit`) });
-    else if (doc.status !== "void") items.push({ label: "Edit Details", icon: Pencil, onSelect: () => setEditingDetails(true) });
-    items.push({
-      label: "Download PDF",
-      icon: Download,
-      onSelect: () => downloadPdf(`/api/documents/generate-pdf?id=${doc.id}`).catch((e: Error) => toast.error(e.message)),
-    });
+    if (doc.status === "draft") {
+      items.push({
+        label: "Edit",
+        icon: Pencil,
+        onSelect: () => router.push(`/documents/${doc.id}/edit`),
+      });
+      items.push({
+        label: "Preview",
+        icon: Eye,
+        onSelect: () => setIssuing(true),
+      });
+    } else if (doc.status !== "void")
+      items.push({
+        label: signed ? "Original Number" : "Edit Details",
+        icon: Pencil,
+        onSelect: () => setEditingDetails(true),
+      });
+    if (ctx.hasPdf)
+      items.push({
+        label: "View Issued PDF",
+        icon: Eye,
+        onSelect: () => setViewing(true),
+      });
+    if (ctx.shareUrl && doc.status !== "void")
+      items.push({
+        label: "Send…",
+        icon: Send,
+        onSelect: () => setSending(true),
+      });
+    if (
+      !["draft", "void"].includes(doc.status) &&
+      (signed || MUST_SIGN.includes(doc.type)) &&
+      !(isInvoice && ctx.paidCents > 0)
+    )
+      items.push({
+        label: "Revise",
+        icon: FilePen,
+        onSelect: async () => {
+          if (
+            await confirm({
+              title: `Revise ${doc.documentNumber}?`,
+              message:
+                "This starts a new version as a draft. When it's signed and issued it replaces this one, which is then voided.",
+              confirmLabel: "Revise",
+            })
+          )
+            await revise();
+        },
+      });
+    if (isOffer && doc.status === "accepted")
+      items.push({
+        label: "Create Contract",
+        icon: FileSignature,
+        onSelect: () => void toContract(),
+      });
+    if (ctx.hasPdf)
+      items.push({
+        label: "Download Issued PDF",
+        icon: Download,
+        onSelect: () =>
+          void (window.location.href = `/api/documents/${doc.id}/pdf?download=1`),
+      });
+    else
+      items.push({
+        label: "Download PDF",
+        icon: Download,
+        onSelect: () =>
+          downloadPdf(`/api/documents/generate-pdf?id=${doc.id}`).catch(
+            (e: Error) => toast.error(e.message),
+          ),
+      });
+    if (isInvoice && !["draft", "void"].includes(doc.status))
+      items.push({
+        label: "Download Statement",
+        icon: Download,
+        onSelect: () =>
+          downloadPdf(
+            `/api/documents/generate-pdf?id=${doc.id}&statement=1`,
+          ).catch((e: Error) => toast.error(e.message)),
+      });
     if (isInvoice && doc.status !== "draft" && doc.status !== "void") {
-      items.push({ label: "Profit Split", icon: PieChart, onSelect: () => document.getElementById("split")?.scrollIntoView({ behavior: "smooth" }) });
-      items.push({ label: "Issue Credit Note", icon: FileMinus, onSelect: () => router.push(`/documents/new?type=credit_note&creditFor=${doc.id}`) });
+      items.push({
+        label: "Profit Split",
+        icon: PieChart,
+        onSelect: () =>
+          document
+            .getElementById("split")
+            ?.scrollIntoView({ behavior: "smooth" }),
+      });
+      items.push({
+        label: "Issue Credit Note",
+        icon: FileMinus,
+        onSelect: () =>
+          router.push(`/documents/new?type=credit_note&creditFor=${doc.id}`),
+      });
     }
-    if (doc.type === "credit_note" && doc.status === "sent" && ctx.remainingCents > 0) items.push({ label: "Record Refund", icon: Undo2, onSelect: () => setPaying(true) });
-    if (open || (isQuote && doc.status === "sent")) items.push({ label: "Send Reminder", icon: Send, onSelect: () => setReminding(true) });
-    if (doc.status === "sent" && !(isInvoice && ctx.paidCents > 0)) items.push({ label: "Back to Draft", icon: Undo2, onSelect: () => transition("draft", "Moved back to draft") });
-    if (isQuote && doc.status === "declined") items.push({ label: "Reopen", icon: Undo2, onSelect: () => transition("sent", "Reopened") });
-    if (["paid", "signed", "accepted", "declined"].includes(doc.status))
+    if (
+      doc.type === "credit_note" &&
+      doc.status === "sent" &&
+      ctx.remainingCents > 0
+    )
+      items.push({
+        label: "Record Refund",
+        icon: Undo2,
+        onSelect: () => setPaying(true),
+      });
+    if (open || (isQuote && doc.status === "sent"))
+      items.push({
+        label: "Send Reminder",
+        icon: Send,
+        onSelect: () => setReminding(true),
+      });
+    if (
+      doc.status === "sent" &&
+      !signed &&
+      (isInvoice || doc.type === "credit_note") &&
+      !(isInvoice && ctx.paidCents > 0)
+    )
+      items.push({
+        label: "Back to Draft",
+        icon: Undo2,
+        onSelect: () => transition("draft", "Moved back to draft"),
+      });
+    if (isOffer && doc.status === "declined")
+      items.push({
+        label: "Reopen",
+        icon: Undo2,
+        onSelect: () => transition("sent", "Reopened"),
+      });
+    if (
+      ["paid", "signed", "accepted", "declined"].includes(doc.status) ||
+      (doc.type === "letter" && doc.status === "sent")
+    )
       items.push({
         label: "Archive",
         icon: Archive,
         onSelect: async () => {
-          if (await confirm({ title: `Archive ${doc.documentNumber}?`, message: "Archived documents are filed away but still count in reports.", confirmLabel: "Archive" }))
+          if (
+            await confirm({
+              title: `Archive ${doc.documentNumber}?`,
+              message:
+                "Archived documents are filed away but still count in reports.",
+              confirmLabel: "Archive",
+            })
+          )
             await transition("archived", "Archived");
         },
       });
-    if (["sent", "paid", "accepted", "signed"].includes(doc.status)) items.push("separator", { label: "Void…", icon: Ban, destructive: true, onSelect: () => setVoiding(true) });
+    if (["sent", "paid", "accepted", "signed"].includes(doc.status))
+      items.push("separator", {
+        label: "Void…",
+        icon: Ban,
+        destructive: true,
+        onSelect: () => setVoiding(true),
+      });
     if (doc.status === "draft" || doc.status === "void")
       items.push("separator", {
         label: doc.status === "draft" ? "Delete Draft" : "Purge",
@@ -110,7 +369,10 @@ export function DocumentActions({ doc, ctx, menuOnly }: { doc: DocumentRecord; c
         destructive: true,
         onSelect: async () => {
           const ok = await confirm({
-            title: doc.status === "draft" ? `Delete ${doc.documentNumber}?` : `Purge ${doc.documentNumber}?`,
+            title:
+              doc.status === "draft"
+                ? `Delete ${doc.documentNumber}?`
+                : `Purge ${doc.documentNumber}?`,
             message:
               doc.status === "draft"
                 ? "This draft will be permanently deleted."
@@ -118,7 +380,14 @@ export function DocumentActions({ doc, ctx, menuOnly }: { doc: DocumentRecord; c
             destructive: true,
             confirmLabel: doc.status === "draft" ? "Delete" : "Purge",
           });
-          if (ok && (await run(`/api/documents/${doc.id}`, { method: "DELETE", success: doc.status === "draft" ? "Draft deleted" : "Purged", refresh: false }))) {
+          if (
+            ok &&
+            (await run(`/api/documents/${doc.id}`, {
+              method: "DELETE",
+              success: doc.status === "draft" ? "Draft deleted" : "Purged",
+              refresh: false,
+            }))
+          ) {
             router.push("/documents");
             router.refresh();
           }
@@ -133,35 +402,106 @@ export function DocumentActions({ doc, ctx, menuOnly }: { doc: DocumentRecord; c
   }
 
   const buttons: React.ReactNode[] = [];
-  const add = (label: string, onClick: () => void, variant: "default" | "secondary" | "tinted" = "default") =>
+  const add = (
+    label: string,
+    onClick: () => void,
+    variant: "default" | "secondary" | "tinted" = "default",
+  ) =>
     buttons.push(
-      <Button key={label} variant={variant} onClick={onClick} disabled={pending} className="flex-1">
+      <Button
+        key={label}
+        variant={variant}
+        onClick={onClick}
+        disabled={pending}
+        className="flex-1"
+      >
         {label}
       </Button>,
     );
 
   if (doc.status === "draft") {
-    add(`Send ${DOC_TYPE[doc.type]}`, async () => {
-      if (await confirm({ title: `Mark ${doc.documentNumber} as ${doc.type === "credit_note" ? "issued" : "sent"}?`, message: "Line items and totals lock once it's sent.", confirmLabel: "Mark Sent" }))
-        await transition("sent", doc.type === "credit_note" ? "Credit note issued" : "Marked as sent");
-    });
+    add(
+      MUST_SIGN.includes(doc.type) ? "Preview and Sign" : "Preview and Issue",
+      () => setIssuing(true),
+    );
     add("Edit", () => router.push(`/documents/${doc.id}/edit`), "secondary");
   } else if (open) {
     add("Record Payment", () => setPaying(true));
-    add(overdue ? "Send Reminder" : "Remind", () => setReminding(true), overdue ? "tinted" : "secondary");
-  } else if (isQuote && doc.status === "sent") {
-    add("Mark Accepted", () => transition("accepted", "Quote accepted — deal won"));
-    add("Declined", () => transition("declined", "Quote declined — deal lost"), "secondary");
+    if (ctx.shareUrl && !doc.sentAt)
+      add("Send", () => setSending(true), "secondary");
+    else
+      add(
+        overdue ? "Send Reminder" : "Remind",
+        () => setReminding(true),
+        overdue ? "tinted" : "secondary",
+      );
+  } else if (isOffer && doc.status === "sent") {
+    if (ctx.shareUrl && !doc.sentAt) add("Send", () => setSending(true));
+    add(
+      "Accepted",
+      () =>
+        transition(
+          "accepted",
+          isQuote ? "Quote accepted — deal won" : "Proposal accepted",
+        ),
+      ctx.shareUrl && !doc.sentAt ? "secondary" : "default",
+    );
+    add(
+      "Declined",
+      () =>
+        transition(
+          "declined",
+          isQuote ? "Quote declined — deal lost" : "Proposal declined",
+        ),
+      "secondary",
+    );
+  } else if (doc.type === "proposal" && doc.status === "accepted") {
+    add("Create Contract", () => void toContract());
   } else if (isQuote && doc.status === "accepted") {
     const left = doc.totalCents - ctx.invoicedCents;
     if (ctx.invoicedCents === 0) {
       add("Create 50% Deposit Invoice", () => setDepositing(true));
       add("Invoice in Full", () => convert("full"), "secondary");
     } else if (left > 0) {
-      add(`Invoice Remaining ${centsToDisplay(left, doc.currency)}`, () => convert("balance"));
+      add(`Invoice Remaining ${centsToDisplay(left, doc.currency)}`, () =>
+        convert("balance"),
+      );
     }
-  } else if (doc.type === "contract" && (doc.status === "sent" || doc.status === "accepted")) {
-    add("Mark Signed", () => transition("signed", "Signed"));
+  } else if (
+    doc.type === "contract" &&
+    (doc.status === "sent" || doc.status === "accepted")
+  ) {
+    if (ctx.shareUrl && !doc.sentAt) add("Send", () => setSending(true));
+    add(
+      "Client Signed",
+      () => transition("signed", "Marked as signed by the client"),
+      ctx.shareUrl && !doc.sentAt ? "secondary" : "default",
+    );
+  } else if (
+    doc.type === "contract" &&
+    doc.status === "signed" &&
+    ctx.invoicedCents < doc.totalCents
+  ) {
+    if (ctx.invoicedCents === 0) {
+      add("Create 50% Deposit Invoice", () => setDepositing(true));
+      add("Invoice in Full", () => convert("full"), "secondary");
+    } else
+      add(
+        `Invoice Remaining ${centsToDisplay(doc.totalCents - ctx.invoicedCents, doc.currency)}`,
+        () => convert("balance"),
+      );
+  } else if (
+    (doc.status === "sent" ||
+      doc.status === "signed" ||
+      doc.status === "accepted" ||
+      doc.status === "paid") &&
+    ctx.shareUrl
+  ) {
+    add(
+      doc.sentAt ? "Send Again" : "Send",
+      () => setSending(true),
+      doc.sentAt ? "secondary" : "default",
+    );
   }
 
   return (
@@ -173,7 +513,17 @@ export function DocumentActions({ doc, ctx, menuOnly }: { doc: DocumentRecord; c
 }
 
 /** Void with a reason (item 9). */
-function VoidSheet({ open, onOpenChange, doc, paidCents }: { open: boolean; onOpenChange: (o: boolean) => void; doc: DocumentRecord; paidCents: number }) {
+function VoidSheet({
+  open,
+  onOpenChange,
+  doc,
+  paidCents,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  doc: DocumentRecord;
+  paidCents: number;
+}) {
   const { run } = useMutation();
   const [reason, setReason] = useState("");
   useEffect(() => {
@@ -187,7 +537,12 @@ function VoidSheet({ open, onOpenChange, doc, paidCents }: { open: boolean; onOp
       submitLabel="Void"
       size="auto"
       canSubmit={!!reason.trim()}
-      onSubmit={async () => !!(await run(`/api/documents/${doc.id}/transition`, { body: { to: "void", reason }, success: "Voided" }))}
+      onSubmit={async () =>
+        !!(await run(`/api/documents/${doc.id}/transition`, {
+          body: { to: "void", reason },
+          success: "Voided",
+        }))
+      }
     >
       <ListSection
         footer={
@@ -197,7 +552,13 @@ function VoidSheet({ open, onOpenChange, doc, paidCents }: { open: boolean; onOp
         }
       >
         <div className="px-4 py-3">
-          <Textarea autoFocus placeholder="Reason (e.g. Demo data, Sent to the wrong client)" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} />
+          <Textarea
+            autoFocus
+            placeholder="Reason (e.g. Demo data, Sent to the wrong client)"
+            rows={3}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          />
         </div>
       </ListSection>
     </FormSheet>
@@ -205,7 +566,15 @@ function VoidSheet({ open, onOpenChange, doc, paidCents }: { open: boolean; onOp
 }
 
 /** Issue date, due date, external reference, terms and notes of a sent document (items 7, 8). */
-function DetailsSheet({ open, onOpenChange, doc }: { open: boolean; onOpenChange: (o: boolean) => void; doc: DocumentRecord }) {
+function DetailsSheet({
+  open,
+  onOpenChange,
+  doc,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  doc: DocumentRecord;
+}) {
   const { run } = useMutation();
   const archived = doc.status === "archived";
   const blank = () => ({
@@ -216,7 +585,8 @@ function DetailsSheet({ open, onOpenChange, doc }: { open: boolean; onOpenChange
     notes: doc.notes ?? "",
   });
   const [f, setF] = useState(blank);
-  const set = <K extends keyof ReturnType<typeof blank>>(k: K, v: string) => setF((p) => ({ ...p, [k]: v }));
+  const set = <K extends keyof ReturnType<typeof blank>>(k: K, v: string) =>
+    setF((p) => ({ ...p, [k]: v }));
   useEffect(() => {
     if (open) setF(blank());
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -230,36 +600,91 @@ function DetailsSheet({ open, onOpenChange, doc }: { open: boolean; onOpenChange
       onSubmit={async () =>
         !!(await run(`/api/documents/${doc.id}`, {
           method: "PATCH",
-          body: archived ? { issuedAt: f.issuedAt, externalRef: f.externalRef, notes: f.notes } : f,
+          body: doc.signedAt
+            ? { externalRef: f.externalRef }
+            : archived
+              ? {
+                  issuedAt: f.issuedAt,
+                  externalRef: f.externalRef,
+                  notes: f.notes,
+                }
+              : f,
           success: "Saved",
         }))
       }
     >
-      <ListSection footer="The issue date decides which month the document counts in.">
-        <FieldRow label="Issued">
-          <RowInput type="date" value={f.issuedAt} onChange={(e) => set("issuedAt", e.target.value)} />
-        </FieldRow>
-        {!archived && doc.type !== "quote" && (
-          <FieldRow label="Due">
-            <RowInput type="date" value={f.dueAt} onChange={(e) => set("dueAt", e.target.value)} />
+      {doc.signedAt ? (
+        <ListSection footer="It's signed, so what it says is locked. The number it had before NEWMUX OS can still be noted here.">
+          <FieldRow label="Original number">
+            <RowInput
+              placeholder="e.g. #00267"
+              value={f.externalRef}
+              onChange={(e) => set("externalRef", e.target.value)}
+            />
           </FieldRow>
-        )}
-        <FieldRow label="Original number">
-          <RowInput placeholder="e.g. #00267" value={f.externalRef} onChange={(e) => set("externalRef", e.target.value)} />
-        </FieldRow>
-      </ListSection>
-      <ListSection>
-        {!archived && <PlainRowInput placeholder="Payment terms" value={f.paymentTerms} onChange={(e) => set("paymentTerms", e.target.value)} />}
-        <div className="px-4 py-3">
-          <Textarea placeholder="Notes shown on the document" rows={3} value={f.notes} onChange={(e) => set("notes", e.target.value)} />
-        </div>
-      </ListSection>
+        </ListSection>
+      ) : (
+        <>
+          <ListSection footer="The issue date decides which month the document counts in.">
+            <FieldRow label="Issued">
+              <RowInput
+                type="date"
+                value={f.issuedAt}
+                onChange={(e) => set("issuedAt", e.target.value)}
+              />
+            </FieldRow>
+            {!archived && doc.type !== "quote" && (
+              <FieldRow label="Due">
+                <RowInput
+                  type="date"
+                  value={f.dueAt}
+                  onChange={(e) => set("dueAt", e.target.value)}
+                />
+              </FieldRow>
+            )}
+            <FieldRow label="Original number">
+              <RowInput
+                placeholder="e.g. #00267"
+                value={f.externalRef}
+                onChange={(e) => set("externalRef", e.target.value)}
+              />
+            </FieldRow>
+          </ListSection>
+          <ListSection>
+            {!archived && (
+              <PlainRowInput
+                placeholder="Payment terms"
+                value={f.paymentTerms}
+                onChange={(e) => set("paymentTerms", e.target.value)}
+              />
+            )}
+            <div className="px-4 py-3">
+              <Textarea
+                placeholder="Notes shown on the document"
+                rows={3}
+                value={f.notes}
+                onChange={(e) => set("notes", e.target.value)}
+              />
+            </div>
+          </ListSection>
+        </>
+      )}
     </FormSheet>
   );
 }
 
 /** Deposit invoice from an accepted quote (item 34). */
-function DepositSheet({ open, onOpenChange, doc, onCreate }: { open: boolean; onOpenChange: (o: boolean) => void; doc: DocumentRecord; onCreate: (pct: number) => Promise<void> }) {
+function DepositSheet({
+  open,
+  onOpenChange,
+  doc,
+  onCreate,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  doc: DocumentRecord;
+  onCreate: (pct: number) => Promise<void>;
+}) {
   const [pct, setPct] = useState("50");
   useEffect(() => {
     if (open) setPct("50");
@@ -278,9 +703,20 @@ function DepositSheet({ open, onOpenChange, doc, onCreate }: { open: boolean; on
         return true;
       }}
     >
-      <ListSection footer={n >= 1 && n <= 100 ? `${centsToDisplay(Math.round((doc.totalCents * n) / 100), doc.currency)} of ${centsToDisplay(doc.totalCents, doc.currency)}. Invoice the balance from the quote later.` : "Between 1% and 100%."}>
+      <ListSection
+        footer={
+          n >= 1 && n <= 100
+            ? `${centsToDisplay(Math.round((doc.totalCents * n) / 100), doc.currency)} of ${centsToDisplay(doc.totalCents, doc.currency)}. Invoice the balance from the quote later.`
+            : "Between 1% and 100%."
+        }
+      >
         <FieldRow label="Deposit">
-          <RowInput inputMode="decimal" value={pct} onChange={(e) => setPct(e.target.value.replace(/[^0-9.]/g, ""))} className="w-16 tabular" />
+          <RowInput
+            inputMode="decimal"
+            value={pct}
+            onChange={(e) => setPct(e.target.value.replace(/[^0-9.]/g, ""))}
+            className="tabular w-16"
+          />
           <span className="ml-1 text-label-2">%</span>
         </FieldRow>
       </ListSection>
@@ -289,10 +725,24 @@ function DepositSheet({ open, onOpenChange, doc, onCreate }: { open: boolean; on
 }
 
 /** A prefilled payment or quote reminder by email or WhatsApp, logged on the client's timeline (item 34). */
-function ReminderSheet({ open, onOpenChange, doc, ctx }: { open: boolean; onOpenChange: (o: boolean) => void; doc: DocumentRecord; ctx: DocumentContext }) {
+function ReminderSheet({
+  open,
+  onOpenChange,
+  doc,
+  ctx,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  doc: DocumentRecord;
+  ctx: DocumentContext;
+}) {
   const { run } = useMutation();
-  const ref = doc.externalRef ? `${doc.documentNumber} (${doc.externalRef})` : doc.documentNumber;
-  const greeting = ctx.contactName ? `Dear ${ctx.contactName.split(/[\s—-]/)[0]},` : "Hello,";
+  const ref = doc.externalRef
+    ? `${doc.documentNumber} (${doc.externalRef})`
+    : doc.documentNumber;
+  const greeting = ctx.contactName
+    ? `Dear ${ctx.contactName.split(/[\s—-]/)[0]},`
+    : "Hello,";
   const initial =
     doc.type === "invoice"
       ? `${greeting}\n\nA friendly reminder that invoice ${ref} has ${centsToDisplay(ctx.remainingCents, doc.currency)} outstanding${doc.dueAt ? `, due ${formatDate(doc.dueAt)}` : ""}.\n\nThank you,\nNEWMUX`
@@ -302,16 +752,38 @@ function ReminderSheet({ open, onOpenChange, doc, ctx }: { open: boolean; onOpen
     if (open) setText(initial);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
-  const subject = doc.type === "invoice" ? `Payment reminder: ${ref}` : `Quote ${ref}`;
+  const subject =
+    doc.type === "invoice" ? `Payment reminder: ${ref}` : `Quote ${ref}`;
   const log = (kind: "email" | "whatsapp") =>
-    run("/api/activities", { body: { kind, subject: `Reminder sent: ${ref}`, body: text, clientId: doc.clientId, dealId: doc.dealId }, refresh: false });
+    run("/api/activities", {
+      body: {
+        kind,
+        subject: `Reminder sent: ${ref}`,
+        body: text,
+        clientId: doc.clientId,
+        dealId: doc.dealId,
+      },
+      refresh: false,
+    });
   const phone = ctx.whatsapp?.replace(/[^\d]/g, "");
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange} title="Reminder" size="auto" left={<SheetIconButton label="Close" onClick={() => onOpenChange(false)} />}>
+    <Sheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Reminder"
+      size="auto"
+      left={
+        <SheetIconButton label="Close" onClick={() => onOpenChange(false)} />
+      }
+    >
       <ListSection header={`To ${ctx.clientName}`}>
         <div className="px-4 py-3">
-          <Textarea rows={7} value={text} onChange={(e) => setText(e.target.value)} />
+          <Textarea
+            rows={7}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+          />
         </div>
       </ListSection>
       <ListSection footer="Sending opens your mail or WhatsApp app with this text, and notes the reminder on the client's timeline.">
@@ -331,7 +803,11 @@ function ReminderSheet({ open, onOpenChange, doc, ctx }: { open: boolean; onOpen
           title="WhatsApp"
           subtitle={phone ? ctx.whatsapp : "No WhatsApp number on file"}
           onClick={() => {
-            window.open(`https://wa.me/${phone ?? ""}?text=${encodeURIComponent(text)}`, "_blank", "noopener");
+            window.open(
+              `https://wa.me/${phone ?? ""}?text=${encodeURIComponent(text)}`,
+              "_blank",
+              "noopener",
+            );
             void log("whatsapp");
             onOpenChange(false);
           }}
@@ -361,29 +837,53 @@ function ReminderSheet({ open, onOpenChange, doc, ctx }: { open: boolean; onOpen
   );
 }
 
-export function PaymentRows({ payments, currency, canDelete, refund }: { payments: Payment[]; currency: string; canDelete: boolean; refund?: boolean }) {
+export function PaymentRows({
+  payments,
+  currency,
+  canDelete,
+  refund,
+}: {
+  payments: Payment[];
+  currency: string;
+  canDelete: boolean;
+  refund?: boolean;
+}) {
   const { run } = useMutation();
   const confirm = useConfirm();
-  if (payments.length === 0) return <ListRow title={refund ? "No refunds recorded" : "No payments yet"} />;
+  if (payments.length === 0)
+    return (
+      <ListRow title={refund ? "No refunds recorded" : "No payments yet"} />
+    );
   return (
     <>
       {payments.map((p) => (
         <ListRow
           key={p.id}
           title={centsToDisplay(p.amountCents, currency)}
-          subtitle={[formatDate(p.paidOn), PAYMENT_METHOD[p.method] ?? p.method, p.reference].filter(Boolean).join(" · ")}
+          subtitle={[
+            formatDate(p.paidOn),
+            PAYMENT_METHOD[p.method] ?? p.method,
+            p.reference,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
           onClick={
             canDelete
               ? async () => {
                   if (
                     await confirm({
                       title: `Remove this ${centsToDisplay(p.amountCents, currency)} ${refund ? "refund" : "payment"}?`,
-                      message: refund ? undefined : "The invoice reopens if it was paid in full.",
+                      message: refund
+                        ? undefined
+                        : "The invoice reopens if it was paid in full.",
                       destructive: true,
                       confirmLabel: refund ? "Remove Refund" : "Remove Payment",
                     })
                   )
-                    await run(`/api/payments/${p.id}`, { method: "DELETE", success: "Removed" });
+                    await run(`/api/payments/${p.id}`, {
+                      method: "DELETE",
+                      success: "Removed",
+                    });
                 }
               : undefined
           }

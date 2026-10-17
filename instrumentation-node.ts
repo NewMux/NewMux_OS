@@ -1,6 +1,7 @@
 import { runDueNotifications } from "./lib/push/notify";
+import { syncOsChanges } from "./lib/osChanges";
 
-/** Started by instrumentation.ts on a Node server: the 5-minute notification check. */
+/** Started by instrumentation.ts on a Node server: the 5-minute notification check, which also moves OS updates along. */
 export function startNotificationTimer() {
   let running = false;
   const tick = async () => {
@@ -8,6 +9,7 @@ export function startNotificationTimer() {
     running = true;
     try {
       await runDueNotifications();
+      await syncOsChanges();
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error("[push] scheduled check failed", error);
