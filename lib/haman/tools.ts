@@ -12,7 +12,7 @@ import { listUpcomingMeetings } from "@/lib/data/meetings";
 import { getProjectById, listProjectsWithStats, listSubtasks, listTaskComments, listTasks, listTasksByProject } from "@/lib/data/projects";
 import { getArAging, getCashFlowForecast, getHostingFeeReport, getInvoiceStatusReport, getMonthlyCashFlow, getProfitByProjectReport } from "@/lib/data/reports";
 import { globalSearch } from "@/lib/data/search";
-import { DOC_TYPE, docStatusLabel } from "@/lib/labels";
+import { DOC_TYPE, docNumber, docStatusLabel } from "@/lib/labels";
 import { centsToDisplay, convertMinorUnits, minorUnitDigits } from "@/lib/money";
 import { many, one } from "@/lib/data/sql";
 import { listUpcomingReminders } from "@/lib/data/notifications";
@@ -121,11 +121,14 @@ function documentRow(d: DocumentListItem) {
   const overdueDays = open > 0 && d.dueAt ? -daysUntil(toYmd(d.dueAt)) : 0;
   return {
     id: d.id,
-    number: d.documentNumber,
+    number: docNumber(d),
     originalNumber: d.externalRef,
     type: DOC_TYPE[d.type],
-    status: docStatusLabel(d.type, d.status),
-    client: d.clientShortName ?? d.clientName,
+    title: d.title,
+    status: docStatusLabel(d.type, d.status, { sentAt: d.sentAt, validUntil: d.validUntil, today: todayYmd() }),
+    signed: d.signedAt ? `${d.signatoryName}, ${d.signatoryPosition}` : null,
+    validUntil: day(d.validUntil),
+    client: d.clientShortName ?? d.clientName ?? d.recipient?.split("\n")[0] ?? null,
     project: d.projectName,
     total: money(d.totalCents, d.currency),
     paid: money(d.paidCents, d.currency),
@@ -168,6 +171,8 @@ const LIST_KINDS_PARTNER = [
   "recurring_expenses",
   "payouts",
   "vault_items",
+  "signatories",
+  "terms_templates",
 ] as const;
 
 const LIST_SQL: Record<(typeof LIST_KINDS_EVERYONE)[number] | (typeof LIST_KINDS_CRM)[number] | (typeof LIST_KINDS_PARTNER)[number], string> = {
@@ -197,6 +202,8 @@ const LIST_SQL: Record<(typeof LIST_KINDS_EVERYONE)[number] | (typeof LIST_KINDS
   campaigns: "select id, name, channel, status, start_date, end_date from campaigns order by status = 'completed', name",
   posts: "select id, title, channel, status, publish_at from marketing_posts where publish_at is null or publish_at > now() - interval '30 days' order by publish_at nulls last limit 80",
   vault_items: "select s.id, s.label, s.secret_type, c.name as client, p.name as project from secrets_vault s left join clients c on c.id = s.client_id left join projects p on p.id = s.project_id order by s.label",
+  signatories: "select s.id, s.full_name as name, s.position, s.is_active, s.default_for, u.full_name as signs_as from signatories s join users u on u.id = s.user_id order by s.is_active desc, s.sort_order",
+  terms_templates: "select id, name, version, is_active, (select count(*)::int from terms_clauses c where c.template_id = t.id) as clauses from terms_templates t order by sort_order, name",
 };
 
 /** Tables get_record reads. `partner`: closed to team members, as in lib/rbac.ts. */
@@ -225,7 +232,7 @@ const RECORD_TABLES = {
 } as const satisfies Record<string, { table: string; access: "everyone" | "crm" | "partner" }>;
 
 /** Never handed to the model, whatever the table. */
-const HIDDEN_FIELDS = new Set(["passwordHash", "ciphertext", "iv", "authTag", "maskedPreview", "data", "content"]);
+const HIDDEN_FIELDS = new Set(["passwordHash", "ciphertext", "iv", "authTag", "maskedPreview", "data", "content", "shareToken"]);
 
 /** A row (already camelCase) as the model sees it: secrets left out, and every …Cents amount also in major units. */
 function withMajorUnits(row: Record<string, unknown>): Record<string, unknown> {
@@ -473,11 +480,11 @@ export const HAMAN_TOOLS: HamanTool[] = [
     name: "list_documents",
     status: "Checking invoices and documents",
     description:
-      "Invoices, quotes, contracts and credit notes, newest first, each with client, total, paid, outstanding, due date and days overdue. Set unpaid_only to get just the invoices clients still owe on, with the total owed. Filter by type, status or client_id.",
+      "Invoices, quotes, proposals, contracts, credit notes and official letters, newest first, each with client (or a letter's recipient), title, status (Draft, Issued, Sent, Expired…), who signed it, total, paid, outstanding, due date and days overdue. Drafts have no number until they're issued. Set unpaid_only to get just the invoices clients still owe on, with the total owed. Filter by type, status or client_id.",
     input_schema: {
       type: "object",
       properties: {
-        type: { type: "string", enum: ["invoice", "quote", "contract", "credit_note"] },
+        type: { type: "string", enum: ["invoice", "quote", "proposal", "contract", "credit_note", "letter"] },
         status: { type: "string", enum: ["draft", "sent", "accepted", "declined", "signed", "paid", "archived", "void"] },
         client_id: { type: "string" },
         unpaid_only: { type: "boolean" },
@@ -487,7 +494,7 @@ export const HAMAN_TOOLS: HamanTool[] = [
     run: async (input) => {
       const unpaidOnly = input.unpaid_only === true;
       const docs = await listDocuments({
-        type: unpaidOnly ? "invoice" : oneOf(input, "type", ["invoice", "quote", "contract", "credit_note"] as const),
+        type: unpaidOnly ? "invoice" : oneOf(input, "type", ["invoice", "quote", "proposal", "contract", "credit_note", "letter"] as const),
         status: unpaidOnly ? "sent" : oneOf(input, "status", ["draft", "sent", "accepted", "declined", "signed", "paid", "archived", "void"] as const),
         clientId: optionalId(input, "client_id"),
       });

@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PaymentSheet } from "@/components/documents/PaymentSheet";
 import { SplitWideContext } from "@/components/shell/SplitView";
-import { DOC_TYPE } from "@/lib/labels";
+import { DOC_TYPE, NO_MONEY, docNumber } from "@/lib/labels";
 import { docBadge, isClosed, isOverdue, outstanding } from "@/components/documents/docStatus";
 import { centsToDisplay, convertMinorUnits } from "@/lib/money";
 import { addDaysYmd, addMonthsYmd, formatDate, monthStartYmd, todayYmd, toYmd } from "@/lib/time";
@@ -88,7 +88,7 @@ export function DocumentsScreen({ documents }: { documents: DocumentListItem[] }
   const wide = useContext(SplitWideContext);
   const pathname = usePathname();
   const initialType = (params.get("type") as TypeFilter | null) ?? "all";
-  const [type, setType] = useState<TypeFilter>(["all", "quote", "invoice", "contract", "credit_note"].includes(initialType) ? initialType : "all");
+  const [type, setType] = useState<TypeFilter>(["all", "quote", "invoice", "contract", "credit_note", "letter"].includes(initialType) ? initialType : "all");
   const [status, setStatus] = useState<StatusFilter>((params.get("status") as StatusFilter | null) ?? "any");
   const [clientId, setClientId] = useState(params.get("client") ?? "");
   const [projectId, setProjectId] = useState(params.get("project") ?? "");
@@ -99,7 +99,7 @@ export function DocumentsScreen({ documents }: { documents: DocumentListItem[] }
 
   const clients = useMemo(() => {
     const m = new Map<string, string>();
-    for (const d of documents) m.set(d.clientId, d.clientShortName ?? d.clientName);
+    for (const d of documents) if (d.clientId) m.set(d.clientId, d.clientShortName ?? d.clientName ?? "");
     return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1]));
   }, [documents]);
   const projects = useMemo(() => {
@@ -112,7 +112,8 @@ export function DocumentsScreen({ documents }: { documents: DocumentListItem[] }
     const term = q.trim().toLowerCase();
     const window = range(dates, custom);
     return documents.filter((d) => {
-      if (type !== "all" && d.type !== type) return false;
+      // Quotes include proposals: both are offers.
+      if (type !== "all" && d.type !== type && !(type === "quote" && d.type === "proposal")) return false;
       if (clientId && d.clientId !== clientId) return false;
       if (projectId && d.projectId !== projectId) return false;
       if (status === "any" && d.status === "void") return false;
@@ -126,7 +127,7 @@ export function DocumentsScreen({ documents }: { documents: DocumentListItem[] }
         const issued = d.issuedAt ? toYmd(d.issuedAt) : null;
         if (!issued || issued < window[0] || issued >= window[1]) return false;
       }
-      if (term && ![d.documentNumber, d.externalRef, d.clientName, d.clientShortName, d.projectName].some((v) => v?.toLowerCase().includes(term))) return false;
+      if (term && ![d.documentNumber, d.externalRef, d.clientName, d.clientShortName, d.projectName, d.title, d.recipient].some((v) => v?.toLowerCase().includes(term))) return false;
       return true;
     });
   }, [documents, type, status, clientId, projectId, dates, custom, q]);
@@ -178,11 +179,11 @@ export function DocumentsScreen({ documents }: { documents: DocumentListItem[] }
         chevron
         className={owed > 0 && pathname === `/documents/${d.id}` ? "lg:bg-fill/[0.16]" : undefined}
         multiline
-        title={<span className="line-clamp-2">{d.clientShortName ?? d.clientName}</span>}
+        title={<span className="line-clamp-2">{d.clientShortName ?? d.clientName ?? d.recipient?.split("\n")[0] ?? DOC_TYPE[d.type]}</span>}
         subtitle={[
-          d.externalRef ?? d.documentNumber,
+          d.externalRef ?? docNumber(d),
           DOC_TYPE[d.type],
-          d.projectName,
+          d.title ?? d.projectName,
           owed > 0 && d.paidCents > 0 ? `${centsToDisplay(owed, d.currency)} left` : null,
           d.dueAt && owed > 0 ? `due ${formatDate(d.dueAt, { day: "numeric", month: "short" })}` : null,
         ]
@@ -190,10 +191,12 @@ export function DocumentsScreen({ documents }: { documents: DocumentListItem[] }
           .join(" · ")}
         detail={
           <span className="flex flex-col items-end gap-0.5">
-            <span className="text-label">
-              {d.type === "credit_note" ? "− " : ""}
-              {centsToDisplay(d.totalCents, d.currency)}
-            </span>
+            {!NO_MONEY.includes(d.type) && (
+              <span className="text-label">
+                {d.type === "credit_note" ? "− " : ""}
+                {centsToDisplay(d.totalCents, d.currency)}
+              </span>
+            )}
             <span className="flex items-center gap-1.5">
               <Badge color={badge.color}>{badge.label}</Badge>
               {/* Item 35: record a payment without opening the invoice. */}
@@ -251,7 +254,7 @@ export function DocumentsScreen({ documents }: { documents: DocumentListItem[] }
       back={{ href: "/finance", label: "Finance" }}
       actions={
         <QuickAddMenu
-          extra={(["invoice", "quote", "contract"] as const)
+          extra={(["invoice", "quote", "contract", "proposal", "letter"] as const)
             .slice()
             .sort((a, b) => Number(b === newType) - Number(a === newType))
             .map((t) => ({ label: `New ${DOC_TYPE[t]}`, href: `/documents/new?type=${t}` }))}
@@ -267,6 +270,7 @@ export function DocumentsScreen({ documents }: { documents: DocumentListItem[] }
               { value: "invoice", label: "Invoices" },
               { value: "quote", label: "Quotes" },
               { value: "contract", label: "Contracts" },
+              { value: "letter", label: "Letters" },
               ...(documents.some((d) => d.type === "credit_note") ? [{ value: "credit_note" as const, label: "Credits" }] : []),
             ]}
           />
@@ -335,19 +339,19 @@ function DocumentTable({ documents, payButton }: { documents: DocumentListItem[]
               >
                 <td className="py-2.5 pl-4">
                   <Link href={`/documents/${d.id}`} onClick={(e) => e.stopPropagation()} className="font-medium text-label">
-                    {d.documentNumber}
+                    {docNumber(d)}
                   </Link>
                   <span className="block text-footnote text-label-2">{[DOC_TYPE[d.type], d.externalRef].filter(Boolean).join(" · ")}</span>
                 </td>
-                <td className="max-w-[220px] py-2.5 pr-3" title={d.clientName}>
-                  <span className="line-clamp-2">{d.clientShortName ?? d.clientName}</span>
+                <td className="max-w-[220px] py-2.5 pr-3" title={d.clientName ?? undefined}>
+                  <span className="line-clamp-2">{d.clientShortName ?? d.clientName ?? d.recipient?.split("\n")[0]}</span>
                 </td>
                 <td className="max-w-[200px] truncate py-2.5 pr-3 text-label-2">{d.projectName ?? "—"}</td>
                 <td className="whitespace-nowrap py-2.5 pr-3 text-label-2 tabular">{formatDate(d.issuedAt, { day: "numeric", month: "short", year: "numeric" })}</td>
                 <td className={cn("whitespace-nowrap py-2.5 pr-3 tabular", isOverdue(d) ? "text-ios-red" : "text-label-2")}>
                   {d.type === "invoice" ? formatDate(d.dueAt, { day: "numeric", month: "short" }) : "—"}
                 </td>
-                <td className="whitespace-nowrap py-2.5 text-right tabular">{d.type === "credit_note" ? "− " : ""}{centsToDisplay(d.totalCents, d.currency)}</td>
+                <td className="whitespace-nowrap py-2.5 text-right tabular">{NO_MONEY.includes(d.type) ? "—" : `${d.type === "credit_note" ? "− " : ""}${centsToDisplay(d.totalCents, d.currency)}`}</td>
                 <td className="whitespace-nowrap py-2.5 text-right tabular">{owed > 0 ? centsToDisplay(owed, d.currency) : <span className="text-label-2">—</span>}</td>
                 <td className="py-2.5 pl-4">
                   <Badge color={badge.color}>{badge.label}</Badge>

@@ -8,6 +8,9 @@ import { getDocumentById, listDocuments } from "@/lib/data/documents";
 import { DocumentForm } from "@/components/documents/DocumentForm";
 import type { DocumentType } from "@/lib/data/types";
 import { addDaysYmd, todayYmd } from "@/lib/time";
+import { listSignatories } from "@/lib/data/signatories";
+import { listStandaloneClauses, listTermsTemplates } from "@/lib/data/terms";
+import { DEFAULT_VALIDITY_DAYS } from "@/lib/data/documents";
 
 export const metadata = { title: "New Document" };
 
@@ -15,14 +18,19 @@ export default async function NewDocumentPage({ searchParams }: { searchParams: 
   const session = await auth();
   if (!canAccessDocuments(session)) redirect("/home");
   const sp = await searchParams;
-  const [clients, projects, deal, credited] = await Promise.all([
+  const [clients, projects, deal, credited, signatories, templates, standalone] = await Promise.all([
     listClients(),
     listProjects(),
     sp.dealId ? getDealById(sp.dealId) : undefined,
     sp.creditFor ? getDocumentById(sp.creditFor) : undefined,
+    listSignatories({ activeOnly: true }),
+    listTermsTemplates({ activeOnly: true }),
+    listStandaloneClauses(),
   ]);
   const creditFor = credited?.type === "invoice" && !["draft", "void"].includes(credited.status) ? credited : undefined;
-  const type = (creditFor ? "credit_note" : ["quote", "invoice", "contract"].includes(sp.type ?? "") ? sp.type : "quote") as DocumentType;
+  const type = (creditFor ? "credit_note" : ["quote", "invoice", "contract", "proposal", "letter"].includes(sp.type ?? "") ? sp.type : "quote") as DocumentType;
+  const offer = type === "quote" || type === "proposal";
+  const signer = signatories.find((s) => s.defaultFor.includes(type)) ?? signatories[0];
   const alreadyCredited = creditFor
     ? (await listDocuments({ derivedFrom: creditFor.id })).filter((d) => d.type === "credit_note" && d.status !== "void").reduce((s, d) => s + d.totalCents, 0)
     : 0;
@@ -31,6 +39,9 @@ export default async function NewDocumentPage({ searchParams }: { searchParams: 
     <DocumentForm
       clients={clients.map((c) => ({ id: c.id, name: c.name }))}
       projects={projects.map((p) => ({ id: p.id, name: p.name, clientId: p.clientId }))}
+      signatories={signatories.map((s) => ({ id: s.id, fullName: s.fullName, position: s.position, defaultFor: s.defaultFor }))}
+      templates={templates}
+      standalone={standalone}
       initial={{
         type,
         clientId: creditFor?.clientId ?? sp.clientId ?? deal?.clientId ?? "",
@@ -38,7 +49,7 @@ export default async function NewDocumentPage({ searchParams }: { searchParams: 
         dealId: deal?.id ?? null,
         currency: creditFor?.currency ?? deal?.currency ?? "BHD",
         taxRatePercent: "0",
-        paymentTerms: type === "invoice" ? "Due on receipt" : type === "credit_note" ? "" : "50% upfront, 50% on delivery",
+        paymentTerms: type === "invoice" ? "Due on receipt" : type === "credit_note" || type === "letter" ? "" : "50% on approval, 50% on delivery. Bank transfer to IBAN {iban}.",
         notes: "",
         dueAt: type === "invoice" ? addDaysYmd(todayYmd(), 14) : "",
         issuedAt: todayYmd(),
@@ -49,6 +60,15 @@ export default async function NewDocumentPage({ searchParams }: { searchParams: 
           : deal
             ? [{ description: deal.title, quantity: 1, unitPriceCents: deal.valueCents }]
             : [],
+        title: deal?.title ?? "",
+        overview: "",
+        scope: [],
+        recipient: "",
+        body: "",
+        validUntil: offer ? addDaysYmd(todayYmd(), DEFAULT_VALIDITY_DAYS) : "",
+        signatoryId: signer?.id ?? "",
+        terms: null,
+        serverFee: null,
       }}
     />
   );

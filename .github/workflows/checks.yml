@@ -38,5 +38,9 @@ jobs:
         run: npm run test:push
       - name: OS update tests
         run: npm run test:os-changes
+      - name: Official document tests
+        run: npm run test:official-docs
+      - name: PRD checks
+        run: npm run test:prd
       - name: Build
         run: npm run build

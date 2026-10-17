@@ -178,6 +178,21 @@ Haman is a Claude model that answers questions about the business by looking thi
 
 To add a change, add an entry to `ACTIONS` in `lib/haman/actions.ts` naming the route, its body schema and the `lib/rbac.ts` check; `npm run test:haman` confirms the route exists. To add a lookup, add an entry to `HAMAN_TOOLS` with `access: "everyone"` or `"partner"`, format every amount with `centsToDisplay`, and return an `href` for anything he should be able to link.
 
+## Official documents
+
+Quotations, proposals, contracts, invoices, credit notes and official letters come out of one engine in the approved NewMux design (PRD addendum 1.2): the Letterhead layout for letters, the Project Details layout for the rest. A4, Poppins embedded, the header band and footer bar taken from the approved Word templates, company details and IBAN from Settings.
+
+- **Making one:** Documents → **+**, pick the type and the client (a letter can go to anyone), the signatory, then the content: items, overview and scope & timeline, the optional server fee, a letter's body, and Terms & Conditions from the library, editable for that document only.
+- **Preview, sign, issue:** **Preview and Sign** shows the real A4 PDF. Only the login linked to the chosen signatory can sign: they draw their signature and enter their password, the document gets its number, and the PDF with the signature is stored as the locked record, with its SHA-256 in the audit log. The signature is never stored anywhere else. Invoices and credit notes can also be issued unsigned.
+- **Numbers:** NMX/QTN, NMX/PRJ, NMX/CTR, NMX/INV, NMX/CRN and NMX/LTR, then the year and a sequence. Drafts take no number. The sequences carry on from the numbers used before (Quotation #2606 → NMX/QTN/2026/2607), and documents numbered earlier keep their numbers.
+- **Locked after issue:** a change is a new version (**Revise**): a draft that, once signed and issued, takes the number with -R1, -R2… and voids the one it replaces. Every version and its PDF are kept.
+- **Sending:** **Send** opens WhatsApp or email with a link to the signed PDF (it stops working if the document is voided), or downloads it; the time and channel are recorded.
+- **Lifecycle:** Draft → Issued → Sent → Accepted / Declined; offers past their validity read Expired and show in Needs Attention three days ahead. An accepted quote or proposal becomes a contract (**Create Contract**), and a quote or contract becomes an invoice, without retyping.
+- **Server fee:** optional on quotes, proposals and contracts, printed as its own section, outside the total and the accounts. On conversion it becomes a hosting subscription with the same amount and cycle, once.
+- **Settings → Official Documents** (partners): company details for the footer, signatories (name and position as printed, the login allowed to sign, default per type; deactivated, never deleted), and the Terms & Conditions library: a template per product type (ERP System, SaaS, Website, Other to start), standalone clauses, and every saved version of each template. The starter wording needs a review, by legal counsel for contracts.
+
+Quotation amounts never reach the accounts: only invoices do. `npm run test:official-docs` checks the acceptance criteria.
+
 ## OS updates
 
 Anyone signed in can ask for a change to NEWMUX OS itself, in **Settings → OS Updates** or by telling Haman. Claude Code (the [Claude GitHub Action](https://github.com/anthropics/claude-code-action)) builds it on a branch, the app opens a pull request and runs the checks (lint, types, tests, build), and a partner merges it from the same screen once they pass, which puts it live a few minutes later. Nothing reaches the app until a partner merges. Failing checks and clashes with newer changes go back to Claude Code automatically; anyone can ask for more changes. Partners and the requester get a notification when an update is ready.

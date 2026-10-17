@@ -39,6 +39,9 @@ Who can reach each `/api/*` endpoint, reviewed for Improvements PRD item 19
 | `/api/vault/setup`, `/api/vault/unlock`, `/api/vault/[id]/reveal`, `DELETE /api/vault/[id]`, `POST /api/vault` | 401 | 403 | 403 | ✓ |
 | CRM: `/api/clients/**`, `/api/contacts/**`, `/api/deals/**`, `/api/activities/**` | 401 | 403 | ✓ (deal values left out, and not settable) | ✓ |
 | Documents: `/api/documents/**` (incl. PDFs, transitions, void, purge) | 401 | 403 | 403 | ✓ |
+| `POST`/`PUT /api/documents/[id]/issue` (signing: only the login linked to the chosen signatory, with their password; the PDF only with the ticket from the same person and draft) | 401 | 403 | 403 | ✓ (as themselves only) |
+| `/api/signatories/**`, `/api/terms/**`, `/api/settings/company-details` (read with Documents; changing them partners only) | 401 | 403 | 403 | ✓ |
+| `GET /d/[token]` (the link to an issued PDF sent to a client: 48 random hex digits, gone once void) | public | public | public | public |
 | Finance: `/api/finance/**`, `/api/expenses/**`, `/api/payments/**`, `/api/hosting/**`, `/api/reports/**` | 401 | 403 | 403 | ✓ |
 | Company: `/api/company/**`, `/api/ventures/**`, `/api/files/**`, `/api/pipeline/**` | 401 | 403 | ✓ (no contracts, finance or receipt files) | ✓ |
 | Growth: `/api/campaigns/**` | 401 | 403 | 403 | ✓ |

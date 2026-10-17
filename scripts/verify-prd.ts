@@ -294,7 +294,8 @@ async function main() {
   });
   const deal = () => one<{ stage: string; valueCents: number }>("select stage, value_cents from deals where id = (select deal_id from documents where id = $1)", [quote.id]);
   check("Creating a quote creates a deal with its value", await deal(), { stage: "qualified", valueCents: bhd(490) });
-  await docs.transitionDocumentStatus(quote.id, "sent", by);
+  // Quotes are issued by signing (scripts/test-official-docs.ts covers that flow); here it's issued directly.
+  await docs.transitionDocumentStatus(quote.id, "sent", by, { issuing: true });
   check("Sending moves the deal to Proposal", (await deal())?.stage, "proposal");
   await docs.transitionDocumentStatus(quote.id, "accepted", by);
   check("Accepting wins the deal at the quote value", await deal(), { stage: "won", valueCents: bhd(490) });

@@ -35,6 +35,8 @@ npm run lint
 npm run typecheck
 npm run test:haman
 npm run test:os-changes
+npm run test:official-docs
+npm run test:prd
 npm run build
 ```
 

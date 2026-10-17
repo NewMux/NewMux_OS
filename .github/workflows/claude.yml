@@ -58,7 +58,7 @@ jobs:
             actions: read
           claude_args: |
             --max-turns 120
-            --allowedTools "Bash(npm run lint),Bash(npm run lint:*),Bash(npm run typecheck),Bash(npm run test:haman),Bash(npm run test:push),Bash(npm run test:os-changes),Bash(npm run test:prd),Bash(npm run build),Bash(npx tsc:*),Bash(npx eslint:*),Bash(npx prettier:*),Bash(git:*),Bash(ls:*),Bash(cat:*),Bash(grep:*),Bash(find:*)"
+            --allowedTools "Bash(npm run lint),Bash(npm run lint:*),Bash(npm run typecheck),Bash(npm run test:haman),Bash(npm run test:push),Bash(npm run test:os-changes),Bash(npm run test:official-docs),Bash(npm run test:prd),Bash(npm run build),Bash(npx tsc:*),Bash(npx eslint:*),Bash(npx prettier:*),Bash(git:*),Bash(ls:*),Bash(cat:*),Bash(grep:*),Bash(find:*)"
 
       # The app (lib/osChanges.ts) reads this note to open the pull request and to
       # know the run is over. Don't change its format.

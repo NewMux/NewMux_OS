@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { BellOff, CalendarClock, ChevronRight, FileWarning, MessageSquareReply, Server } from "lucide-react";
+import { BellOff, CalendarClock, ChevronRight, FileClock, FileWarning, MessageSquareReply, Server } from "lucide-react";
 import { ListSection, IconTile } from "@/components/ui/List";
 import { Button } from "@/components/ui/Button";
 import { Menu } from "@/components/ui/Menu";
@@ -18,14 +18,15 @@ const GROUPS: { kinds: AttentionKind[]; header: string }[] = [
   { kinds: ["hosting"], header: "Hosting fees to collect" },
   { kinds: ["renewal", "file"], header: "Renewals & expiring files" },
   { kinds: ["follow_up"], header: "Follow-ups" },
+  { kinds: ["offer"], header: "Quotes expiring" },
 ];
 
-const ICON = { hosting: Server, renewal: CalendarClock, file: FileWarning, follow_up: MessageSquareReply } as const;
+const ICON = { hosting: Server, renewal: CalendarClock, file: FileWarning, follow_up: MessageSquareReply, offer: FileClock } as const;
 
 function when(item: AttentionItem) {
   if (item.kind === "follow_up") return item.overdue ? `Overdue since ${formatDate(item.date, { day: "numeric", month: "short" })}` : "Due today";
   if (item.overdue) return `${item.kind === "hosting" ? "Overdue since" : "Expired"} ${formatDate(item.date, { day: "numeric", month: "short" })}`;
-  return `${item.kind === "hosting" ? "Due" : item.kind === "file" ? "Expires" : "Renews"} ${relativeDay(item.date)}`;
+  return `${item.kind === "hosting" ? "Due" : item.kind === "file" || item.kind === "offer" ? "Expires" : "Renews"} ${relativeDay(item.date)}`;
 }
 
 /**

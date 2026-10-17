@@ -35,8 +35,8 @@ export default async function ExpensesPage() {
         parties,
         accounts,
         invoices: invoices
-          .filter((d) => d.status !== "void")
-          .map((d) => ({ id: d.id, name: `${d.documentNumber}${d.externalRef ? ` (${d.externalRef})` : ""} · ${d.clientShortName ?? d.clientName}`, clientId: d.clientId, projectId: d.projectId })),
+          .filter((d) => d.status !== "void" && d.clientId)
+          .map((d) => ({ id: d.id, name: `${d.documentNumber}${d.externalRef ? ` (${d.externalRef})` : ""} · ${d.clientShortName ?? d.clientName}`, clientId: d.clientId!, projectId: d.projectId })),
       }}
     />
   );

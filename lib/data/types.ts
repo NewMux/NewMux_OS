@@ -98,7 +98,7 @@ export type Product = {
   paddleProductId: string | null;
 };
 
-export type DocumentType = "quote" | "contract" | "invoice" | "credit_note";
+export type DocumentType = "quote" | "proposal" | "contract" | "invoice" | "credit_note" | "letter";
 /** Invoices: draft → sent → paid (derived from payments) → archived; void.
  * Quotes: draft → sent → accepted | declined. Contracts: draft → sent → signed.
  * Credit notes: draft → sent (issued). See lib/validators/document.ts. */
@@ -117,7 +117,8 @@ export type DocumentRecord = {
   id: string;
   type: DocumentType;
   status: DocumentStatus;
-  clientId: string;
+  /** Null only for letters to someone who isn't a client. */
+  clientId: string | null;
   productId: string | null;
   projectId: string | null;
   /** Invoice created from an approved quote via "Convert to Invoice" (PRD 5.4). */
@@ -151,7 +152,63 @@ export type DocumentRecord = {
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;
+  // --- Official documents (PRD addendum 1.2) ---
+  /** The big title: the project name, or a letter's subject. */
+  title: string | null;
+  overview: string | null;
+  scope: ScopeItem[];
+  /** Letters: the recipient block, one line each. */
+  recipient: string | null;
+  /** Letters: the body; a blank line starts a new paragraph. */
+  body: string | null;
+  validUntil: string | null;
+  signatoryId: string | null;
+  /** Snapshot taken on issue: never changes afterwards. */
+  signatoryName: string | null;
+  signatoryPosition: string | null;
+  signedBy: string | null;
+  signedAt: string | null;
+  terms: DocumentTerms | null;
+  /** Optional server fee, outside the total and the accounts. Null = none. */
+  serverFeeCents: number | null;
+  serverFeeCycle: RecurringExpenseCycle | null;
+  serverFeeClientChooses: boolean;
+  serverFeeLabel: string | null;
+  serverFeeSubscriptionId: string | null;
+  version: number;
+  previousVersionId: string | null;
+  /** SHA-256 of the issued PDF. */
+  pdfSha256: string | null;
+  shareToken: string | null;
+  sentAt: string | null;
+  sentVia: "email" | "whatsapp" | "download" | "other" | null;
 };
+
+export type ScopeItem = { deliverable: string; duration: string };
+export type TermsClause = { title: string; body: string };
+export type DocumentTerms = { templateId: string | null; templateName: string | null; version: number | null; clauses: TermsClause[] };
+
+export type Signatory = {
+  id: string;
+  fullName: string;
+  position: string;
+  userId: string;
+  userName?: string;
+  isActive: boolean;
+  /** Document types this person signs by default. */
+  defaultFor: DocumentType[];
+  sortOrder: number;
+};
+
+export type TermsTemplate = {
+  id: string;
+  name: string;
+  version: number;
+  isActive: boolean;
+  sortOrder: number;
+  clauses: TermsTemplateClause[];
+};
+export type TermsTemplateClause = { id: string; templateId: string | null; title: string; body: string; defaultOn: boolean; sortOrder: number };
 
 export type DocumentStatusHistoryEntry = {
   id: string;
@@ -566,7 +623,10 @@ export type AuditEntityType =
   | "payout"
   | "file"
   | "user"
-  | "campaign";
+  | "campaign"
+  | "signatory"
+  | "terms_template"
+  | "company";
 
 export type AuditLogEntry = {
   id: string;
@@ -604,6 +664,13 @@ export type CompanyProfile = {
   email: string | null;
   crNumber: string;
   crRenewalDate: string | null;
+  /** Footer details on official documents. */
+  tradeName: string;
+  tagline: string;
+  country: string;
+  website: string;
+  whatsapp: string;
+  iban: string;
   mainDomain: string;
   mainDomainRenewalDate: string | null;
   certifications: Certification[];

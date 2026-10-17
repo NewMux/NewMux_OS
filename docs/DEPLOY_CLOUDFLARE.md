@@ -135,6 +135,7 @@ Not used on Cloudflare: `AUTH_URL`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `DB_AUTO_
 
 New releases sometimes add tables. The app on Cloudflare doesn't change the database itself, so run the release's upgrade file once in Supabase → **SQL Editor** before or right after deploying it:
 
+- **Official Documents** (signing, the NewMux design, letters and proposals, the terms library, the server fee): [`db/supabase-upgrade-official-documents.sql`](../db/supabase-upgrade-official-documents.sql). Run it **before** this version goes live: the documents screens need it.
 - **Marketing** (the Marketing role and module): [`db/supabase-upgrade-marketing.sql`](../db/supabase-upgrade-marketing.sql). Until it's run, Marketing pages and adding someone with the Marketing role fail.
 - **Push notifications**: see step 1 under [Push notifications](#push-notifications).
 

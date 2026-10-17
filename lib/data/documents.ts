@@ -1,15 +1,25 @@
 import { query, tx } from "@/lib/db";
 import { many, one, must, NotFoundError, ValidationError } from "./sql";
 import { logAudit } from "./audit";
-import type { Currency, Deal, DocumentLineItem, DocumentRecord, DocumentStatus, DocumentStatusHistoryEntry, DocumentType } from "./types";
+import type { Currency, Deal, DocumentLineItem, DocumentRecord, DocumentStatus, DocumentStatusHistoryEntry, DocumentTerms, DocumentType, RecurringExpenseCycle, ScopeItem } from "./types";
+import { defaultSignatoryFor } from "./signatories";
 import { centsToDisplay, subtotalCents as calcSubtotal, taxCents as calcTax, totalCents as calcTotal } from "@/lib/money";
 import { canTransition } from "@/lib/validators/document";
-import { todayYmd } from "@/lib/time";
-import { DOC_STATUS, DOC_TYPE } from "@/lib/labels";
+import { addDaysYmd, todayYmd } from "@/lib/time";
+import { DOC_STATUS, DOC_TYPE, MUST_SIGN, NO_MONEY, isDraftNumber } from "@/lib/labels";
 
 export { listClients, getClientById, createClient, listProducts } from "./clients";
 
-const PREFIX: Record<DocumentType, string> = { quote: "QUO", contract: "CON", invoice: "INV", credit_note: "CRN" };
+/** NMX/QTN/2026/001 and so on (PRD addendum 1.2, section 2.3). */
+export const DOC_CODE: Record<DocumentType, string> = { quote: "QTN", proposal: "PRJ", contract: "CTR", invoice: "INV", credit_note: "CRN", letter: "LTR" };
+
+/**
+ * Drafts consume no number: they carry a placeholder until they're issued.
+ * Documents numbered before this (QUO-2026-0004, INV-2026-0012) keep their
+ * numbers, and the yearly sequence carries on from them.
+ */
+export { isDraftNumber };
+const draftNumber = (type: DocumentType) => `Draft-${DOC_CODE[type]}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
 
 /** Atomic, per-type, per-year numbering — safe across processes and restarts. */
 async function nextDocumentNumber(type: DocumentType): Promise<string> {
@@ -20,14 +30,25 @@ async function nextDocumentNumber(type: DocumentType): Promise<string> {
      returning last_value`,
     [type, year],
   );
-  return `${PREFIX[type]}-${year}-${String(row!.last_value).padStart(4, "0")}`;
+  return `NMX/${DOC_CODE[type]}/${year}/${String(row!.last_value).padStart(3, "0")}`;
+}
+
+/** The number a draft takes when it's issued: the next in its sequence, or for a revision its original's number with -R1, -R2… */
+export async function numberForIssue(doc: DocumentRecord): Promise<string> {
+  if (!isDraftNumber(doc.documentNumber)) return doc.documentNumber;
+  if (doc.previousVersionId) {
+    const prev = await one<{ documentNumber: string }>("select document_number from documents where id = $1", [doc.previousVersionId]);
+    if (prev && !isDraftNumber(prev.documentNumber)) return `${prev.documentNumber.replace(/-R\d+$/, "")}-R${doc.version - 1}`;
+  }
+  return nextDocumentNumber(doc.type);
 }
 
 /** YYYY-MM-DD → noon in Bahrain, so the stored instant can never slip to another day. */
 const ISSUE_DATE_SQL = (param: string) => `((${param})::date + time '12:00') at time zone 'Asia/Bahrain'`;
 
 export type DocumentListItem = DocumentRecord & {
-  clientName: string;
+  /** Null for a letter to someone who isn't a client. */
+  clientName: string | null;
   clientShortName: string | null;
   projectName: string | null;
   paidCents: number;
@@ -64,7 +85,7 @@ export async function listDocuments(filter: {
        coalesce((select sum(pay.amount_cents) from payments pay where pay.document_id = d.id), 0)::int8 as paid_cents,
        coalesce((select sum(cn.total_cents) from documents cn
                  where cn.credit_for_id = d.id and cn.type = 'credit_note' and cn.status not in ('draft', 'void')), 0)::int8 as credited_cents
-     from documents d join clients c on c.id = d.client_id left join projects p on p.id = d.project_id
+     from documents d left join clients c on c.id = d.client_id left join projects p on p.id = d.project_id
      ${where.length ? `where ${where.join(" and ")}` : ""}
      order by coalesce(d.issued_at, d.created_at) desc, d.created_at desc`,
     params,
@@ -114,26 +135,53 @@ async function assertCreditFits(creditForId: string, totalCents: number, currenc
   return invoice;
 }
 
-export async function createDocument(input: {
-  type: DocumentType;
-  clientId: string;
-  productId?: string | null;
-  projectId?: string | null;
-  dealId?: string | null;
-  currency?: Currency;
-  taxRateBps: number;
-  paymentTerms?: string | null;
-  notes?: string | null;
-  dueAt?: string | null;
-  issuedAt?: string | null;
-  externalRef?: string | null;
-  creditForId?: string | null;
-  hostingSubscriptionId?: string | null;
-  lineItems: LineItemInput[];
-  createdBy: string;
-}): Promise<DocumentRecord> {
+/** Content of official documents (PRD addendum 1.2), shared by create and update. */
+export type OfficialFields = {
+  title?: string | null;
+  overview?: string | null;
+  scope?: ScopeItem[];
+  recipient?: string | null;
+  body?: string | null;
+  validUntil?: string | null;
+  signatoryId?: string | null;
+  terms?: DocumentTerms | null;
+  /** null removes it. */
+  serverFee?: { amountCents: number; cycle: RecurringExpenseCycle; clientChooses: boolean; label?: string | null } | null;
+};
+
+/** Quotes and proposals stand for 14 days unless set otherwise (section 8.2). */
+export const DEFAULT_VALIDITY_DAYS = 14;
+
+/** What each type needs before it can be saved. Letters have no money; proposals may leave the investment out. */
+function checkContent(type: DocumentType, input: { clientId?: string | null; lineItems: LineItemInput[] }) {
+  if (type !== "letter" && !input.clientId) throw new ValidationError("Choose the client.");
+  if (!NO_MONEY.includes(type) && type !== "proposal" && input.lineItems.length === 0) throw new ValidationError("Add at least one item.");
+}
+
+export async function createDocument(
+  input: {
+    type: DocumentType;
+    clientId?: string | null;
+    productId?: string | null;
+    projectId?: string | null;
+    dealId?: string | null;
+    currency?: Currency;
+    taxRateBps: number;
+    paymentTerms?: string | null;
+    notes?: string | null;
+    dueAt?: string | null;
+    issuedAt?: string | null;
+    externalRef?: string | null;
+    creditForId?: string | null;
+    hostingSubscriptionId?: string | null;
+    lineItems: LineItemInput[];
+    createdBy: string;
+  } & OfficialFields,
+): Promise<DocumentRecord> {
   return tx(async () => {
-    const subtotal = calcSubtotal(input.lineItems);
+    const lineItems = NO_MONEY.includes(input.type) ? [] : input.lineItems;
+    checkContent(input.type, { clientId: input.clientId, lineItems });
+    const subtotal = calcSubtotal(lineItems);
     const tax = calcTax(subtotal, input.taxRateBps);
     const total = calcTotal(subtotal, tax);
     if (input.type === "credit_note") {
@@ -148,21 +196,27 @@ export async function createDocument(input: {
       const project = await one<{ profitSplitRuleId: string | null }>("select profit_split_rule_id from projects where id = $1", [input.projectId]);
       profitSplitRuleId = project?.profitSplitRuleId ?? null;
     }
-    const documentNumber = await nextDocumentNumber(input.type);
+    const issuedAt = input.issuedAt ?? todayYmd();
+    const offer = input.type === "quote" || input.type === "proposal";
+    const signatoryId = input.signatoryId !== undefined ? input.signatoryId : ((await defaultSignatoryFor(input.type))?.id ?? null);
+    const fee = feeColumns(input.serverFee);
     const doc = await must<DocumentRecord>(
       "Document",
       `insert into documents (type, client_id, product_id, project_id, deal_id, profit_split_rule_id, document_number,
          currency, subtotal_cents, tax_rate_bps, tax_cents, total_cents, payment_terms, notes, due_at, issued_at,
-         external_ref, credit_for_id, hosting_subscription_id, created_by)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15, ${ISSUE_DATE_SQL("$16")}, $17,$18,$19,$20) returning *`,
+         external_ref, credit_for_id, hosting_subscription_id, created_by,
+         title, overview, scope, recipient, body, valid_until, signatory_id, terms,
+         server_fee_cents, server_fee_cycle, server_fee_client_chooses, server_fee_label)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15, ${ISSUE_DATE_SQL("$16")}, $17,$18,$19,$20,
+         $21, $22, $23::jsonb, $24, $25, $26, $27, $28::jsonb, $29, $30, $31, $32) returning *`,
       [
         input.type,
-        input.clientId,
+        input.clientId ?? null,
         input.productId ?? null,
         input.projectId ?? null,
         input.dealId ?? null,
         profitSplitRuleId,
-        documentNumber,
+        draftNumber(input.type),
         input.currency ?? "BHD",
         subtotal,
         input.taxRateBps,
@@ -171,19 +225,33 @@ export async function createDocument(input: {
         input.paymentTerms ?? null,
         input.notes ?? null,
         input.dueAt ?? null,
-        input.issuedAt ?? todayYmd(),
+        issuedAt,
         input.externalRef ?? null,
         input.creditForId ?? null,
         input.hostingSubscriptionId ?? null,
         input.createdBy,
+        input.title ?? null,
+        input.overview ?? null,
+        JSON.stringify(input.scope ?? []),
+        input.recipient ?? null,
+        input.body ?? null,
+        input.validUntil ?? (offer ? addDaysYmd(issuedAt, DEFAULT_VALIDITY_DAYS) : null),
+        signatoryId,
+        input.terms ? JSON.stringify(input.terms) : null,
+        ...fee,
       ],
     );
-    await replaceLineItems(doc.id, input.lineItems);
+    await replaceLineItems(doc.id, lineItems);
     await recordStatus(doc.id, null, "draft", input.createdBy);
     // Item 37: every quote sits in the pipeline.
-    if (doc.type === "quote") return { ...doc, dealId: await ensureDealForQuote(doc, input.lineItems[0]?.description, input.createdBy) };
+    if (doc.type === "quote") return { ...doc, dealId: await ensureDealForQuote(doc, input.title ?? lineItems[0]?.description, input.createdBy) };
     return doc;
   });
+}
+
+function feeColumns(fee: OfficialFields["serverFee"]): [number | null, RecurringExpenseCycle | null, boolean, string | null] {
+  if (!fee) return [null, null, false, null];
+  return [fee.amountCents, fee.cycle, fee.clientChooses, fee.label?.trim() || null];
 }
 
 /**
@@ -205,16 +273,25 @@ export async function updateDocument(
     dueAt?: string | null;
     issuedAt?: string | null;
     externalRef?: string | null;
-  },
+    /** The fee changed on a document whose fee is already a hosting subscription: update the subscription too (section 7.2). */
+    applyFeeToSubscription?: boolean;
+  } & OfficialFields,
   changedBy: string,
 ): Promise<DocumentRecord> {
   return tx(async () => {
     const doc = await must<DocumentRecord>("Document", "select * from documents where id = $1 for update", [documentId]);
     if (doc.status === "void") throw new ValidationError("Void documents can't be edited.");
-    const locked = patch.lineItems !== undefined || patch.taxRateBps !== undefined || patch.currency !== undefined || patch.clientId !== undefined;
+    // Signed is locked: what was signed can't change (section 5.2). A change is a new version.
+    const printed = Object.keys(patch).filter((k) => patch[k as keyof typeof patch] !== undefined && !["projectId", "externalRef", "applyFeeToSubscription"].includes(k));
+    if (doc.signedAt && printed.length) throw new ValidationError("It's signed, so it's locked. Revise it to make a new version.");
+    const official: (keyof OfficialFields)[] = ["title", "overview", "scope", "recipient", "body", "validUntil", "signatoryId", "terms", "serverFee"];
+    const locked =
+      patch.lineItems !== undefined || patch.taxRateBps !== undefined || patch.currency !== undefined || patch.clientId !== undefined || official.some((k) => patch[k] !== undefined);
     if (locked && doc.status !== "draft") {
-      throw new ValidationError("Line items, tax, currency and client can only be changed while the document is a draft.");
+      throw new ValidationError("The content, line items, tax, currency and client can only be changed while the document is a draft.");
     }
+    if (patch.lineItems && NO_MONEY.includes(doc.type)) patch = { ...patch, lineItems: [] };
+    if (patch.lineItems || patch.clientId !== undefined) checkContent(doc.type, { clientId: patch.clientId !== undefined ? patch.clientId : doc.clientId, lineItems: patch.lineItems ?? [{ description: "x", quantity: 1, unitPriceCents: 0 }] });
     if (doc.status === "archived" && (patch.projectId !== undefined || patch.dueAt !== undefined || patch.paymentTerms !== undefined)) {
       throw new ValidationError("Archived documents only allow the issue date, reference and notes to change.");
     }
@@ -271,21 +348,62 @@ export async function updateDocument(
         [documentId, patch.projectId],
       );
     }
+    let result = updated;
+    if (official.some((k) => patch[k] !== undefined)) result = await writeOfficialFields(documentId, patch, changedBy);
     if (doc.type === "quote" && updated.dealId && updated.totalCents !== doc.totalCents) await syncDealValue(updated);
     await logAudit({ entityType: "document", entityId: documentId, action: "update", summary: `Edited ${doc.documentNumber}`, changedBy });
-    return updated;
+    return result;
   });
+}
+
+async function writeOfficialFields(documentId: string, patch: OfficialFields & { applyFeeToSubscription?: boolean }, by: string): Promise<DocumentRecord> {
+  const doc = await must<DocumentRecord>("Document", "select * from documents where id = $1", [documentId]);
+  const set: string[] = [];
+  const values: unknown[] = [documentId];
+  const put = (col: string, v: unknown, cast = "") => {
+    values.push(v);
+    set.push(`${col} = $${values.length}${cast}`);
+  };
+  if (patch.title !== undefined) put("title", patch.title);
+  if (patch.overview !== undefined) put("overview", patch.overview);
+  if (patch.scope !== undefined) put("scope", JSON.stringify(patch.scope), "::jsonb");
+  if (patch.recipient !== undefined) put("recipient", patch.recipient);
+  if (patch.body !== undefined) put("body", patch.body);
+  if (patch.validUntil !== undefined) put("valid_until", patch.validUntil);
+  if (patch.signatoryId !== undefined) put("signatory_id", patch.signatoryId);
+  if (patch.terms !== undefined) put("terms", patch.terms ? JSON.stringify(patch.terms) : null, "::jsonb");
+  if (patch.serverFee !== undefined) {
+    const [cents, cycle, chooses, label] = feeColumns(patch.serverFee);
+    put("server_fee_cents", cents);
+    put("server_fee_cycle", cycle);
+    put("server_fee_client_chooses", chooses);
+    put("server_fee_label", label);
+    const changed = cents !== doc.serverFeeCents || cycle !== doc.serverFeeCycle;
+    if (changed && doc.serverFeeSubscriptionId && patch.applyFeeToSubscription && cents !== null && cycle) {
+      await query("update hosting_subscriptions set amount_cents = $2, cycle = $3, currency = $4 where id = $1", [doc.serverFeeSubscriptionId, cents, cycle, doc.currency]);
+      await logAudit({ entityType: "hosting_subscription", entityId: doc.serverFeeSubscriptionId, action: "update", summary: `Server fee changed on ${doc.documentNumber}`, changedBy: by });
+    }
+  }
+  return must<DocumentRecord>("Document", `update documents set ${set.join(", ")}, updated_at = now() where id = $1 returning *`, values);
 }
 
 export async function transitionDocumentStatus(
   documentId: string,
   to: DocumentStatus,
   changedBy: string | null,
-  opts: { reason?: string | null } = {},
+  opts: { reason?: string | null; issuing?: boolean } = {},
 ): Promise<DocumentRecord> {
   return tx(async () => {
     const doc = await must<DocumentRecord>("Document", "select * from documents where id = $1 for update", [documentId]);
     if (doc.status === to) return doc;
+    if (doc.status === "draft" && to === "sent" && !opts.issuing) {
+      if (MUST_SIGN.includes(doc.type)) throw new ValidationError(`A ${DOC_TYPE[doc.type].toLowerCase()} is issued by signing it. Open it and choose Sign and Issue.`);
+      // Invoices and credit notes can be issued unsigned (hosting fees are issued this way): they take their number now.
+      if (isDraftNumber(doc.documentNumber)) {
+        await query("update documents set document_number = $2 where id = $1", [documentId, await numberForIssue(doc)]);
+      }
+    }
+    if (doc.signedAt && to === "draft") throw new ValidationError("It's signed. Void it, or revise it to make a new version.");
     if (!canTransition(doc.type, doc.status, to)) {
       throw new ValidationError(`A ${DOC_TYPE[doc.type].toLowerCase()} can't go from ${DOC_STATUS[doc.status].label} to ${DOC_STATUS[to].label}.`);
     }
@@ -334,6 +452,8 @@ export async function deleteDocument(documentId: string, deletedBy: string): Pro
   const doc = await getDocumentById(documentId);
   if (!doc) throw new NotFoundError("Document");
   if (doc.status !== "draft" && doc.status !== "void") throw new ValidationError("Only drafts can be deleted. Void a sent document instead.");
+  // What was signed stays on record (PRD addendum 1.2, section 5.2).
+  if (doc.signedAt) throw new ValidationError("It was signed, so it stays on record. It's void and left out of every total.");
   const dependants = await one<{ documentNumber: string }>(
     "select document_number from documents where credit_for_id = $1 or converted_from_quotation_id = $1 limit 1",
     [documentId],
@@ -383,8 +503,9 @@ export async function convertQuotationToInvoice(
 ): Promise<DocumentRecord> {
   const quote = await getDocumentById(quotationId);
   if (!quote) throw new NotFoundError("Quotation");
-  if (quote.type !== "quote") throw new ValidationError("Only quotations can be converted to invoices.");
-  if (["void", "declined"].includes(quote.status)) throw new ValidationError(`This quote is ${DOC_STATUS[quote.status].label.toLowerCase()}.`);
+  // Quotes and contracts (PRD addendum 1.2, section 8.2) become invoices.
+  if (quote.type !== "quote" && quote.type !== "contract") throw new ValidationError("Only quotations and contracts can be converted to invoices.");
+  if (["void", "declined", "draft"].includes(quote.status)) throw new ValidationError(`This ${DOC_TYPE[quote.type].toLowerCase()} is ${DOC_STATUS[quote.status].label.toLowerCase()}.`);
   const invoiced = await quoteInvoicedCents(quotationId);
   const left = quote.totalCents - invoiced;
   const mode = opts.mode ?? (invoiced > 0 ? "balance" : "full");
@@ -422,14 +543,18 @@ export async function convertQuotationToInvoice(
       paymentTerms: quote.paymentTerms,
       notes: quote.notes,
       lineItems: items,
+      title: quote.title,
       createdBy: convertedBy,
     });
     await query("update documents set converted_from_quotation_id = $2 where id = $1", [invoice.id, quote.id]);
+    // The server fee isn't on the invoice: it becomes its own hosting subscription (section 7.2).
+    const { ensureServerFeeSubscription } = await import("./officialDocs");
+    await ensureServerFeeSubscription(quote, invoice.id, convertedBy);
     await logAudit({
       entityType: "document",
       entityId: invoice.id,
       action: "create",
-      summary: `Created invoice ${invoice.documentNumber} (${mode === "full" ? "in full" : mode === "deposit" ? "deposit" : "balance"}) from quotation ${quote.documentNumber}`,
+      summary: `Created an invoice (${mode === "full" ? "in full" : mode === "deposit" ? "deposit" : "balance"}) from ${DOC_TYPE[quote.type].toLowerCase()} ${quote.documentNumber}`,
       changedBy: convertedBy,
     });
     return { ...invoice, convertedFromQuotationId: quote.id };
