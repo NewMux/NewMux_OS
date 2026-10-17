@@ -1233,6 +1233,14 @@ select t.id, 1, t.name,
   coalesce((select jsonb_agg(jsonb_build_object('title', c.title, 'body', c.body, 'defaultOn', c.default_on) order by c.sort_order)
             from terms_clauses c where c.template_id = t.id), '[]'::jsonb)
 from terms_templates t;
+
+-- Same as every table (0007_rls.sql): the app connects as the owner; RLS with
+-- no policies keeps Supabase's public API out.
+alter table signatories enable row level security;
+alter table terms_templates enable row level security;
+alter table terms_clauses enable row level security;
+alter table terms_template_versions enable row level security;
+alter table document_pdfs enable row level security;
 insert into schema_migrations (name) values ('0019_official_documents.sql');
 commit;
 
